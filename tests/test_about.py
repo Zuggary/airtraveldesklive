@@ -190,7 +190,7 @@ class TestAdsTxtAndSiteIntegration(unittest.TestCase):
         self.assertIn("14 CFR 260.6. Last checked 2026-11-14.", stuck_html)
 
         app_js = (ROOT / "app.js").read_text(encoding="utf-8")
-        self.assertIn("Purpose: official links and conditions for this airport", app_js)
+        self.assertIn("This guide is independent and not affiliated with the airport or the FAA.", app_js)
         self.assertIn("Sources:", app_js)
         self.assertIn("Last checked ", app_js)
 

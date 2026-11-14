@@ -74,18 +74,27 @@ class TestAirportGuideIntegration(unittest.TestCase):
         )
         for required in (
             "Airport guide",
-            "Official airport pages",
-            "(we could not check this link by script)",
-            "Right now at ",
-            "Near the airport",
-            "Hotels and car rental are listed below.",
-            "Not on this page",
-            "Food, charging and sleeping notes appear only where the airport publishes them; follow the links above.",
+            "Official pages for ",
+            "This guide is independent and not affiliated with the airport or the FAA.",
+            "Open the full ",
+            '"airports/"',
+            "guide-pills",
+            "guide-pill",
+            "(unchecked)",
+            "we could not check this link by script",
+            "Right now: ",
             "stuck.html",
             "Missed a flight? Open the I'm stuck guide",
             "Links from each airport operator's own website",
         ):
             self.assertIn(required, app_js)
+
+        for removed in (
+            "Purpose: official links and conditions for this airport",
+            "Hotels and car rental are listed below.",
+            "Not on this page",
+        ):
+            self.assertNotIn(removed, app_js)
 
     def test_sw_js_and_privacy_html_updated(self):
         sw_js = (ROOT / "sw.js").read_text(encoding="utf-8")

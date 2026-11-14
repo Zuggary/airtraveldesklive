@@ -195,11 +195,19 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 name = self.airports_data["airports"][code]["name"]
                 self.assertIn(code, p.visible_text, fname)
                 self.assertIn(name, p.visible_text, fname)
+                self.assertIn('id="status-chip"', text, fname)
+                self.assertIn('id="weather-chip"', text, fname)
+                self.assertIn("I'm stuck guide", p.visible_text, fname)
                 self.assertIn("what you may be owed", vis_lower, fname)
                 self.assertIn("not legal advice", vis_lower, fname)
                 self.assertIn("© OpenStreetMap contributors", p.visible_text, fname)
                 self.assertIn("We show no prices and do not know what is available", p.visible_text, fname)
                 self.assertIn("Live status needs JavaScript; see nasstatus.faa.gov", p.visible_text, fname)
+                self.assertIn("About this page", p.visible_text, fname)
+                self.assertIn("independent and not affiliated with the airport, the faa or any airline", vis_lower, fname)
+                self.assertIn('href="../about.html"', text, fname)
+                self.assertIn('class="stuck-note"', text, fname)
+                self.assertIn('class="guide-pills"', text, fname)
 
                 guide_links = self.guide["airports"][code]["links"]
                 hrefs = {a.get("href") for a in p.anchors}
@@ -211,9 +219,27 @@ class TestAirportPagesGenerator(unittest.TestCase):
                     self.assertIn("Fewer than 4 official links", text)
                 if any(item.get("verified") is False for item in guide_links):
                     self.assertIn("we could not check this link by script", text, code)
+                    self.assertIn("(unchecked)", p.visible_text, code)
+
+                places_entry = (self.places.get("airports") or {}).get(code) or {}
+                hotels = [x for x in (places_entry.get("hotels") or []) if x.get("name")]
+                cars = [x for x in (places_entry.get("cars") or []) if x.get("name")]
+                if len(hotels) > 5:
+                    self.assertIn(f"Show all {len(hotels)} hotels", p.visible_text, code)
+                else:
+                    self.assertNotIn(" hotels</summary>", text, code)
+                if len(cars) > 5:
+                    self.assertIn(f"Show all {len(cars)} car rental places", p.visible_text, code)
+                else:
+                    self.assertNotIn(" car rental places</summary>", text, code)
 
                 if code in self.bts.get("airports", {}):
+                    self.assertIn('class="glance-ontime"', text, code)
+                    self.assertIn("On-time arrivals, ", p.visible_text, code)
+                    self.assertIn("flights counted", p.visible_text, code)
                     self.assertIn("BTS counts a flight on time if it arrives less than 15 minutes late", text, code)
+                else:
+                    self.assertNotIn('class="glance-ontime"', text, code)
 
     def test_missing_bts_airport_omits_bts_definition_and_rate(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -245,7 +271,10 @@ class TestAirportPagesGenerator(unittest.TestCase):
             self.assertEqual(res.returncode, 0, res.stderr)
             sfo_text = (out / "SFO.html").read_text(encoding="utf-8")
             self.assertNotIn("BTS counts a flight on time", sfo_text)
-            self.assertNotIn("On-time arrivals (", sfo_text)
+            self.assertNotIn("On-time arrivals, ", sfo_text)
+            self.assertNotIn('class="glance-ontime"', sfo_text)
+            self.assertIn('id="status-chip"', sfo_text)
+            self.assertIn("About this page", sfo_text)
 
     def test_deterministic_output_and_sitemap_block(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -339,8 +368,8 @@ class TestPartBWiringAndWording(unittest.TestCase):
     def test_airport_guide_heading_and_wiring(self) -> None:
         app_js = (ROOT / "app.js").read_text(encoding="utf-8")
         self.assertIn("· official pages", app_js)
-        self.assertIn("Full page for ", app_js)
-        self.assertIn("../airports/", app_js)
+        self.assertIn("Open the full ", app_js)
+        self.assertIn('"airports/"', app_js)
 
         css = (ROOT / "style.css").read_text(encoding="utf-8")
         self.assertIn("/* AN16 airport pages */", css)

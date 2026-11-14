@@ -326,16 +326,21 @@
     return { now: now, next3h: next3h };
   }
 
+  function faaPlainStatus(a) {
+    var evs = a.events || [];
+    if (evs.length) {
+      return evs.map(function (ev) { return A.impactText(ev, a.short || a.code); }).join(" ");
+    }
+    if (a.level === "stop") { return "FAA ground stop in effect"; }
+    if (a.level === "delay") { return "FAA delay program in effect"; }
+    return "No FAA delay or ground stop";
+  }
+
   function renderGuideNow(box, a) {
     if (!box) { return; }
     box.textContent = "";
-    box.appendChild(el("h6", "guide-subhead", "Right now at " + (a.short || a.code)));
-    appendFaaStatus(box, a);
-    var wx = wxLines(a);
-    if (wx) {
-      box.appendChild(el("p", "guide-wx", wx.now));
-      if (wx.next3h) { box.appendChild(el("p", "guide-wx", wx.next3h)); }
-    }
+    var upd = (D.cards && D.cards.updated_utc) || (D.state && D.state.updated_utc);
+    box.appendChild(el("p", "guide-now-line", "Right now: " + faaPlainStatus(a) + " \u00B7 updated " + ageText(upd)));
   }
 
   function renderCardLive() {
@@ -445,26 +450,42 @@
   function guideBlock(a) {
     var wrap = el("div", "guide-wrap");
     var det = el("details", "stuck-details airport-guide");
-    det.appendChild(el("summary", null, "Airport guide: " + (a.name || a.short || a.code) + " (" + a.code + ") · official pages"));
+    var airportName = a.name || a.short || a.code;
+    det.appendChild(el("summary", null, "Airport guide: " + airportName + " (" + a.code + ") · official pages"));
 
     var body = el("div", "guide-body");
-    body.appendChild(el("p", "guide-text guide-purpose", "Purpose: official links and conditions for this airport"));
+    body.appendChild(el(
+      "p",
+      "guide-lead",
+      "Official pages for " + airportName + " (" + a.code + "). This guide is independent and not affiliated with the airport or the FAA."
+    ));
+
+    var primaryRow = el("p", "guide-primary-row");
+    var fullLink = el("a", "btn btn-primary guide-full-btn", "Open the full " + a.code + " page");
+    fullLink.href = "airports/" + a.code + ".html";
+    primaryRow.appendChild(fullLink);
+    body.appendChild(primaryRow);
+
     var entry = D.guide && D.guide.airports && D.guide.airports[a.code];
     var checked = (D.guide && D.guide.checked_utc) ? String(D.guide.checked_utc).slice(0, 10) : "";
 
     if (!entry) {
       body.appendChild(el("p", "places-empty", "Official airport guide links are not available right now."));
     } else {
-      var heading = (entry.operator ? entry.operator + " — " : "") + "Official airport pages" + (checked ? " (checked " + checked + ")" : "");
-      body.appendChild(el("h6", "guide-subhead", heading));
-
-      var ul = el("ul", "guide-links");
+      var ul = el("ul", "guide-pills");
       (entry.links || []).forEach(function (item) {
         if (!item || !A.safeUrl(item.url)) { return; }
-        var label = item.label || "Airport website";
-        if (item.verified === false) { label += " (we could not check this link by script)"; }
-        var li = el("li", "guide-link-item");
-        li.appendChild(link(item.url, label, "tap guide-link"));
+        var baseLabel = item.label || "Airport website";
+        var unchecked = item.verified === false;
+        var text = unchecked ? baseLabel + " (unchecked)" : baseLabel;
+        var li = el("li", "guide-pill-item");
+        var aLink = link(item.url, text, "tap guide-pill");
+        if (unchecked) {
+          var note = baseLabel + " — we could not check this link by script";
+          aLink.title = note;
+          aLink.setAttribute("aria-label", note);
+        }
+        li.appendChild(aLink);
         ul.appendChild(li);
       });
       body.appendChild(ul);
@@ -473,21 +494,11 @@
     var nowBox = el("div", "guide-now");
     body.appendChild(nowBox);
 
-    body.appendChild(el("h6", "guide-subhead", "Near the airport"));
-    body.appendChild(el("p", "guide-text", "Hotels and car rental are listed below."));
-
-    body.appendChild(el("h6", "guide-subhead", "Not on this page"));
-    body.appendChild(el("p", "guide-text", "Food, charging and sleeping notes appear only where the airport publishes them; follow the links above."));
-
-    var actions = el("div", "guide-actions");
-    var fullLink = el("a", "btn btn-secondary guide-action", "Full page for " + (a.name || a.short || a.code));
-    fullLink.href = "../airports/" + a.code + ".html";
-    actions.appendChild(fullLink);
-    var stuckLink = el("a", "btn btn-secondary guide-action", "Missed a flight? Open the I'm stuck guide");
+    var stuckRow = el("p", "guide-stuck-row");
+    var stuckLink = el("a", "tap guide-stuck-link", "Missed a flight? Open the I'm stuck guide");
     stuckLink.href = "stuck.html";
-    actions.appendChild(stuckLink);
-    actions.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you may be owed", "btn btn-primary guide-action"));
-    body.appendChild(actions);
+    stuckRow.appendChild(stuckLink);
+    body.appendChild(stuckRow);
 
     det.appendChild(body);
     wrap.appendChild(det);

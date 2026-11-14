@@ -125,7 +125,7 @@ def _render_footer() -> str:
 
 
 def _right_now_script(code: str) -> str:
-    """Inline client-side script that populates #right-now from ../data/airports.json."""
+    """Inline client-side script that populates #status-chip, #weather-chip, and #right-now from ../data/airports.json."""
     code_json = json.dumps(code)
     return "\n".join([
         "  <script>",
@@ -133,10 +133,12 @@ def _right_now_script(code: str) -> str:
         '    "use strict";',
         f"    var CODE = {code_json};",
         '    var box = document.getElementById("right-now");',
+        '    var statusChip = document.getElementById("status-chip");',
+        '    var wxChip = document.getElementById("weather-chip");',
         "    if (!box) { return; }",
-        '    var LEVEL_TEXT = { clear: "Clear — no FAA delay or ground stop listed.", delay: "Delay — FAA delay program in effect.", stop: "Ground stop — FAA ground stop in effect." };',
-        '    var BADGE_CLASS = { clear: "badge badge--clear", delay: "badge badge--delay", stop: "badge badge--stop" };',
-        '    var BADGE_LABEL = { clear: "Clear", delay: "Delay", stop: "Ground stop" };',
+        '    var LEVEL_TEXT = { clear: "Clear — no FAA delay or ground stop listed.", delay: "Delays — FAA delay program in effect.", stop: "Ground stop — FAA ground stop in effect.", closed: "Closed — FAA airport closure in effect." };',
+        '    var BADGE_CLASS = { clear: "badge badge--clear", delay: "badge badge--delay", stop: "badge badge--stop", closed: "badge badge--stop" };',
+        '    var BADGE_LABEL = { clear: "Clear", delay: "Delays", stop: "Ground stop", closed: "Closed" };',
         "    function el(tag, cls, text) {",
         "      var n = document.createElement(tag);",
         "      if (cls) { n.className = cls; }",
@@ -149,15 +151,41 @@ def _right_now_script(code: str) -> str:
         "      var m = Math.max(0, Math.floor((Date.now() - ms) / 60000));",
         '      return "updated " + (m < 1 ? "less than 1 min ago" : m + " min ago");',
         "    }",
+        "    function setUnavailable() {",
+        "      if (statusChip) {",
+        '        statusChip.className = "badge status-chip";',
+        '        statusChip.textContent = "Status unavailable";',
+        "      }",
+        "      if (wxChip) { wxChip.hidden = true; }",
+        "    }",
         "    function render(data) {",
         "      var a = data && data.airports && data.airports[CODE];",
         "      if (!a) {",
+        "        setUnavailable();",
         "        box.textContent = \"\";",
         '        box.appendChild(el("p", null, "Airport status is not available right now. See nasstatus.faa.gov."));',
         "        return;",
         "      }",
+        "      var hasClosure = Array.isArray(a.events) && a.events.some(function (ev) { return ev && ev.kind === \"closure\"; });",
+        '      var lvl = (a.level === "closed" || hasClosure) ? "closed" : (LEVEL_TEXT[a.level] ? a.level : "clear");',
+        "      if (statusChip) {",
+        '        statusChip.className = BADGE_CLASS[lvl] + " status-chip";',
+        "        statusChip.textContent = BADGE_LABEL[lvl];",
+        "      }",
+        "      var w = a.wx;",
+        "      if (wxChip) {",
+        "        if (w && w.now_text) {",
+        '          var chipWx = "Weather: " + w.now_text;',
+        "          if (w.wind_kt != null) {",
+        '            chipWx += ", " + Math.round(w.wind_kt) + " kt";',
+        "          }",
+        "          wxChip.textContent = chipWx;",
+        "          wxChip.hidden = false;",
+        "        } else {",
+        "          wxChip.hidden = true;",
+        "        }",
+        "      }",
         "      box.textContent = \"\";",
-        '      var lvl = LEVEL_TEXT[a.level] ? a.level : "clear";',
         '      var statusRow = el("p", "card-status");',
         '      statusRow.appendChild(el("span", BADGE_CLASS[lvl], BADGE_LABEL[lvl]));',
         "      box.appendChild(statusRow);",
@@ -165,7 +193,6 @@ def _right_now_script(code: str) -> str:
         "      if (a.reason) {",
         '        box.appendChild(el("p", "event-reason", "Reason: " + a.reason));',
         "      }",
-        "      var w = a.wx;",
         "      if (w && w.now_text) {",
         '        var wxText = "Weather now: " + w.now_text;',
         "        if (w.wind_kt != null) {",
@@ -185,6 +212,7 @@ def _right_now_script(code: str) -> str:
         '      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })',
         "      .then(render)",
         "      .catch(function () {",
+        "        setUnavailable();",
         "        box.textContent = \"\";",
         '        box.appendChild(el("p", null, "Could not load live status right now. See nasstatus.faa.gov."));',
         "      });",
@@ -193,27 +221,52 @@ def _right_now_script(code: str) -> str:
     ])
 
 
-def _render_place_list(items: list[dict[str, Any]], empty_text: str) -> str:
-    if not items:
-        return f'        <p class="places-empty">{_esc(empty_text)}</p>'
-    lines = ['        <ul class="airport-places">']
+def _render_place_ul(items: list[dict[str, Any]], extra_cls: str = "") -> str:
+    cls = f"airport-places {extra_cls}".strip()
+    lines = [f'          <ul class="{cls}">']
     for item in items:
         name = str(item.get("name") or "").strip()
-        if not name:
-            continue
         km = item.get("km")
-        dist = f"{km} km from the airport" if km is not None else "Within 5 km of the airport"
+        dist = f"{km} km" if km is not None else "Within 5 km"
         website = _safe_http_url(item.get("website"))
-        lines.append('          <li class="place">')
-        lines.append(f'            <span class="place-name">{_esc(name)}</span>')
-        lines.append(f'            <span class="place-dist">{_esc(dist)}</span>')
+        lines.append('            <li class="place-row">')
+        lines.append(f'              <span class="place-name">{_esc(name)}</span>')
+        lines.append(f'              <span class="place-dist-chip">{_esc(dist)}</span>')
         if website:
             lines.append(
-                f'            <a class="tap place-link" href="{_esc(website)}" target="_blank" rel="noopener noreferrer">Website</a>'
+                f'              <a class="tap place-link" href="{_esc(website)}" target="_blank" rel="noopener noreferrer">Website</a>'
             )
-        lines.append("          </li>")
-    lines.append("        </ul>")
+        lines.append("            </li>")
+    lines.append("          </ul>")
     return "\n".join(lines)
+
+
+def _render_place_list(items: list[dict[str, Any]], empty_text: str, show_all_label: str) -> str:
+    valid = [item for item in items if isinstance(item, dict) and str(item.get("name") or "").strip()]
+    if not valid:
+        return f'          <p class="places-empty">{_esc(empty_text)}</p>'
+    head = valid[:5]
+    rest = valid[5:]
+    parts = [_render_place_ul(head)]
+    if rest:
+        parts.append('          <details class="places-more">')
+        parts.append(f'            <summary class="tap places-more-summary">Show all {len(valid)} {_esc(show_all_label)}</summary>')
+        parts.append(_render_place_ul(rest, "airport-places--more"))
+        parts.append("          </details>")
+    return "\n".join(parts)
+
+
+def _bts_comparison_text(ontime: Any, ly_ontime: Any, ly_month: str) -> str:
+    """Compute exact point difference vs last year's month from bts.json values."""
+    if ly_ontime is None or not ly_month:
+        return ""
+    diff = round(float(ontime) - float(ly_ontime), 2)
+    if abs(diff) < 0.005:
+        return f"Same as {ly_month}"
+    pts = f"{abs(diff):.2f}".rstrip("0").rstrip(".")
+    unit = "point" if pts == "1" else "points"
+    direction = "better" if diff > 0 else "worse"
+    return f"{pts} {unit} {direction} than {ly_month}"
 
 
 def render_airport_page(
@@ -262,40 +315,59 @@ def render_airport_page(
         glance_rows.append(("Time zone", tz))
     if operator:
         glance_rows.append(("Operator", operator))
-    if has_bts:
-        ontime_str = f"{bts_entry['ontime']}%"
-        if bts_entry.get("ly_ontime") is not None and bts_ly_month:
-            ontime_str += f" (vs {bts_entry['ly_ontime']}% in {bts_ly_month})"
-        glance_rows.append((f"On-time arrivals ({bts_month})", ontime_str))
-        if bts_entry.get("flights") is not None:
-            glance_rows.append((f"Flights counted ({bts_month})", f"{int(bts_entry['flights']):,}"))
 
-    glance_html = ['        <dl class="glance-list">']
+    glance_facts = ['          <dl class="glance-list">']
     for label, val in glance_rows:
-        glance_html.append('          <div class="glance-row">')
-        glance_html.append(f"            <dt>{_esc(label)}</dt>")
-        glance_html.append(f"            <dd>{_esc(val)}</dd>")
-        glance_html.append("          </div>")
-    glance_html.append("        </dl>")
+        glance_facts.append('            <div class="glance-row">')
+        glance_facts.append(f"              <dt>{_esc(label)}</dt>")
+        glance_facts.append(f"              <dd>{_esc(val)}</dd>")
+        glance_facts.append("            </div>")
+    glance_facts.append("          </dl>")
+
     if has_bts:
-        glance_html.append(
-            f'        <p class="small">{BTS_DEFINITION_SHORT}; source BTS, {_esc(bts_month)}.</p>'
+        comp_text = _bts_comparison_text(bts_entry["ontime"], bts_entry.get("ly_ontime"), bts_ly_month)
+        ontime_lines = [
+            '          <div class="glance-ontime">',
+            f'            <p class="glance-ontime-num">{_esc(bts_entry["ontime"])}%</p>',
+            f'            <p class="glance-ontime-label">On-time arrivals, {_esc(bts_month)}</p>',
+        ]
+        if comp_text:
+            ontime_lines.append(f'            <p class="glance-ontime-comp">{_esc(comp_text)}</p>')
+        if bts_entry.get("flights") is not None:
+            ontime_lines.append(
+                f'            <p class="glance-ontime-flights">{int(bts_entry["flights"]):,} flights counted</p>'
+            )
+        ontime_lines.append(
+            f'            <p class="small">{BTS_DEFINITION_SHORT}; source BTS, {_esc(bts_month)}.</p>'
         )
+        ontime_lines.append("          </div>")
+        glance_html = [
+            '        <div class="glance-grid">',
+            *glance_facts,
+            *ontime_lines,
+            "        </div>",
+        ]
+    else:
+        glance_html = ['        <div class="glance-grid glance-grid--single">', *glance_facts, "        </div>"]
 
     # Official pages from airport-guide.json
     guide_links = [
         item for item in (guide_entry.get("links") or [])
         if isinstance(item, dict) and _safe_http_url(item.get("url"))
     ]
-    official_lines = ['        <ul class="guide-links">']
+    official_lines = ['        <ul class="guide-pills">']
     for item in guide_links:
         url = _safe_http_url(item.get("url"))
-        label = str(item.get("label") or "Airport website").strip()
-        if item.get("verified") is False:
-            label += " (we could not check this link by script)"
-        official_lines.append('          <li class="guide-link-item">')
+        base_label = str(item.get("label") or "Airport website").strip()
+        unchecked = item.get("verified") is False
+        pill_text = f"{base_label} (unchecked)" if unchecked else base_label
+        extra_attrs = ""
+        if unchecked:
+            note = f"{base_label} — we could not check this link by script"
+            extra_attrs = f' title="{_esc(note)}" aria-label="{_esc(note)}"'
+        official_lines.append('          <li class="guide-pill-item">')
         official_lines.append(
-            f'            <a class="tap guide-link" href="{_esc(url)}" target="_blank" rel="noopener noreferrer">{_esc(label)}</a>'
+            f'            <a class="tap guide-pill" href="{_esc(url)}" target="_blank" rel="noopener noreferrer"{extra_attrs}>{_esc(pill_text)}</a>'
         )
         official_lines.append("          </li>")
     official_lines.append("        </ul>")
@@ -332,10 +404,17 @@ def render_airport_page(
         _render_header(),
         '    <main id="main-content" class="airport-main">',
         f'      <h1 class="airport-page-title">{_esc(name)} ({_esc(code)}): delays, weather and traveller help</h1>',
-        (
-            f'      <p class="airport-purpose">Purpose: live delay status, weather, official operator pages, '
-            f'nearby hotels and car rental, and delay help for {_esc(name)} ({_esc(code)}).</p>'
-        ),
+        '      <div class="airport-summary-band">',
+        '        <div class="airport-summary-chips">',
+        '          <span id="status-chip" class="badge status-chip" aria-live="polite">Checking live status…</span>',
+        '          <span id="weather-chip" class="badge weather-chip" hidden></span>',
+        "        </div>",
+        f'        <p class="last-checked">Last checked: {_esc(build_date)}</p>',
+        '        <div class="airport-summary-actions">',
+        '          <a class="btn btn-primary" href="../index.html">Live board</a>',
+        '          <a class="btn btn-secondary" href="../stuck.html">I\'m stuck guide</a>',
+        "        </div>",
+        "      </div>",
         '      <section class="airport-section" aria-labelledby="glance-heading">',
         '        <h2 id="glance-heading">At a glance</h2>',
         *glance_html,
@@ -355,10 +434,16 @@ def render_airport_page(
         "      </section>",
         '      <section class="airport-section" aria-labelledby="places-heading">',
         '        <h2 id="places-heading">Hotels and car rental within 5 km</h2>',
-        "        <h3>Hotels within 5 km</h3>",
-        _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 5 km."),
-        "        <h3>Car rental within 5 km</h3>",
-        _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 5 km."),
+        '        <div class="places-columns">',
+        '          <div class="places-col">',
+        "            <h3>Hotels within 5 km</h3>",
+        _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 5 km.", "hotels"),
+        "          </div>",
+        '          <div class="places-col">',
+        "            <h3>Car rental within 5 km</h3>",
+        _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 5 km.", "car rental places"),
+        "          </div>",
+        "        </div>",
         (
             f'        <p class="credit">&copy; OpenStreetMap contributors. Data from {_esc(places_credit_date)}. '
             "Distances are straight-line. We show no prices and do not know what is available.</p>"
@@ -366,21 +451,26 @@ def render_airport_page(
         "      </section>",
         '      <section class="airport-section" aria-labelledby="stuck-heading">',
         '        <h2 id="stuck-heading">If you are stuck here</h2>',
+        '        <div class="stuck-note">',
         (
-            '        <p>If your flight is delayed or cancelled, walk through the step-by-step '
+            '          <p>If your flight is delayed or cancelled, walk through the step-by-step '
             '<a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a> for airline commitments, '
             'refund rules under 14 CFR 260.6, counter scripts and an email draft, or '
             f'<a class="tap" href="{DOWNTIME_URL}" target="_blank" rel="noopener noreferrer">'
             "check what you may be owed</a>. This is plain-language help, not legal advice; your airline decides "
             "every claim, voucher or reimbursement.</p>"
         ),
+        "        </div>",
         "      </section>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',
         '        <ul class="airport-sources">',
         *[f"          <li>{line}</li>" for line in source_items],
         "        </ul>",
-        f'        <p class="last-checked">Last checked: {_esc(build_date)}</p>',
+        "      </section>",
+        '      <section class="airport-section airport-about-note" aria-labelledby="about-page-heading">',
+        '        <h2 id="about-page-heading">About this page</h2>',
+        '        <p class="small">This page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="../about.html">About Air Travel Desk</a> for how these pages are made.</p>',
         "      </section>",
         "    </main>",
         _render_footer(),
