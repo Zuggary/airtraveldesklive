@@ -102,6 +102,21 @@ jobs:
         with:
           path: _site
 
+      # deploy-pages sometimes asks for the artifact a moment before GitHub lists it
+      # ("No artifacts named github-pages"). Wait briefly, and retry once if the first try fails.
+      - name: Wait for the artifact to register
+        run: sleep 10
+
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Retry deploy once
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 20
+
+      - name: Deploy to GitHub Pages (retry)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
