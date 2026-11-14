@@ -139,6 +139,8 @@ class TestSiteWiring(unittest.TestCase):
     def test_sw_cache_files_exist(self) -> None:
         sw = (ROOT / "sw.js").read_text(encoding="utf-8")
         for rel in re.findall(r'"\./([^"]+\.(?:html|js|css|svg|png))"', sw):
+            if rel.startswith("airports/"):
+                continue  # built in CI, git-ignored
             self.assertTrue((ROOT / rel).is_file(), rel)
 
 
