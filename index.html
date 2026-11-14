@@ -41,6 +41,18 @@
       </div>
       <p id="stale-notice" class="stale-notice" role="status" hidden>Data may be out of date</p>
 
+      <section class="live-section" aria-labelledby="live-heading">
+        <h2 id="live-heading" class="section-heading">Live video with voice</h2>
+        <div class="live-frame" id="live-frame">
+          <div class="live-gate">
+            <p>The live video plays from Twitch. Loading it contacts Twitch, which sets its own cookies.</p>
+            <button type="button" class="btn btn-primary" id="load-live">Load live video</button>
+            <p class="live-alt"><a href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Or watch on twitch.tv/airtraveldesklive</a></p>
+          </div>
+        </div>
+        <p class="desk-note">Nothing loads from Twitch until you press the button. If the stream is offline, the desk below still updates.</p>
+      </section>
+
       <section class="desk-section" aria-labelledby="desk-heading">
         <h2 id="desk-heading" class="section-heading">The desk</h2>
         <div class="desk-frame" id="desk-frame">
@@ -78,6 +90,16 @@
 
   <script src="app.js" defer></script>
   <script>
+  (function () {
+    var btn = document.getElementById("load-live"), box = document.getElementById("live-frame");
+    btn.addEventListener("click", function () {
+      var f = document.createElement("iframe");
+      f.src = "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true";
+      f.title = "Air Travel Desk live video on Twitch"; f.allowFullscreen = true;
+      f.setAttribute("allow", "autoplay; fullscreen"); f.className = "live-player";
+      box.innerHTML = ""; box.appendChild(f);
+    });
+  })();
   (function () {
     var frame = document.getElementById("desk-frame"), ifr = document.getElementById("desk-iframe");
     function fit() { var k = frame.clientWidth / 1280; ifr.style.transform = "scale(" + k + ")"; frame.style.height = (720 * k) + "px"; }
