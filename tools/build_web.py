@@ -101,11 +101,9 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
     except Exception:
         faa_events = [e for e in prev.get("events", []) if e.get("kind") != "squawk7700"]
         stale.append("FAA")
-    try:
-        adsb_events = feeds.parse_adsb(adsb_text if adsb_text is not None else feeds.fetch(feeds.ADSB_URL))
-    except Exception:
-        adsb_events = [e for e in prev.get("events", []) if e.get("kind") == "squawk7700"]
-        stale.append("adsb.lol")
+    # Emergency squawks (7700/7600/7500) are never shown: a single flight's trouble is not ours to publish
+    # (CoS rule, 2026-11-14). The adsb.lol emergency feed is no longer fetched.
+    adsb_events: list[dict] = []
 
     nws_by_airport: dict[str, list[str]] = {}
     for ev in faa_events:

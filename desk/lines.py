@@ -3,7 +3,10 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from desk.airports import nearest_airport, spoken
+from datetime import datetime, timezone
+
+from desk import screen, timefmt
+from desk.airports import TZ, nearest_airport, spoken
 
 _TZ_MAP = {
     "EST": "Eastern",
@@ -26,6 +29,29 @@ def _clean_time(text: str) -> str:
         return ""
     expanded = _TZ_RE.sub(lambda m: _TZ_MAP[m.group(1).upper()], text.strip())
     return expanded.rstrip(".").strip()
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _when_end(text: str, airport: str, zone: bool = True) -> str:
+    """FAA 'ground stop until' text -> '5:30 pm Eastern' in the airport's own zone; falls back to the cleaned text."""
+    now = _now()
+    iso = screen.parse_end_time(text, now) if text else None
+    if iso:
+        dt = datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        return timefmt.say_when(dt, TZ.get(airport.upper()), now, zone)
+    return _clean_time(text)
+
+
+def _when_reopen(text: str, airport: str, zone: bool = True) -> str:
+    """FAA 'Nov 14 at 14:15 UTC.' -> '6:15 am Pacific' (or 'tomorrow at ...') in the airport's own zone."""
+    now = _now()
+    dt = timefmt.parse_faa_when(text, now)
+    if dt is not None:
+        return timefmt.say_when(dt, TZ.get(airport.upper()), now, zone)
+    return _clean_time(text)
 
 
 def _parse_duration_minutes(text: str) -> Optional[int]:
@@ -84,7 +110,8 @@ def _ground_stop_line(change_type: str, event: dict[str, Any], prev: Optional[di
     name = spoken(event.get("airport", ""))
     fields = event.get("fields") or {}
     reason = (event.get("reason") or "").strip()
-    end_time = _clean_time(fields.get("end_time", ""))
+    ap = event.get("airport", "")
+    end_time = _when_end(fields.get("end_time", ""), ap)
     nws = _nws_suffix(event)
 
     if change_type == "cleared":
@@ -92,7 +119,7 @@ def _ground_stop_line(change_type: str, event: dict[str, Any], prev: Optional[di
 
     reason_part = f" for {reason}" if reason else ""
     if change_type == "updated" and prev:
-        old_end = _clean_time((prev.get("fields") or {}).get("end_time", ""))
+        old_end = _when_end((prev.get("fields") or {}).get("end_time", ""), ap, zone=False)
         if end_time and old_end and end_time != old_end:
             time_part = f", now until {end_time}, changed from {old_end}"
         elif end_time:
@@ -182,13 +209,14 @@ def _delay_line(change_type: str, event: dict[str, Any], prev: Optional[dict[str
 def _closure_line(change_type: str, event: dict[str, Any], prev: Optional[dict[str, Any]]) -> str:
     name = _airport_for_closure(event.get("airport", ""))
     fields = event.get("fields") or {}
-    reopen = _clean_time(fields.get("reopen", ""))
+    ap = event.get("airport", "")
+    reopen = _when_reopen(fields.get("reopen", ""), ap)
 
     if change_type == "cleared":
         return f"{name} has reopened, per the FAA."
 
     if change_type == "updated" and prev:
-        old_reopen = _clean_time((prev.get("fields") or {}).get("reopen", ""))
+        old_reopen = _when_reopen((prev.get("fields") or {}).get("reopen", ""), ap, zone=False)
         if reopen and old_reopen and reopen != old_reopen:
             return f"{name} closure updated, now reopening {reopen}, per the FAA."
         reopen_part = f", reopening {reopen}" if reopen else ""
@@ -224,11 +252,15 @@ def _plural(count: int, singular: str, plural: str) -> str:
     return f"{count} {singular if count == 1 else plural}"
 
 
-def recap(events: list[dict[str, Any]]) -> str:
-    """Format a summary recap line for active FAA events."""
+def _as_of(as_of: Optional[datetime]) -> str:
+    return f", as of {timefmt.say_when(as_of, timefmt.EASTERN, as_of)}" if as_of else ""
+
+
+def recap(events: list[dict[str, Any]], as_of: Optional[datetime] = None) -> str:
+    """Format a summary recap line for active FAA events. National lines use Eastern: 'as of 1:40 am Eastern'."""
     faa_events = [ev for ev in events if ev.get("source") == "FAA"]
     if not faa_events:
-        return "Right now there are no FAA delays."
+        return "Right now there are no FAA delays" + (_as_of(as_of)) + "."
 
     stops = [ev for ev in faa_events if ev.get("kind") == "ground_stop"]
     ground_delays = [ev for ev in faa_events if ev.get("kind") == "ground_delay"]
@@ -266,9 +298,22 @@ def recap(events: list[dict[str, Any]]) -> str:
         avg_str = (longest_ev.get("fields") or {})["avg"]
         return (
             f"{summary} The longest average delay is at "
-            f"{spoken(longest_ev.get('airport', ''))}, {avg_str}, per the FAA."
+            f"{spoken(longest_ev.get('airport', ''))}, {avg_str}, per the FAA{_as_of(as_of)}."
         )
-    return f"{summary[:-1]}, per the FAA."
+    return f"{summary[:-1]}, per the FAA{_as_of(as_of)}."
+
+
+_SENTENCE_WORDS = {"ground", "delay", "delays", "advisory", "arrival", "departure", "an", "the"}
+
+
+def _lower_first(text: str) -> str:
+    """Lowercase the first letter only when the sentence starts with an ordinary word ("Ground ...").
+
+    A name or a spelled code ("S N A airport", "LaGuardia", "Newark") keeps its capital."""
+    first = text.split(" ", 1)[0].strip(",.").lower()
+    if first in _SENTENCE_WORDS:
+        return text[0].lower() + text[1:]
+    return text
 
 
 def still(event: dict[str, Any]) -> str:
@@ -277,4 +322,4 @@ def still(event: dict[str, Any]) -> str:
     if text.startswith("New "):
         text = text[4:]
         text = text[0].upper() + text[1:]
-    return "Still in effect: " + text[0].lower() + text[1:]
+    return "Still in effect: " + _lower_first(text)

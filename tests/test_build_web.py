@@ -28,3 +28,11 @@ class TestBuildWeb(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNoSquawks(unittest.TestCase):
+    def test_squawks_never_published(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = build_web.build(Path(d), {}, (FX / "faa-1.xml").read_text(), (FX / "adsb-7700-synthetic.json").read_text(), {}, True)
+            self.assertFalse(any(e.get("kind") == "squawk7700" for e in p["events"]))
+            self.assertFalse(any("emergency" in l["text"].lower() for l in p["last_lines"]))
