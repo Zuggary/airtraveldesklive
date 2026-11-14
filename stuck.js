@@ -203,6 +203,8 @@
         causeNote: causeNote,
         message: airline.name + " is not listed on the DOT dashboard.",
         note: airline.note || "",
+        pageUrl: "airlines/" + airline.id + ".html",
+        pageLabel: "See what " + airline.name + " has committed to",
         rows: [],
         moneyNote: "If you pay out of pocket, any reimbursement is money you may be able to claim back only under the airline's contract of carriage or at its discretion.",
         sourceText: "Source: U.S. Department of Transportation, Airline Cancellation and Delay Dashboard (last updated " + updated + ").",
@@ -230,6 +232,8 @@
       kind: "listed",
       causeNote: causeNote,
       intro: airline.name + " has committed to the items marked Committed when it causes the delay or cancellation.",
+      pageUrl: "airlines/" + airline.id + ".html",
+      pageLabel: "See what " + airline.name + " has committed to",
       rows: rows,
       noNote: "No commitment means the airline has not committed to it on the dashboard. It may still help at its own discretion.",
       moneyNote: "If you pay out of pocket, any reimbursement is money you may be able to claim back under the airline's own commitments or policy.",
@@ -464,6 +468,13 @@
         dotLink.target = "_blank";
         dotLink.rel = "noopener noreferrer";
         secC.appendChild(dotLink);
+      }
+      if (cm.pageUrl) {
+        var pageP = el("p", "small");
+        var pageLink = el("a", "tap", cm.pageLabel);
+        pageLink.href = cm.pageUrl;
+        pageP.appendChild(pageLink);
+        secC.appendChild(pageP);
       }
       resultBody.appendChild(secC);
 

@@ -283,7 +283,7 @@ def _nav_chip(label: str, href: str, current: bool) -> str:
     return f'        <a class="chip" href="{href}"{attrs}>{label}</a>'
 
 
-def _render_header(current: str = "airports") -> str:
+def _render_header(current: str = "airports", airports_href: str = "index.html") -> str:
     return "\n".join([
         '  <a class="skip-link" href="#main-content">Skip to main content</a>',
         '  <div class="container">',
@@ -296,7 +296,7 @@ def _render_header(current: str = "airports") -> str:
         "      </div>",
         '      <nav class="header-nav" aria-label="Site navigation">',
         _nav_chip("Live board", "../index.html", current == "board"),
-        _nav_chip("Airports", "index.html", current == "airports"),
+        _nav_chip("Airports", airports_href, current == "airports"),
         _nav_chip("About", "../about.html", current == "about"),
         _nav_chip("Privacy", "../privacy.html", current == "privacy"),
         "      </nav>",
@@ -304,13 +304,18 @@ def _render_header(current: str = "airports") -> str:
     ])
 
 
-def _render_footer() -> str:
+def _render_footer(
+    airports_href: str = "index.html",
+    airlines_href: str = "../airlines/index.html",
+    note: str = "Updated automatically from public data. Not affiliated with any airline or government agency.",
+) -> str:
     return "\n".join([
         '    <footer class="site-footer">',
-        "      <p>Updated automatically from public data. Not affiliated with any airline or government agency.</p>",
+        f"      <p>{_esc(note)}</p>",
         (
             '      <p><a class="tap" href="../index.html">Live board</a> &middot; '
-            '<a class="tap" href="index.html">Airports</a> &middot; '
+            f'<a class="tap" href="{airports_href}">Airports</a> &middot; '
+            f'<a class="tap" href="{airlines_href}">Airline commitments</a> &middot; '
             '<a class="tap" href="../about.html">About</a> &middot; '
             '<a class="tap" href="../sources.html">Data and sources</a> &middot; '
             '<a class="tap" href="../privacy.html">Privacy</a> &middot; '
@@ -1041,9 +1046,8 @@ def render_sitemap_block(codes: list[str], build_date: str) -> str:
     return "\n".join(lines)
 
 
-def update_sitemap(sitemap_path: Path, codes: list[str], build_date: str) -> None:
-    """Insert or replace the airports sitemap block in sitemap.xml."""
-    block = render_sitemap_block(codes, build_date)
+def update_sitemap_block(sitemap_path: Path, block: str, begin: str, end: str) -> None:
+    """Insert or replace one managed <!-- x:begin --> ... <!-- x:end --> block in sitemap.xml."""
     if sitemap_path.is_file():
         content = sitemap_path.read_text(encoding="utf-8")
     else:
@@ -1054,16 +1058,21 @@ def update_sitemap(sitemap_path: Path, codes: list[str], build_date: str) -> Non
         )
 
     pattern = re.compile(
-        r"[ \t]*" + re.escape(SITEMAP_BEGIN) + r".*?" + re.escape(SITEMAP_END),
+        r"[ \t]*" + re.escape(begin) + r".*?" + re.escape(end),
         re.DOTALL,
     )
     if pattern.search(content):
-        updated = pattern.sub(block, content, count=1)
+        updated = pattern.sub(lambda _m: block, content, count=1)
     elif "</urlset>" in content:
         updated = content.replace("</urlset>", f"{block}\n</urlset>", 1)
     else:
         updated = content.rstrip() + "\n" + block + "\n"
     sitemap_path.write_text(updated, encoding="utf-8")
+
+
+def update_sitemap(sitemap_path: Path, codes: list[str], build_date: str) -> None:
+    """Insert or replace the airports sitemap block in sitemap.xml."""
+    update_sitemap_block(sitemap_path, render_sitemap_block(codes, build_date), SITEMAP_BEGIN, SITEMAP_END)
 
 
 def build_pages(

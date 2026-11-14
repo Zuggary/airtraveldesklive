@@ -86,6 +86,9 @@ jobs:
       - name: Build static airport pages
         run: python tools/build_airport_pages.py
 
+      - name: Build static airline pages (reads data/dot-commitments.json and data/airline-pages.json; no network)
+        run: python tools/build_airline_pages.py
+
       - name: Check airport guide links (report only; never blocks the build; at most once a day)
         continue-on-error: true
         run: python tools/check_links.py --out data/link-report.json --min-age-hours 24
@@ -104,6 +107,8 @@ jobs:
           done
           mkdir -p _site/airports
           cp airports/*.html _site/airports/
+          mkdir -p _site/airlines
+          cp airlines/*.html _site/airlines/
           mkdir -p _site/assets/illustrations
           cp assets/illustrations/*.webp assets/illustrations/library.json _site/assets/illustrations/
           mkdir -p _site/data
@@ -115,7 +120,7 @@ jobs:
       - name: Pre-render live status into the home page (reads data/*.json, no network; writes _site/index.html)
         run: python tools/prerender_home.py --template index.html --data data --out _site/index.html
 
-      - name: Check that every public root file and airport page is published
+      - name: Check that every public root file, airport page and airline page is published
         # The copy list above is an allowlist. Fail loudly if a public file at the root or airports/ was left off it.
         run: |
           missing=0
@@ -130,6 +135,16 @@ jobs:
           airport_count=$(find _site/airports -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
           if [ "$airport_count" -ne 100 ]; then
             echo "::error::Expected 100 airport pages in _site/airports, found $airport_count"
+            missing=1
+          fi
+          if [ ! -f "_site/airlines/index.html" ]; then
+            echo "::error::_site/airlines/index.html is missing"
+            missing=1
+          fi
+          expected_airlines=$(python3 -c "import json; print(len(json.load(open('data/dot-commitments.json'))['airlines']))")
+          airline_count=$(find _site/airlines -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
+          if [ "$airline_count" -ne "$expected_airlines" ]; then
+            echo "::error::Expected $expected_airlines airline pages in _site/airlines, found $airline_count"
             missing=1
           fi
           exit $missing

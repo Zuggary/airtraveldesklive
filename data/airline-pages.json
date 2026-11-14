@@ -1,0 +1,25 @@
+{
+ "_about": "Facts for the static airline pages (tools/build_airline_pages.py). Written by lane 5 (AN23) on 2026-11-14. The commitments themselves stay in dot-commitments.json (lane 1).",
+ "dot_reread": {
+  "date": "2026-11-14",
+  "by": "lane 5 (AN23)",
+  "page_last_updated": "2025-09-11",
+  "result": "All 144 Yes/No cells (9 airlines, 8 commitments, cancellation and delay tables) match dot-commitments.json. Spirit has no column. No change made to dot-commitments.json."
+ },
+ "plan_links": {
+  "checked": "2026-11-14",
+  "method": "One GET per link, status only (script, then a normal browser for the ones the script could not open). The plan pages were not read. ok = opens; blocked = the script is refused or cannot connect but the page opens in a normal browser; dead = server error or not found. The page builder links ok and blocked links, and not dead ones.",
+  "airlines": {
+   "alaska": {"status": "ok", "http": 200},
+   "allegiant": {"status": "blocked", "http": 403},
+   "american": {"status": "blocked", "http": 403},
+   "delta": {"status": "ok", "http": 200},
+   "frontier": {"status": "ok", "http": 200},
+   "hawaiian": {"status": "ok", "http": 200, "note": "The listed address moves (301, 308) to the airline's current customer commitment page."},
+   "jetblue": {"status": "ok", "http": 200},
+   "southwest": {"status": "ok", "http": 200},
+   "united": {"status": "blocked", "http": null, "note": "The script could not connect (timeout, HTTP/2 error). The page opens in a normal browser."},
+   "spirit": {"status": "dead", "http": 502, "note": "HTTP 502 Bad Gateway on three tries and in a browser."}
+  }
+ }
+}

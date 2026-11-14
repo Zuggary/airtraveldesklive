@@ -175,6 +175,7 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .commit-table th, .commit-table td { padding: 8px 6px; border-top: 1px solid var(--border); text-align: left; vertical-align: top; }
 .commit-table th { font-weight: 500; }
 .commit-table td { width: 1%; white-space: nowrap; }
+.commit-table thead th { white-space: nowrap; font-size: 0.9375rem; color: var(--text-muted); }
 .refund-line { margin: 10px 0; padding: 10px 12px; border-left: 4px solid var(--link); background: var(--surface-alt); border-radius: 4px; font-weight: 600; }
 
 /* Map */
@@ -297,6 +298,8 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 
 .stuck-main { margin-top: 14px; }
 .wizard-shell { max-width: 720px; }
+.airline-links { margin-top: 28px; }
+.airline-links-list { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 0 18px; }
 .stuck-page-title { margin: 0 0 6px; font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
 .stuck-page-intro { margin: 0 0 10px; font-size: 1rem; color: var(--text-muted); }
 .wizard-progress { margin: 0 0 14px; font-size: 0.9375rem; font-weight: 800; color: var(--accent); }
