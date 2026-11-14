@@ -8,7 +8,8 @@ Stdlib only. No network.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 try:
@@ -76,38 +77,103 @@ def age_minutes(iso: Any, now: datetime) -> int | None:
     return max(0, int((now - dt).total_seconds() // 60))
 
 
+def dur_text(minutes: int | None) -> str:
+    """One age unit everywhere: under 60 min -> 'N min'; under 24 h -> 'N hour(s)'; then 'N day(s)'."""
+    if minutes is None:
+        return "age unknown"
+    if minutes < 60:
+        return f"{minutes} min"
+    if minutes < 1440:
+        h = minutes // 60
+        return "1 hour" if h == 1 else f"{h} hours"
+    d = minutes // 1440
+    return "1 day" if d == 1 else f"{d} days"
+
+
 def ago_text(minutes: int | None) -> str:
     if minutes is None:
         return "age unknown"
     if minutes < 1:
         return "less than 1 min ago"
-    if minutes >= 120:
-        return f"{minutes // 60} hours ago"
-    return f"{minutes} min ago"
+    return f"{dur_text(minutes)} ago"
 
 
 def old_text(minutes: int | None) -> str:
     if minutes is None:
         return "of unknown age"
-    if minutes >= 120:
-        return f"{minutes // 60} hours old"
-    return f"{minutes} minutes old"
+    if minutes < 60:
+        return "1 minute old" if minutes == 1 else f"{minutes} minutes old"
+    return f"{dur_text(minutes)} old"
 
 
-def checked_text(iso: Any, tz: str, now: datetime) -> str:
-    """'checked 3:50 AM PST (12 min ago)', or 'check time unknown'."""
+def is_stale(minutes: int | None) -> bool:
+    """True when the data is older than STALE_MIN, or its age is unknown."""
+    return minutes is None or minutes > STALE_MIN
+
+
+def checked_text(iso: Any, tz: str, now: datetime, last: bool = False) -> str:
+    """'checked 3:50 AM PST (12 min ago)' ('last checked' when last is true), or 'check time unknown'."""
     clock = clock_label(iso, tz)
     if not clock:
         return "check time unknown"
-    return f"checked {clock} ({ago_text(age_minutes(iso, now))})"
+    return f"{'last checked' if last else 'checked'} {clock} ({ago_text(age_minutes(iso, now))})"
 
 
 def stale_text(iso: Any, now: datetime) -> str:
     """The stale notice sentence (without the FAA link), or '' when the data is fresh enough."""
     m = age_minutes(iso, now)
-    if m is not None and m <= STALE_MIN:
+    if not is_stale(m):
         return ""
     return f"This data is {old_text(m)}. It normally updates about every 5 minutes. For the FAA's own page, go to"
+
+
+def as_of_text(iso: Any, tz: str, now: datetime) -> str:
+    """'as of 1:50 AM PST (12 hours ago)', or 'as of an unknown time'."""
+    clock = clock_label(iso, tz)
+    if not clock:
+        return "as of an unknown time"
+    return f"as of {clock} ({ago_text(age_minutes(iso, now))})"
+
+
+ZONE_IDS = {
+    "eastern": "America/New_York", "central": "America/Chicago", "mountain": "America/Denver",
+    "pacific": "America/Los_Angeles", "alaska": "America/Anchorage", "hawaii": "Pacific/Honolulu",
+}
+_TIME_RE = re.compile(r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b(?:\s+(eastern|central|mountain|pacific|alaska|hawaii))?", re.I)
+
+
+def forecast_end(text: Any, issued_iso: Any, tz: str = "") -> datetime | None:
+    """End (or change) time named in a forecast window such as 'clear through 2 am Pacific', in UTC.
+
+    The first time of day after the issue time that matches the clock in the text. None when the text
+    has no clock time or the issue time is bad. Same rule as ATD.forecastEnd in lib.js.
+    """
+    m = _TIME_RE.search(str(text or ""))
+    issued = parse_utc(issued_iso)
+    if not m or issued is None or ZoneInfo is None:
+        return None
+    zone = ZONE_IDS.get((m.group(4) or "").lower()) or tz
+    if not zone:
+        return None
+    try:
+        z = ZoneInfo(zone)
+    except Exception:
+        return None
+    hour = int(m.group(1)) % 12 + (12 if m.group(3).lower() == "pm" else 0)
+    minute = int(m.group(2) or 0)
+    local = issued.astimezone(z)
+    for add in (0, 1, 2):
+        day = (local + timedelta(days=add)).date()
+        cand = datetime(day.year, day.month, day.day, hour, minute, tzinfo=z).astimezone(timezone.utc)
+        if cand > issued:
+            return cand
+    return None
+
+
+def forecast_expired(text: Any, issued_iso: Any, tz: str, now: datetime) -> bool:
+    """True when the forecast window has ended (or cannot be read) at 'now'."""
+    end = forecast_end(text, issued_iso, tz)
+    return end is None or end <= now
 
 
 def effective_level(entry: dict[str, Any]) -> str:
@@ -158,3 +224,11 @@ def weather_summary(wx: dict[str, Any] | None) -> str:
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def stale_chip_text(entry: dict[str, Any], iso: Any, tz: str) -> str:
+    """'As of 1:50 AM PST: no FAA delays reported'. Same facts as the live chip, dated."""
+    clock = clock_label(iso, tz)
+    word = status_word(entry)
+    word = word[0].lower() + word[1:]
+    return f"As of {clock}: {word}" if clock else f"As of an unknown time: {word}"

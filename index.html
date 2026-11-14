@@ -46,7 +46,7 @@
     </div>
 
     <noscript>
-      <p class="noscript-note">This page needs JavaScript to show live data. For the FAA's own status page, go to nasstatus.faa.gov.</p>
+      <p class="noscript-note">This page needs JavaScript to refresh its data. For the FAA's own status page, go to nasstatus.faa.gov.</p>
     </noscript>
 
     <main id="main-content">
@@ -63,10 +63,10 @@
       </section>
 
       <section id="now" aria-labelledby="now-heading">
-        <h2 id="now-heading" class="section-heading">Right now</h2>
+        <h2 id="now-heading" class="section-heading"><!--pr:nowtitle-->Right now<!--/pr:nowtitle--></h2>
+        <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
         <p id="summary" class="summary" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></p>
         <p id="updated-line" class="updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
-        <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
         <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
         <div id="latest-box" class="latest" hidden>
           <h3 class="sub-heading">Latest</h3>

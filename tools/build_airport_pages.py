@@ -150,11 +150,13 @@ def _render_live(
     if not entry:
         return {
             "has": False,
+            "stale": False,
+            "stale_notice": "",
+            "as_of": "",
             "chip_class": "badge status-chip",
             "chip": "Status loads here",
             "wx_chip": "",
             "checked": f"FAA NAS status loads here. {pt.FALLBACK_STATUS}.",
-            "stale": "",
             "box": [f'          <p class="updated-text">{_esc(pt.FALLBACK_STATUS)}</p>'],
             "word": "",
             "wx": "",
@@ -165,49 +167,72 @@ def _render_live(
     wx = entry.get("wx") if isinstance(entry.get("wx"), dict) else {}
     clock = pt.clock_label(updated_utc, tz)
     age = pt.age_minutes(updated_utc, now)
-    checked = f"FAA NAS status, {pt.checked_text(updated_utc, tz, now)}."
+    stale = pt.is_stale(age)
+    checked = f"FAA NAS status, {pt.checked_text(updated_utc, tz, now, last=stale)}."
     chip_wx = ""
-    if wx.get("now_text"):
+    if wx.get("now_text") and not stale:
         chip_wx = f"Weather: {wx['now_text']}"
         wind = pt.wind_text(wx, gusts=False)
         if wind:
             chip_wx += f", {wind}"
+    badge_cls = "badge badge--stale" if stale else pt.BADGE_CLASS[lvl]
+    badge_text = pt.stale_chip_text(entry, updated_utc, tz) if stale else word
+    if stale:
+        status_line = f'          <p>{_esc(word)} {_esc(pt.as_of_text(updated_utc, tz, now))}. Source: {_src_link("FAA NAS status")}.</p>'
+    else:
+        status_line = f'          <p>{_esc(pt.LEVEL_TEXT[lvl])} ({_src_link("FAA NAS status")})</p>'
     box: list[str] = [
-        f'          <p class="card-status"><span class="{pt.BADGE_CLASS[lvl]}">{_esc(word)}</span></p>',
-        f'          <p>{_esc(pt.LEVEL_TEXT[lvl])} ({_src_link("FAA NAS status")})</p>',
+        f'          <p class="card-status"><span class="{badge_cls}">{_esc(badge_text)}</span></p>',
+        status_line,
     ]
     if entry.get("reason"):
         box.append(f'          <p class="event-reason">Reason: {_esc(entry["reason"])}</p>')
     if wx.get("now_text"):
-        wtxt = f"Weather now: {wx['now_text']}"
         wind = pt.wind_text(wx)
-        if wind:
-            wtxt += f", wind {wind}"
         obs = pt.clock_label(wx.get("obs_utc"), tz)
         obs_age = pt.age_minutes(wx.get("obs_utc") or updated_utc, now)
-        after = f", observed {obs}, updated {pt.ago_text(obs_age)})" if obs else f", updated {pt.ago_text(obs_age)})"
+        if stale:
+            wtxt = f"Last weather report: {wx['now_text']}"
+            if wind:
+                wtxt += f", wind {wind}"
+            seen = f"observed {obs}, " if obs else ""
+            after = f", {seen}{pt.ago_text(obs_age)})"
+        else:
+            wtxt = f"Weather now: {wx['now_text']}"
+            if wind:
+                wtxt += f", wind {wind}"
+            after = f", observed {obs}, updated {pt.ago_text(obs_age)})" if obs else f", updated {pt.ago_text(obs_age)})"
         box.append(f'          <p>{_esc(wtxt)} ({_src_link("aviationweather.gov METAR")}{_esc(after)}</p>')
     if wx.get("next3h_text"):
-        box.append(
-            f'          <p>Next 3 hours: {_esc(wx["next3h_text"])} ({_src_link("aviationweather.gov TAF")})</p>'
-        )
+        if not stale:
+            box.append(
+                f'          <p>Next 3 hours: {_esc(wx["next3h_text"])} ({_src_link("aviationweather.gov TAF")})</p>'
+            )
+        elif not pt.forecast_expired(wx["next3h_text"], wx.get("taf_issue_utc") or updated_utc, tz, now):
+            issued = pt.clock_label(wx.get("taf_issue_utc") or updated_utc, tz)
+            box.append(
+                f'          <p>Forecast issued {_esc(issued)}: {_esc(wx["next3h_text"])} ({_src_link("aviationweather.gov TAF")})</p>'
+            )
     alerts = [str(a) for a in (entry.get("alerts") or [])]
     box.append(f'          <p>{_esc("Alerts: " + ", ".join(alerts) if alerts else "Alerts: none listed.")}</p>')
-    upd = f"updated {pt.ago_text(age)}" if age is not None else "update time unknown"
+    upd = f"last updated {pt.ago_text(age)}" if stale and age is not None else (
+        f"updated {pt.ago_text(age)}" if age is not None else "update time unknown")
     box.append(
         f'          <p class="credit">Sources: {_src_link("FAA NAS status, aviationweather.gov METAR and TAF")}. Data {_esc(upd)}.</p>'
     )
     return {
         "has": True,
-        "chip_class": f"{pt.BADGE_CLASS[lvl]} status-chip",
-        "chip": word,
+        "stale": stale,
+        "chip_class": f"{badge_cls} status-chip",
+        "chip": badge_text,
         "wx_chip": chip_wx,
         "checked": checked,
-        "stale": pt.stale_text(updated_utc, now),
+        "stale_notice": pt.stale_text(updated_utc, now),
         "box": box,
         "word": word,
         "wx": pt.weather_summary(wx),
         "clock": clock,
+        "as_of": pt.as_of_text(updated_utc, tz, now),
     }
 
 
@@ -352,116 +377,180 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '      if (after) { p.appendChild(document.createTextNode(after)); }',
         "      return p;",
         "    }",
-        "    var STALE_MIN = 30;",
-        "    function ageMin(iso) {",
+        '    var STALE_MIN = 30;',
+        '    function ageMin(iso) {',
         '      var ms = Date.parse(iso || "");',
-        "      return isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 60000)) : null;",
-        "    }",
-        "    function agoText(m) {",
-        '      return m < 1 ? "less than 1 min ago" : (m >= 120 ? Math.floor(m / 60) + " hours ago" : m + " min ago");',
-        "    }",
-        "    function oldText(m) {",
+        '      return isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 60000)) : null;',
+        '    }',
+        '    function isStale(m) { return m == null || m > STALE_MIN; }',
+        '    function durText(m) {',
+        '      if (m < 60) { return m + " min"; }',
+        '      if (m < 1440) { var h = Math.floor(m / 60); return h === 1 ? "1 hour" : h + " hours"; }',
+        '      var d = Math.floor(m / 1440);',
+        '      return d === 1 ? "1 day" : d + " days";',
+        '    }',
+        '    function agoText(m) {',
+        '      if (m == null) { return "age unknown"; }',
+        '      return m < 1 ? "less than 1 min ago" : durText(m) + " ago";',
+        '    }',
+        '    function oldText(m) {',
         '      if (m == null) { return "of unknown age"; }',
-        '      return m >= 120 ? Math.floor(m / 60) + " hours old" : m + " minutes old";',
-        "    }",
-        "    function ageLabel(iso) {",
-        "      var m = ageMin(iso);",
-        '      return m == null ? "update time unknown" : "updated " + agoText(m);',
-        "    }",
-        "    function showStale(iso) {",
+        '      if (m < 60) { return m === 1 ? "1 minute old" : m + " minutes old"; }',
+        '      return durText(m) + " old";',
+        '    }',
+        '    function ageLabel(iso, stale) {',
+        '      var m = ageMin(iso);',
+        '      return m == null ? "update time unknown" : (stale ? "last updated " : "updated ") + agoText(m);',
+        '    }',
+        '    var ZONES = { eastern: "America/New_York", central: "America/Chicago", mountain: "America/Denver", pacific: "America/Los_Angeles", alaska: "America/Anchorage", hawaii: "Pacific/Honolulu" };',
+        '    function zoneParts(ms, zone) {',
+        '      var f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" });',
+        '      var o = {};',
+        '      f.formatToParts(new Date(ms)).forEach(function (p) { o[p.type] = parseInt(p.value, 10); });',
+        '      return o;',
+        '    }',
+        '    function localToMs(y, mo, d, h, mi, zone) {',
+        '      var guess = Date.UTC(y, mo - 1, d, h, mi);',
+        '      for (var i = 0; i < 2; i++) {',
+        '        var p = zoneParts(guess, zone);',
+        '        guess += Date.UTC(y, mo - 1, d, h, mi) - Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);',
+        '      }',
+        '      return guess;',
+        '    }',
+        '    function forecastEnd(text, issuedIso, tz) {',
+        '      var m = /\\b(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)\\b(?:\\s+(eastern|central|mountain|pacific|alaska|hawaii))?/i.exec(String(text || ""));',
+        '      var issued = Date.parse(issuedIso || "");',
+        '      if (!m || !isFinite(issued)) { return null; }',
+        '      var zone = (m[4] && ZONES[m[4].toLowerCase()]) || tz;',
+        '      if (!zone) { return null; }',
+        '      try {',
+        '        var h = parseInt(m[1], 10) % 12 + (m[3].toLowerCase() === "pm" ? 12 : 0), mi = m[2] ? parseInt(m[2], 10) : 0;',
+        '        var base = zoneParts(issued, zone);',
+        '        for (var add = 0; add < 3; add++) {',
+        '          var day = new Date(Date.UTC(base.year, base.month - 1, base.day + add));',
+        '          var c = localToMs(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), h, mi, zone);',
+        '          if (c > issued) { return c; }',
+        '        }',
+        '      } catch (e) { return null; }',
+        '      return null;',
+        '    }',
+        '    function forecastExpired(text, issuedIso) {',
+        '      var end = forecastEnd(text, issuedIso, TZ);',
+        '      return end == null || end <= Date.now();',
+        '    }',
+        '    function showStale(iso) {',
         '      var n = document.getElementById("stale-notice");',
-        "      if (!n) { return; }",
-        "      var m = ageMin(iso);",
-        "      if (m != null && m <= STALE_MIN) { n.hidden = true; return; }",
+        '      if (!n) { return; }',
+        '      var m = ageMin(iso);',
+        '      if (!isStale(m)) { n.hidden = true; return; }',
         '      n.textContent = "This data is " + oldText(m) + ". It normally updates about every 5 minutes. For the FAA\'s own page, go to ";',
         '      var l = el("a", "stale-link", "nasstatus.faa.gov");',
         '      l.href = "https://nasstatus.faa.gov";',
         '      l.target = "_blank";',
         '      l.rel = "noopener noreferrer";',
-        "      n.appendChild(l);",
-        "      n.hidden = false;",
-        "    }",
-        "    function clockLabel(iso) {",
+        '      n.appendChild(l);',
+        '      n.hidden = false;',
+        '    }',
+        '    function clockLabel(iso) {',
         '      var ms = Date.parse(iso || "");',
         '      if (!isFinite(ms)) { return ""; }',
-        "      try {",
+        '      try {',
         '        var opts = { hour: "numeric", minute: "2-digit", timeZoneName: "short" };',
-        "        if (TZ) { opts.timeZone = TZ; }",
+        '        if (TZ) { opts.timeZone = TZ; }',
         '        return new Intl.DateTimeFormat("en-US", opts).format(new Date(ms));',
-        "      } catch (e) { return \"\"; }",
-        "    }",
-        "    function checkedText(iso) {",
-        "      var c = clockLabel(iso);",
-        "      var m = ageMin(iso);",
-        '      return c ? "checked " + c + " (" + agoText(m == null ? 0 : m) + ")" : "check time unknown";',
-        "    }",
+        '      } catch (e) { return ""; }',
+        '    }',
+        '    function checkedText(iso, stale) {',
+        '      var c = clockLabel(iso);',
+        '      var m = ageMin(iso);',
+        '      return c ? (stale ? "last checked " : "checked ") + c + " (" + agoText(m == null ? 0 : m) + ")" : "check time unknown";',
+        '    }',
         '    var checkedLine = document.getElementById("checked-line");',
-        "    function setUnavailable() {",
+        '    var heading = document.getElementById("right-now-heading");',
+        '    function setUnavailable() {',
         '      if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }',
-        "      if (statusChip) {",
+        '      if (statusChip) {',
         '        statusChip.className = "badge status-chip";',
         '        statusChip.textContent = "Status unavailable";',
-        "      }",
-        "      if (wxChip) { wxChip.hidden = true; }",
-        "    }",
-        "    function render(data) {",
-        "      showStale(data && data.updated_utc);",
-        "      var a = data && data.airports && data.airports[CODE];",
+        '      }',
+        '      if (wxChip) { wxChip.hidden = true; }',
+        '    }',
+        '    function render(data) {',
+        '      var updMin = ageMin(data && data.updated_utc);',
+        '      var stale = isStale(updMin);',
+        '      showStale(data && data.updated_utc);',
+        '      if (heading) { heading.textContent = stale ? "Last known status" : "Right now"; }',
+        '      var a = data && data.airports && data.airports[CODE];',
         '      if (checkedLine && a) {',
         '        checkedLine.textContent = "";',
         '        var cl = el("a", "tap", "FAA NAS status");',
         '        cl.href = "../sources.html";',
-        "        checkedLine.appendChild(cl);",
-        '        checkedLine.appendChild(document.createTextNode(", " + checkedText(data.updated_utc) + "."));',
-        "      }",
-        "      if (!a) {",
-        "        setUnavailable();",
-        "        box.textContent = \"\";",
+        '        checkedLine.appendChild(cl);',
+        '        checkedLine.appendChild(document.createTextNode(", " + checkedText(data.updated_utc, stale) + "."));',
+        '      }',
+        '      if (!a) {',
+        '        setUnavailable();',
+        '        box.textContent = "";',
         '        box.appendChild(el("p", null, "Airport status is not available right now. See nasstatus.faa.gov."));',
-        "        return;",
-        "      }",
-        "      var hasClosure = Array.isArray(a.events) && a.events.some(function (ev) { return ev && ev.kind === \"closure\"; });",
+        '        return;',
+        '      }',
+        '      var hasClosure = Array.isArray(a.events) && a.events.some(function (ev) { return ev && ev.kind === "closure"; });',
         '      var lvl = (a.level === "closed" || hasClosure) ? "closed" : (LEVEL_TEXT[a.level] ? a.level : "clear");',
-        "      if (statusChip) {",
-        '        statusChip.className = BADGE_CLASS[lvl] + " status-chip";',
-        "        statusChip.textContent = badgeLabel(a, lvl);",
-        "      }",
-        "      var w = a.wx;",
-        "      if (wxChip) {",
-        "        if (w && w.now_text) {",
+        '      var label = badgeLabel(a, lvl);',
+        '      var asClock = clockLabel(data.updated_utc);',
+        '      var chipText = stale ? "As of " + (asClock || "an unknown time") + ": " + label.charAt(0).toLowerCase() + label.slice(1) : label;',
+        '      var badgeCls = stale ? "badge badge--stale" : BADGE_CLASS[lvl];',
+        '      if (statusChip) {',
+        '        statusChip.className = badgeCls + " status-chip";',
+        '        statusChip.textContent = chipText;',
+        '      }',
+        '      var w = a.wx;',
+        '      if (wxChip) {',
+        '        if (w && w.now_text && !stale) {',
         '          var chipWx = "Weather: " + w.now_text;',
-        "          if (w.wind_kt != null) {",
+        '          if (w.wind_kt != null) {',
         '            chipWx += ", " + (Math.round(w.wind_kt) === 0 ? "calm (0 kt)" : Math.round(w.wind_kt) + " kt");',
-        "          }",
-        "          wxChip.textContent = chipWx;",
-        "          wxChip.hidden = false;",
-        "        } else {",
-        "          wxChip.hidden = true;",
-        "        }",
-        "      }",
-        "      box.textContent = \"\";",
+        '          }',
+        '          wxChip.textContent = chipWx;',
+        '          wxChip.hidden = false;',
+        '        } else {',
+        '          wxChip.hidden = true;',
+        '        }',
+        '      }',
+        '      box.textContent = "";',
         '      var statusRow = el("p", "card-status");',
-        '      statusRow.appendChild(el("span", BADGE_CLASS[lvl], badgeLabel(a, lvl)));',
-        "      box.appendChild(statusRow);",
-        '      box.appendChild(srcLine(null, LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
-        "      if (a.reason) {",
+        '      statusRow.appendChild(el("span", badgeCls, chipText));',
+        '      box.appendChild(statusRow);',
+        '      if (stale) {',
+        '        box.appendChild(srcLine(null, label + " as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + "). Source: ", "FAA NAS status", "."));',
+        '      } else {',
+        '        box.appendChild(srcLine(null, LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
+        '      }',
+        '      if (a.reason) {',
         '        box.appendChild(el("p", "event-reason", "Reason: " + a.reason));',
-        "      }",
-        "      if (w && w.now_text) {",
-        '        var wxText = "Weather now: " + w.now_text;',
-        "        if (w.wind_kt != null) {",
+        '      }',
+        '      if (w && w.now_text) {',
+        '        var wxText = (stale ? "Last weather report: " : "Weather now: ") + w.now_text;',
+        '        if (w.wind_kt != null) {',
         '          wxText += ", wind " + (Math.round(w.wind_kt) === 0 ? "calm (0 kt)" : Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) + " kt" : ""));',
-        "        }",
-        '        var wxAfter = ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(w.obs_utc || data.updated_utc) + ")";',
+        '        }',
+        '        var obsIso = w.obs_utc || data.updated_utc;',
+        '        var wxAfter = stale',
+        '          ? ", " + (clockLabel(w.obs_utc) ? "observed " + clockLabel(w.obs_utc) + ", " : "") + agoText(ageMin(obsIso)) + ")"',
+        '          : ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(obsIso, false) + ")";',
         '        box.appendChild(srcLine(null, wxText + " (", "aviationweather.gov METAR", wxAfter));',
-        "      }",
-        "      if (w && w.next3h_text) {",
-        '        box.appendChild(srcLine(null, "Next 3 hours: " + w.next3h_text + " (", "aviationweather.gov TAF", ")"));',
-        "      }",
-        "      var alerts = Array.isArray(a.alerts) ? a.alerts : [];",
+        '      }',
+        '      if (w && w.next3h_text) {',
+        '        if (!stale) {',
+        '          box.appendChild(srcLine(null, "Next 3 hours: " + w.next3h_text + " (", "aviationweather.gov TAF", ")"));',
+        '        } else if (!forecastExpired(w.next3h_text, w.taf_issue_utc || data.updated_utc)) {',
+        '          box.appendChild(srcLine(null, "Forecast issued " + clockLabel(w.taf_issue_utc || data.updated_utc) + ": " + w.next3h_text + " (", "aviationweather.gov TAF", ")"));',
+        '        }',
+        '      }',
+        '      var alerts = Array.isArray(a.alerts) ? a.alerts : [];',
         '      box.appendChild(el("p", null, alerts.length ? "Alerts: " + alerts.join(", ") : "Alerts: none listed."));',
-        '      box.appendChild(srcLine("credit", "Sources: ", "FAA NAS status, aviationweather.gov METAR and TAF", ". Data " + ageLabel(data.updated_utc) + "."));',
-        "    }",
+        '      box.appendChild(srcLine("credit", "Sources: ", "FAA NAS status, aviationweather.gov METAR and TAF", ". Data " + ageLabel(data.updated_utc, stale) + "."));',
+        '    }',
         '    fetch("../data/airports.json?ts=" + Date.now(), { cache: "no-store" })',
         '      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })',
         "      .then(render)",
@@ -552,7 +641,12 @@ def render_airport_page(
     live = _render_live(code, tz, live_entry, live_updated_utc, now)
     prerendered_attr = ' data-prerendered="1"' if live["has"] else ""
     title = f"{code} airport status: is {code} delayed? Live FAA status"
-    if live["has"]:
+    if live["has"] and live["stale"]:
+        description = (
+            f"{name} ({code}) {live['as_of']}: {live['word']}. "
+            "Source: FAA NAS status. Official links and delay help."
+        )
+    elif live["has"]:
         wx_part = f" Weather: {live['wx']}." if live["wx"] else ""
         clock_part = f" Checked {live['clock']}." if live["clock"] else ""
         description = (
@@ -674,8 +768,8 @@ def render_airport_page(
     # Sources section
     op_label = f"{operator}'s website" if operator else "The airport operator's website"
     source_items = [
-        "FAA NAS status — live airport delays, ground delays, ground stops and closures.",
-        "aviationweather.gov — live airport weather observations (METAR) and 3-hour forecasts (TAF).",
+        f"FAA NAS status — {'' if live['stale'] else 'live '}airport delays, ground delays, ground stops and closures.",
+        f"aviationweather.gov — {'' if live['stale'] else 'live '}airport weather observations (METAR) and 3-hour forecasts (TAF).",
     ]
     if has_bts:
         source_items.append(f"BTS ({bts_month}) — monthly on-time arrival rate and flight count.")
@@ -697,6 +791,12 @@ def render_airport_page(
         _render_header(),
         '    <main id="main-content" class="airport-main">',
         f'      <h1 class="airport-page-title">{_esc(name)} ({_esc(code)}): delays, weather and traveler help</h1>',
+        (
+            f'      <p id="stale-notice" class="stale-notice" role="status">{_esc(live["stale_notice"])} '
+            '<a class="stale-link" href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">nasstatus.faa.gov</a></p>'
+            if live["has"] and live["stale"]
+            else '      <p id="stale-notice" class="stale-notice" role="status" hidden></p>'
+        ),
         '      <div class="airport-summary-band">',
         '        <div class="airport-summary-chips">',
         f'          <span id="status-chip" class="{live["chip_class"]}" aria-live="polite">{_esc(live["chip"])}</span>',
@@ -716,19 +816,13 @@ def render_airport_page(
         "        </div>",
         "      </div>",
         '      <section class="airport-section" aria-labelledby="right-now-heading">',
-        '        <h2 id="right-now-heading">Right now</h2>',
-        (
-            f'        <p id="stale-notice" class="stale-notice" role="status">{_esc(live["stale"])} '
-            '<a class="stale-link" href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">nasstatus.faa.gov</a></p>'
-            if live["has"] and live["stale"]
-            else '        <p id="stale-notice" class="stale-notice" role="status" hidden></p>'
-        ),
+        f'        <h2 id="right-now-heading">{"Last known status" if live["stale"] else "Right now"}</h2>',
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}"{prerendered_attr}>',
         *live["box"],
         "        </div>",
         *sun_now_html,
         "        <noscript>",
-        '          <p class="noscript-note">Live refresh needs JavaScript. The status above is from the last site build; for the FAA\'s own page, see nasstatus.faa.gov.</p>',
+        f'          <p class="noscript-note">{"Refreshing" if live["stale"] else "Live refresh"} needs JavaScript. The status above is from the last site build; for the FAA\'s own page, see nasstatus.faa.gov.</p>',
         "        </noscript>",
         "      </section>",
         *ontime_html,

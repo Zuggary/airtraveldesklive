@@ -67,8 +67,12 @@ def fmt_minutes(minutes: int) -> str:
     return f"{m} min"
 
 
-def national_summary(airports: list[dict[str, Any]]) -> str:
-    """One line for the top of the page. Same rule as lib.js nationalSummary."""
+def national_summary(airports: list[dict[str, Any]], as_of: str = "") -> str:
+    """One line for the top of the page. Same rule as lib.js nationalSummary.
+
+    as_of is empty when the data is fresh. When it is set ('as of 1:50 AM EST (12 hours ago)') the line
+    is dated and has no live words.
+    """
     stops = delays = 0
     best: tuple[int, str] | None = None
     for a in airports:
@@ -81,7 +85,8 @@ def national_summary(airports: list[dict[str, Any]]) -> str:
             if mins is not None and (best is None or mins > best[0]):
                 best = (mins, str(a.get("short") or a.get("code") or ""))
     if not stops and not delays:
-        return "No delays or ground stops at the 30 busiest airports right now"
+        base = "No delays or ground stops at the 30 busiest airports"
+        return f"{base} {as_of}" if as_of else f"{base} right now"
     parts = []
     if stops:
         parts.append(f"{stops} airport with a ground stop" if stops == 1 else f"{stops} airports with ground stops")
@@ -90,10 +95,10 @@ def national_summary(airports: list[dict[str, Any]]) -> str:
     line = " · ".join(parts)
     if best:
         line += f" · longest: {best[1]}, avg {fmt_minutes(best[0])}"
-    return line
+    return f"{line} · {as_of}" if as_of else line
 
 
-def impact_text(ev: dict[str, Any], place: str) -> str:
+def impact_text(ev: dict[str, Any], place: str, stale: bool = False) -> str:
     fields = ev.get("fields") or {}
     avg = ev.get("avg") or fields.get("avg") or ""
     mx = ev.get("max") or fields.get("max") or ""
@@ -105,7 +110,7 @@ def impact_text(ev: dict[str, Any], place: str) -> str:
     if kind == "ground_stop":
         return f"Flights bound for {place} are held at their departure airports until the stop ends."
     if kind == "closure":
-        return f"{place} is closed to flights right now."
+        return f"{place} was listed as closed to flights." if stale else f"{place} is closed to flights right now."
     if kind == "ground_delay":
         text = f"Flights bound for {place} are leaving late"
         if avg_t:
@@ -120,11 +125,13 @@ def impact_text(ev: dict[str, Any], place: str) -> str:
     return text + "."
 
 
-def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: str, now: datetime) -> str:
+def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: str, now: datetime, stale: bool = False) -> str:
     events = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA" and e.get("kind") in KIND_RANK]
     if not state:
         return ""
     if not events:
+        if stale:
+            return f'<p class="empty-state">No FAA delays or ground stops were listed {_esc(pt.as_of_text(updated_utc, HOME_TZ, now))}.</p>'
         return '<p class="empty-state">No FAA delays or ground stops are listed right now.</p>'
     events.sort(key=lambda e: (-KIND_RANK[e["kind"]], -(minutes_of((e.get("fields") or {}).get("avg")) or 0)))
     age = pt.ago_text(pt.age_minutes(updated_utc, now))
@@ -140,7 +147,7 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
             f'<article class="{cls}">',
             f'<div class="event-header"><h3 class="event-title">{_esc(place)} ({_esc(code)})</h3>'
             f'<span class="{badge}">{_esc(KIND_LABEL.get(ev["kind"], "Disruption"))}</span></div>',
-            f'<p class="event-impact">{_esc(impact_text(ev, str(place)))}</p>',
+            f'<p class="event-impact">{_esc(impact_text(ev, str(place), stale))}</p>',
         ]
         if ev.get("reason"):
             lines.append(f'<p class="event-reason">Reason: {_esc(ev["reason"])}</p>')
@@ -196,27 +203,30 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     airports = [a for a in by_code.values() if isinstance(a, dict)]
     state_utc = str(state.get("updated_utc") or "")
 
+    stale = bool(state_utc) and pt.is_stale(pt.age_minutes(state_utc, now))
+    as_of = pt.as_of_text(state_utc, HOME_TZ, now) if stale else ""
     page = template
+    page = _slot(page, "nowtitle", "Last known status" if stale else "Right now")
     if airports:
-        page = _slot(page, "summary", _esc(national_summary(airports)))
+        page = _slot(page, "summary", _esc(national_summary(airports, as_of)))
     else:
         page = re.sub(r"<!--/?pr:summary-->", "", page)
     if state_utc:
-        line = f"FAA NAS status, {pt.checked_text(state_utc, HOME_TZ, now)} · updates about every 5 minutes"
+        line = f"FAA NAS status, {pt.checked_text(state_utc, HOME_TZ, now, last=stale)} · updates about every 5 minutes"
         page = _slot(page, "updated", _esc(line))
     else:
         page = re.sub(r"<!--/?pr:updated-->", "", page)
-    events_html = render_events(state, by_code, state_utc, now) if state else ""
+    events_html = render_events(state, by_code, state_utc, now, stale) if state else ""
     page = _slot(page, "events", events_html)
     page = _slot(page, "tsa", render_tsa(tsa))
-    stale = pt.stale_text(state_utc, now) if state_utc else ""
-    if stale:
+    notice = pt.stale_text(state_utc, now) if state_utc else ""
+    if notice:
         link = (
             ' <a class="stale-link" href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">nasstatus.faa.gov</a>'
         )
         page = page.replace(
             'role="status" hidden><!--pr:stale--><!--/pr:stale--></p>',
-            f'role="status">{_esc(stale)}{link}</p>',
+            f'role="status">{_esc(notice)}{link}</p>',
             1,
         )
     page = re.sub(r"<!--/?pr:stale-->", "", page)

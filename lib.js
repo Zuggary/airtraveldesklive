@@ -85,7 +85,67 @@
   var LEVEL_RANK = { clear: 0, delay: 1, stop: 2 };
 
   // One line for the top of the page. airports: [{short, level, events:[{avg}]}]
-  function nationalSummary(airports) {
+  // ---------- age words (one rule everywhere; tools/prerender_text.py has the same) ----------
+  var STALE_MIN = 30;
+  function isStale(m) { return m == null || m > STALE_MIN; }
+  function durText(m) {
+    if (m == null) { return "age unknown"; }
+    if (m < 60) { return m + " min"; }
+    if (m < 1440) { var h = Math.floor(m / 60); return h === 1 ? "1 hour" : h + " hours"; }
+    var d = Math.floor(m / 1440);
+    return d === 1 ? "1 day" : d + " days";
+  }
+  function agoText(m) {
+    if (m == null) { return "age unknown"; }
+    return m < 1 ? "less than 1 min ago" : durText(m) + " ago";
+  }
+  function oldText(m) {
+    if (m == null) { return "of unknown age"; }
+    if (m < 60) { return m === 1 ? "1 minute old" : m + " minutes old"; }
+    return durText(m) + " old";
+  }
+
+  // End time named in a forecast window ("clear through 2 am Pacific"), in ms. The first such clock time
+  // after the issue time. null when the text has no clock time. Same rule as forecast_end in prerender_text.py.
+  var ZONES = { eastern: "America/New_York", central: "America/Chicago", mountain: "America/Denver", pacific: "America/Los_Angeles", alaska: "America/Anchorage", hawaii: "Pacific/Honolulu" };
+  function zoneParts(ms, zone) {
+    var f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" });
+    var o = {};
+    f.formatToParts(new Date(ms)).forEach(function (p) { o[p.type] = parseInt(p.value, 10); });
+    return o;
+  }
+  function localToMs(y, mo, d, h, mi, zone) {
+    var guess = Date.UTC(y, mo - 1, d, h, mi);
+    for (var i = 0; i < 2; i++) {
+      var p = zoneParts(guess, zone);
+      guess += Date.UTC(y, mo - 1, d, h, mi) - Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+    }
+    return guess;
+  }
+  function forecastEnd(text, issuedIso, tz) {
+    var m = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b(?:\s+(eastern|central|mountain|pacific|alaska|hawaii))?/i.exec(String(text || ""));
+    var issued = Date.parse(issuedIso || "");
+    if (!m || !isFinite(issued)) { return null; }
+    var zone = (m[4] && ZONES[m[4].toLowerCase()]) || tz;
+    if (!zone) { return null; }
+    try {
+      var h = parseInt(m[1], 10) % 12 + (m[3].toLowerCase() === "pm" ? 12 : 0), mi = m[2] ? parseInt(m[2], 10) : 0;
+      var base = zoneParts(issued, zone);
+      for (var add = 0; add < 3; add++) {
+        var day = new Date(Date.UTC(base.year, base.month - 1, base.day + add));
+        var c = localToMs(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), h, mi, zone);
+        if (c > issued) { return c; }
+      }
+    } catch (e) { return null; }
+    return null;
+  }
+  // True when the forecast window has ended, or its end cannot be read.
+  function forecastExpired(text, issuedIso, tz, nowMs) {
+    var end = forecastEnd(text, issuedIso, tz);
+    return end == null || end <= (nowMs == null ? Date.now() : nowMs);
+  }
+
+  function nationalSummary(airports, asOf) {
     var stops = 0, delays = 0, best = null;
     for (var i = 0; i < airports.length; i++) {
       var a = airports[i];
@@ -97,13 +157,13 @@
         if (mins != null && (!best || mins > best.mins)) { best = { mins: mins, name: a.short || a.code }; }
       }
     }
-    if (!stops && !delays) { return "No delays or ground stops at the 30 busiest airports right now"; }
+    if (!stops && !delays) { return "No delays or ground stops at the 30 busiest airports " + (asOf || "right now"); }
     var parts = [];
     if (stops) { parts.push(stops + (stops === 1 ? " airport with a ground stop" : " airports with ground stops")); }
     if (delays) { parts.push(delays + (delays === 1 ? " airport with delays" : " airports with delays")); }
     var line = parts.join(" · ");
     if (best) { line += " · longest: " + best.name + ", avg " + fmtMinutes(best.mins); }
-    return line;
+    return asOf ? line + " \u00B7 " + asOf : line;
   }
 
   function kindLabel(kind) {
@@ -111,12 +171,12 @@
   }
 
   // Plain-language impact for one FAA event. place: short airport name.
-  function impactText(ev, place) {
+  function impactText(ev, place, stale) {
     var avg = fmtFaaDuration(ev.avg || (ev.fields && ev.fields.avg) || "");
     var max = fmtFaaDuration(ev.max || (ev.fields && ev.fields.max) || "");
     var dir = ev.direction || (ev.fields && ev.fields.direction) || "";
     if (ev.kind === "ground_stop") { return "Flights bound for " + place + " are held at their departure airports until the stop ends."; }
-    if (ev.kind === "closure") { return place + " is closed to flights right now."; }
+    if (ev.kind === "closure") { return stale ? place + " was listed as closed to flights." : place + " is closed to flights right now."; }
     if (ev.kind === "ground_delay") {
       var s = "Flights bound for " + place + " are leaving late";
       if (avg) { s += ", about " + avg + " on average"; }
@@ -231,10 +291,12 @@
   }
 
   // Latest list: newest first, the owed reminder left out (it has its own panel), the same words once.
-  function latestItems(items, limit) {
+  // nowMs (optional): weather lines whose forecast window has ended ("through 2 am Pacific (next 3 h)") are dropped.
+  function latestItems(items, limit, nowMs) {
     var seen = {}, out = [];
     (items || []).slice().sort(function (a, b) { return String(b.t_utc || "").localeCompare(String(a.t_utc || "")); }).forEach(function (it) {
       if (!it || !it.text || it.kind === "owed" || seen[it.text]) { return; }
+      if (nowMs != null && it.kind === "wx" && forecastExpired(it.text, it.as_of_utc || it.t_utc, "", nowMs)) { return; }
       seen[it.text] = true;
       out.push(it);
     });
@@ -307,7 +369,7 @@
     var ms = Date.parse(checked);
     if (!isFinite(ms)) { return { text: "No time on file", age: null }; }
     var m = Math.max(0, Math.floor(((nowMs == null ? Date.now() : nowMs) - ms) / 60000));
-    var age = m < 90 ? m + " min ago" : m < 2880 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " days ago";
+    var age = agoText(m);
     return { text: checked.replace("T", " ").replace("Z", " UTC"), age: age, minutes: m };
   }
 
@@ -320,6 +382,8 @@
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, latestItems: latestItems, millions: millions,
     changedLastHour: changedLastHour, historySeries: historySeries, checkedView: checkedView,
+    STALE_MIN: STALE_MIN, isStale: isStale, durText: durText, agoText: agoText, oldText: oldText,
+    forecastEnd: forecastEnd, forecastExpired: forecastExpired,
     STATUS_WORD: STATUS_WORD, LEVEL_RANK: LEVEL_RANK, DOT_URL: DOT_URL, REFUND_LINE: REFUND_LINE
   };
 });

@@ -107,6 +107,7 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .badge--delay { background: var(--amber-soft); border-color: var(--amber); color: #ffd98a; }
 .badge--stop { background: var(--red-soft); border-color: var(--red); color: var(--red-text); }
 .badge--clear { background: var(--green-soft); border-color: var(--green); color: var(--green-text); }
+.badge--stale { background: transparent; border-color: var(--border); border-style: dashed; color: var(--text-muted); }
 .badge--yes { background: var(--green-soft); border-color: var(--green); color: var(--green-text); }
 .badge--no { background: transparent; border-color: var(--border); color: var(--text-muted); }
 

@@ -261,7 +261,7 @@ class TestCheckedView(unittest.TestCase):
         v = js("ATD.checkedView('time','2026-11-14T09:50:00Z',DATA.n)", n=now)
         self.assertEqual((v["text"], v["age"]), ("2026-11-14 09:50:00 UTC", "10 min ago"))
         v = js("ATD.checkedView('time','2026-11-14T04:00:00Z',DATA.n)", n=now)
-        self.assertEqual(v["age"], "6 h ago")
+        self.assertEqual(v["age"], "6 hours ago")
         self.assertIn("checked on this date", js("ATD.checkedView('date','2026-11-13',DATA.n)", n=now)["text"])
         self.assertEqual(js("ATD.checkedView('time',null,DATA.n)", n=now)["text"], "No time on file")
         self.assertEqual(js("ATD.checkedView('static',null,DATA.n)", n=now)["text"], "Static file")

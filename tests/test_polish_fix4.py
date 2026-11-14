@@ -64,17 +64,18 @@ class TestAirportRound4(unittest.TestCase):
         self.assertIn("<h3>Car rental</h3>", self.sfo)
 
     def test_stale_notice_markup_and_script(self) -> None:
-        right = self.sfo.split('id="right-now-heading"')[1]
-        self.assertLess(right.index('id="stale-notice"'), right.index('id="right-now"'))
-        self.assertIn('class="stale-notice" role="status" hidden', self.sfo)
+        # The notice sits above the status band; the script shows or hides it and holds the one stale limit.
+        self.assertLess(self.sfo.index('id="stale-notice"'), self.sfo.index('id="status-chip"'))
+        self.assertIn('class="stale-notice" role="status"', self.sfo)
         self.assertIn("var STALE_MIN = 30;", self.sfo)
         self.assertIn("https://nasstatus.faa.gov", self.sfo)
         self.assertIn("It normally updates about every 5 minutes. For the FAA", self.sfo)
 
     def test_one_age_format(self) -> None:
         script = self.sfo.split("<script>")[-1]
-        self.assertEqual(script.count("\" min ago\""), 1)
-        self.assertEqual(script.count("hours ago"), 1)
+        self.assertEqual(script.count("\" min\""), 1)
+        self.assertEqual(script.count("\" hours\""), 1)
+        self.assertNotIn("\" h ago\"", script)
 
 
 class TestAboutRound4(unittest.TestCase):

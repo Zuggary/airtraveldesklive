@@ -9,6 +9,7 @@ import io
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,6 +27,7 @@ from tools import prerender_text as pt  # noqa: E402
 
 UPDATED = "2026-11-14T09:50:00Z"
 NOW = datetime(2026, 11, 14, 9, 58, tzinfo=timezone.utc)  # 8 minutes after the data
+NODE = shutil.which("node")
 BAD_STRINGS = ("(unchecked)", "traveller", "Loading current FAA status")
 
 
@@ -177,7 +179,7 @@ class TestAirportPrerender(_Built):
             bap.build_pages(data_dir=d, out_dir=out, sitemap_path=None, build_date="2026-11-14", now=later)
             atl = visible_text((out / "ATL.html").read_text(encoding="utf-8"))
         self.assertIn("This data is 4 hours old.", atl)
-        self.assertIn("FAA NAS status, checked 4:50 AM EST (4 hours ago)", atl)
+        self.assertIn("FAA NAS status, last checked 4:50 AM EST (4 hours ago)", atl)
 
     def test_description_states_the_status_in_plain_words(self):
         for code, word in (("ATL", "No FAA delays reported"), ("DEN", "Ground stop"), ("JFK", "Closed")):
@@ -489,6 +491,203 @@ class TestCheckLinks(unittest.TestCase):
 
     def test_report_file_is_not_committed(self):
         self.assertIn("data/link-report.json", (ROOT / ".gitignore").read_text(encoding="utf-8"))
+
+
+LATER = datetime(2026, 11, 14, 21, 50, tzinfo=timezone.utc)  # 12 hours after the data
+LIVE_WORDS = ("Right now", "right now", "Weather now")
+
+
+def _forecast_airports():
+    """SFO: window ended long before LATER. DEN: still open at LATER (ends 4 pm Mountain = 23:00 UTC)."""
+    a = dict(AIRPORTS)
+    a["SFO"] = _airport("SFO", "San Francisco International", "America/Los_Angeles")
+    a["SFO"]["wx"]["next3h_text"] = "clear through 2 am Pacific"
+    a["SFO"]["wx"]["taf_issue_utc"] = "2026-11-14T08:51:00Z"
+    a["DEN"] = dict(AIRPORTS["DEN"], wx=_wx("thunderstorms", 24.0, 35.0))
+    a["DEN"]["wx"]["next3h_text"] = "clear through 4 pm Mountain"
+    a["DEN"]["wx"]["taf_issue_utc"] = "2026-11-14T09:30:00Z"
+    return a
+
+
+class TestStaleHonesty(unittest.TestCase):
+    """AN23b: data older than 30 minutes drops live words and the bright all-clear look."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._tmp = tempfile.TemporaryDirectory()
+        tmp = Path(cls._tmp.name)
+        cls.data = make_data(tmp, airports=_forecast_airports())
+        cls.template = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.stale_out, cls.fresh_out = tmp / "stale", tmp / "fresh"
+        bap.build_pages(data_dir=cls.data, out_dir=cls.stale_out, sitemap_path=None, build_date="2026-11-14", now=LATER)
+        bap.build_pages(data_dir=cls.data, out_dir=cls.fresh_out, sitemap_path=None, build_date="2026-11-14", now=NOW)
+        rd = lambda d: {p.stem: p.read_text(encoding="utf-8") for p in d.glob("*.html")}  # noqa: E731
+        cls.stale, cls.fresh = rd(cls.stale_out), rd(cls.fresh_out)
+        cls.stale_home = ph.prerender(cls.template, cls.data, LATER)
+        cls.fresh_home = ph.prerender(cls.template, cls.data, NOW)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._tmp.cleanup()
+
+    def test_one_stale_limit(self):
+        self.assertEqual(pt.STALE_MIN, 30)
+        self.assertIn("var STALE_MIN = A.STALE_MIN;", (ROOT / "app.js").read_text(encoding="utf-8"))
+        self.assertIn("var STALE_MIN = 30;", (ROOT / "lib.js").read_text(encoding="utf-8"))
+        self.assertIn("var STALE_MIN = 30;", self.fresh["ATL"])
+        self.assertFalse(pt.is_stale(30))
+        self.assertTrue(pt.is_stale(31))
+
+    def test_age_units(self):
+        self.assertEqual(pt.ago_text(5), "5 min ago")
+        self.assertEqual(pt.ago_text(59), "59 min ago")
+        self.assertEqual(pt.ago_text(60), "1 hour ago")
+        self.assertEqual(pt.ago_text(738), "12 hours ago")
+        self.assertEqual(pt.ago_text(1440), "1 day ago")
+        self.assertEqual(pt.ago_text(3000), "2 days ago")
+        self.assertEqual(pt.old_text(90), "1 hour old")
+
+    def test_stale_airport_pages_have_no_live_words(self):
+        for code in ("ATL", "DEN", "ORD", "JFK", "SFO"):
+            page = self.stale[code]
+            text = visible_text(page)
+            for w in LIVE_WORDS:
+                self.assertNotIn(w, text, f"{code}: {w}")
+                self.assertNotIn(w, re.sub(r"<script.*?</script>", "", page, flags=re.S), f"{code} markup: {w}")
+            self.assertNotIn("Live refresh", text)
+            self.assertIn("Last known status", text)
+            self.assertNotIn("min ago", text.replace("less than 1 min ago", ""))
+
+    def test_stale_text_and_chip(self):
+        atl = self.stale["ATL"]
+        text = visible_text(atl)
+        self.assertIn("As of 4:50 AM EST: no FAA delays reported", text)
+        self.assertIn("No FAA delays reported as of 4:50 AM EST (12 hours ago)", text)
+        self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
+        self.assertIn("This data is 12 hours old.", text)
+        chip = re.search(r'<span id="status-chip" class="([^"]+)"', atl).group(1)
+        self.assertIn("badge--stale", chip)
+        self.assertNotIn("badge--clear", chip)
+        self.assertNotIn("badge--clear", atl.split('id="right-now"')[1].split("</div>")[0])
+        self.assertIn("As of 2:50 AM MST: ground stop", visible_text(self.stale["DEN"]))
+        self.assertIn('id="weather-chip" class="badge weather-chip" hidden', atl)
+        self.assertIn("12 hours ago", re.search(r'name="description" content="([^"]+)"', atl).group(1))
+        self.assertNotIn("right now", re.search(r'name="description" content="([^"]+)"', atl).group(1))
+
+    def test_notice_before_status(self):
+        for code in ("ATL", "DEN", "SFO"):
+            page = self.stale[code]
+            self.assertLess(page.index('id="stale-notice"'), page.index('id="status-chip"'), code)
+            self.assertLess(page.index('id="stale-notice"'), page.index('class="card-status"'))
+            self.assertNotIn('id="stale-notice" class="stale-notice" role="status" hidden', page)
+        # The fresh page keeps the notice hidden.
+        self.assertIn('id="stale-notice" class="stale-notice" role="status" hidden', self.fresh["ATL"])
+
+    def test_expired_forecast_hidden_open_one_labelled(self):
+        sfo = visible_text(self.stale["SFO"])
+        self.assertNotIn("clear through 2 am", sfo)
+        self.assertNotIn("Next 3 hours", sfo)
+        den = visible_text(self.stale["DEN"])
+        self.assertIn("Forecast issued 2:30 AM MST: clear through 4 pm Mountain", den)
+        self.assertNotIn("Next 3 hours", den)
+        # forecast_end resolves the clock in the airport zone, after the issue time.
+        self.assertEqual(pt.forecast_end("clear through 2 am Pacific", "2026-11-14T08:51:00Z"),
+                         datetime(2026, 11, 14, 10, 0, tzinfo=timezone.utc))
+        self.assertIsNone(pt.forecast_end("clear", "2026-11-14T08:51:00Z"))
+
+    def test_fresh_pages_keep_live_words(self):
+        atl = visible_text(self.fresh["ATL"])
+        self.assertIn("Right now", atl)
+        self.assertIn("Weather now: clear, wind 9 kt", atl)
+        self.assertIn("Next 3 hours:", atl)
+        self.assertIn("badge badge--clear status-chip", self.fresh["ATL"])
+        self.assertNotIn("badge--stale", self.fresh["ATL"].split("<script>")[0])
+        self.assertNotIn("Last known status", atl)
+
+    def test_stale_home(self):
+        text = visible_text(self.stale_home)
+        for w in LIVE_WORDS:
+            self.assertNotIn(w, text, w)
+        self.assertNotIn(" live ", text.replace("Watch live", "").replace("live video", "").replace("Live board", ""))
+        self.assertIn("Last known status", text)
+        self.assertIn("as of 4:50 AM EST (12 hours ago)", text)
+        self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
+        self.assertLess(self.stale_home.index('id="stale-notice"'), self.stale_home.index('id="summary"'))
+        self.assertNotIn('role="status" hidden', self.stale_home.split('id="stale-notice"')[1].split("</p>")[0])
+
+    def test_stale_home_all_clear_headline(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = make_data(Path(t), airports={"ATL": AIRPORTS["ATL"]})
+            _write(d / "state.json", {"updated_utc": UPDATED, "events": []})
+            page = ph.prerender(self.template, d, LATER)
+        text = visible_text(page)
+        self.assertIn("No delays or ground stops at the 30 busiest airports as of 4:50 AM EST (12 hours ago)", text)
+        self.assertIn("No FAA delays or ground stops were listed as of 4:50 AM EST (12 hours ago).", text)
+        self.assertNotIn("right now", text)
+
+    def test_fresh_home_keeps_live_words(self):
+        text = visible_text(self.fresh_home)
+        self.assertIn("Right now", text)
+        self.assertNotIn("Last known status", text)
+        self.assertEqual(self.fresh_home.count('role="status" hidden'), 1)
+
+    def test_browser_script_wording_matches(self):
+        page = self.fresh["ATL"]
+        for needle in ('"Last known status"', '"badge badge--stale"', '"As of "', "Last weather report: ",
+                       "Forecast issued ", "forecastExpired", "function durText", '"1 hour"', "last checked "):
+            self.assertIn(needle, page, needle)
+        app = (ROOT / "app.js").read_text(encoding="utf-8")
+        lib = (ROOT / "lib.js").read_text(encoding="utf-8")
+        for needle in ('"Last known status"', "badge--stale", "Forecast issued ", "A.isStale", "A.agoText"):
+            self.assertIn(needle, app, needle)
+        for needle in ("function durText", '"1 hour"', "function forecastExpired", "var STALE_MIN = 30;"):
+            self.assertIn(needle, lib, needle)
+        self.assertNotIn('" min ago"', app)
+        self.assertNotIn('" h ago"', lib)
+        self.assertNotIn("STALE_MIN = 20", app)
+
+
+def _js(expr, **data):
+    code = "const ATD=require(%s);const DATA=%s;process.stdout.write(JSON.stringify(%s));" % (
+        json.dumps(str(ROOT / "lib.js")), json.dumps(data), expr)
+    r = subprocess.run([NODE, "-e", code], capture_output=True, text=True, timeout=30)
+    if r.returncode:
+        raise RuntimeError(r.stderr)
+    return json.loads(r.stdout)
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestBrowserHelpersAgree(unittest.TestCase):
+    """lib.js (browser) and prerender_text.py (build) give the same words."""
+
+    def test_age_words_match_python(self):
+        for m in (0, 1, 5, 59, 60, 61, 119, 120, 738, 1439, 1440, 3000):
+            self.assertEqual(_js("ATD.agoText(DATA.m)", m=m), pt.ago_text(m), m)
+            self.assertEqual(_js("ATD.oldText(DATA.m)", m=m), pt.old_text(m), m)
+        self.assertEqual(_js("[ATD.isStale(30), ATD.isStale(31), ATD.isStale(null)]"), [False, True, True])
+
+    def test_forecast_window_matches_python(self):
+        for text, issued in (("clear through 2 am Pacific", "2026-11-14T08:51:00Z"),
+                             ("clear through 7:44 am Eastern", "2026-11-14T08:28:00Z"),
+                             ("fog likely after 4 am Mountain", "2026-11-14T09:00:00Z"),
+                             ("clear through 12 pm Central", "2026-11-14T09:00:00Z")):
+            py = int(pt.forecast_end(text, issued).timestamp() * 1000)
+            self.assertEqual(_js("ATD.forecastEnd(DATA.t, DATA.i, '')", t=text, i=issued), py, text)
+        self.assertIsNone(_js("ATD.forecastEnd('clear', '2026-11-14T08:51:00Z', '')"))
+        now = int(LATER.timestamp() * 1000)
+        self.assertTrue(_js("ATD.forecastExpired('clear through 2 am Pacific', '2026-11-14T08:51:00Z', '', DATA.n)", n=now))
+        self.assertFalse(_js("ATD.forecastExpired('clear through 4 pm Mountain', '2026-11-14T09:30:00Z', '', DATA.n)", n=now))
+
+    def test_stale_summary_and_latest(self):
+        s = _js("ATD.nationalSummary([], DATA.a)", a="as of 1:50 AM PST (12 hours ago)")
+        self.assertEqual(s, "No delays or ground stops at the 30 busiest airports as of 1:50 AM PST (12 hours ago)")
+        self.assertIn("right now", _js("ATD.nationalSummary([])"))
+        self.assertNotIn("right now", _js("ATD.impactText({kind:'closure'}, 'Denver', true)"))
+        items = [{"text": "SFO · clear through 2 am Pacific (next 3 h)", "kind": "wx", "as_of_utc": "2026-11-14T08:51:00Z", "t_utc": "2026-11-14T09:50:00Z"},
+                 {"text": "DEN · ground stop", "kind": "ground_stop", "t_utc": "2026-11-14T09:50:00Z"}]
+        now = int(LATER.timestamp() * 1000)
+        out = _js("ATD.latestItems(DATA.items, 6, DATA.n).map(function(i){return i.text})", items=items, n=now)
+        self.assertEqual(out, ["DEN · ground stop"])
 
 
 class TestTextHelpers(unittest.TestCase):
