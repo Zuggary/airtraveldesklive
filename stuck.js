@@ -47,7 +47,7 @@
       "If the delay threatens a connection or reaches 3 hours, get in the gate or customer service line AND call the airline at the same time.",
       "Ask the agent about an earlier flight, or a seat on a partner airline if your airline has committed to that.",
       "If the airline caused the delay and your wait is 3 hours or more, ask for a meal or meal voucher if the airline has committed to it (see below).",
-      "Screenshot the delay notice and keep your boarding pass and receipts in case reimbursement is possibly owed."
+      "Screenshot the delay notice and keep your boarding pass and receipts in case you are eligible for reimbursement."
     ],
     cancelled: [
       "Get in the rebooking line AND call the airline at the same time so whichever reaches an agent first can help.",
@@ -55,28 +55,28 @@
       "Ask about other flights, including partner airlines or nearby airports, if your airline has committed to it.",
       "Ask for meal or hotel vouchers if the wait is 3 hours or more or overnight and the airline has committed to them (see below).",
       "If you choose not to travel, tell the agent you want a refund of the unused ticket rather than a travel credit.",
-      "Screenshot the cancellation notice and keep your boarding pass and receipts in case money is possibly owed."
+      "Screenshot the cancellation notice and keep your boarding pass and receipts in case you are eligible for a refund or reimbursement."
     ],
     diverted: [
       "Listen for crew and gate updates to find out whether the aircraft will refuel and continue or offload passengers.",
       "If the flight will not continue today, open the airline app and call customer service right away while heading to a desk.",
       "Ask the agent about rebooking on the next flight to your destination, or ground transport if your destination airport is nearby.",
       "Ask for meal or hotel vouchers if you face a 3+ hour wait or an overnight stay and the airline has committed to them (see below).",
-      "Keep your boarding pass, screenshot the diversion notice, and save meal, hotel, and transport receipts in case reimbursement is possibly owed."
+      "Keep your boarding pass, screenshot the diversion notice, and save meal, hotel, and transport receipts in case you can claim reimbursement."
     ],
     missed_connection: [
       "Go to the nearest airline customer service desk AND call the airline at the same time.",
       "Check the airline app — airlines often auto-rebook missed connections, and you can review or change that seat.",
       "Ask the agent about standby on an earlier flight, partner airline options, or nearby airports if your airline has committed to them.",
       "Ask for meal or hotel vouchers if the missed connection leaves you waiting 3+ hours or overnight and the airline has committed to them (see below).",
-      "Keep both your original and new boarding passes, screenshots of both flights, and all receipts in case money is possibly owed."
+      "Keep both your original and new boarding passes, screenshots of both flights, and all receipts in case you can claim reimbursement."
     ],
     overnight: [
       "Get in the customer service line AND call the airline at the same time to lock in tomorrow's earliest seat before flights fill up.",
       "Check the airline app for rebooking options first while you wait for an agent.",
       "Ask the agent for a hotel voucher, ground transport to and from the hotel, and meal vouchers if the airline caused the disruption and has committed to them (see below).",
       "If no voucher is offered or the airline has no hotel commitment, check your travel insurance or credit-card trip delay benefits before paying out of pocket.",
-      "Keep your boarding pass, screenshot the delay or cancellation notice, and photo every meal, hotel, and transport receipt in case reimbursement is possibly owed."
+      "Keep your boarding pass, screenshot the delay or cancellation notice, and photo every meal, hotel, and transport receipt in case you can claim reimbursement."
     ]
   };
 
@@ -174,7 +174,7 @@
         causeNote: causeNote,
         message: "Other airlines are not listed in this quick table. Check the U.S. DOT airline dashboard or your airline's customer service plan to see what it has committed to when it causes a delay or cancellation.",
         rows: [],
-        moneyNote: "If you pay out of pocket, any reimbursement is money possibly owed only under your airline's customer service plan or commitments.",
+        moneyNote: "If you pay out of pocket, any reimbursement is money you may be able to claim back under your airline's own commitments or customer service plan.",
         sourceText: "Source: U.S. Department of Transportation, Airline Cancellation and Delay Dashboard (last updated " + updated + ").",
         dotUrl: dotUrl,
         updated: updated
@@ -189,7 +189,7 @@
         message: airline.name + " is not listed on the DOT dashboard.",
         note: airline.note || "",
         rows: [],
-        moneyNote: "If you pay out of pocket, any reimbursement is money possibly owed only under the airline's contract of carriage or at its discretion.",
+        moneyNote: "If you pay out of pocket, any reimbursement is money you may be able to claim back only under the airline's contract of carriage or at its discretion.",
         sourceText: "Source: U.S. Department of Transportation, Airline Cancellation and Delay Dashboard (last updated " + updated + ").",
         dotUrl: dotUrl,
         updated: updated
@@ -217,7 +217,7 @@
       intro: airline.name + " has committed to the items marked Committed when it causes the delay or cancellation.",
       rows: rows,
       noNote: "No commitment means the airline has not committed to it on the dashboard. It may still help at its own discretion.",
-      moneyNote: "If you pay out of pocket, any reimbursement is money possibly owed only under the airline's commitments or policy.",
+      moneyNote: "If you pay out of pocket, any reimbursement is money you may be able to claim back under the airline's own commitments or policy.",
       sourceText: "Source: U.S. Department of Transportation, Airline Cancellation and Delay Dashboard (last updated " + updated + ").",
       dotUrl: dotUrl,
       updated: updated
@@ -431,7 +431,7 @@
       secD.appendChild(el("h2", "result-heading", "Refund rule"));
       secD.appendChild(el("p", "refund-line", REFUND_QUOTE));
       secD.appendChild(el("p", "small", PLAIN_READING));
-      secD.appendChild(el("p", "small", "This applies whatever the cause. Any refund, reimbursement, or compensation is money possibly owed depending on your flight and whether you choose not to travel."));
+      secD.appendChild(el("p", "small", "This applies whatever the cause. What you may be eligible for depends on your flight and whether you choose not to travel."));
       resultBody.appendChild(secD);
 
       // e. Checklist (page memory only, not stored)
@@ -462,10 +462,18 @@
       var ta = document.createElement("textarea");
       ta.id = "email-draft-text";
       ta.className = "email-draft-box";
-      ta.rows = 14;
+      ta.rows = 20;
       ta.setAttribute("aria-label", "Email draft to the airline");
       ta.value = buildEmailDraft(airlineName, isOther, state.situationId, effectiveCause);
       secF.appendChild(ta);
+
+      function autoSizeDraft() {
+        ta.style.height = "auto";
+        if (ta.scrollHeight) {
+          ta.style.height = (ta.scrollHeight + 4) + "px";
+        }
+      }
+      ta.addEventListener("input", autoSizeDraft);
 
       var copyRow = el("div", "copy-row");
       var copyBtn = el("button", "btn btn-secondary", "Copy");
@@ -498,10 +506,11 @@
       copyRow.appendChild(copyStatus);
       secF.appendChild(copyRow);
       resultBody.appendChild(secF);
+      autoSizeDraft();
 
       // g. Link: Check what you may be owed in detail
       var secG = el("section", "result-card result-card--cta");
-      secG.appendChild(el("p", "owed-detail-note", "Want help checking what may be possibly owed for your flight?"));
+      secG.appendChild(el("p", "owed-detail-note", "Want help checking what you may be eligible for on your flight?"));
       var dcLink = el("a", "btn btn-primary", "Check what you may be owed in detail");
       dcLink.href = DOWNTIME_URL;
       dcLink.target = "_blank";
@@ -510,7 +519,7 @@
       resultBody.appendChild(secG);
 
       // h. Footer note
-      resultBody.appendChild(el("p", "result-footer-note", "Plain-language help, not legal advice. Sources: U.S. DOT airline dashboard (updated " + cm.updated + "), 14 CFR 260.6."));
+      resultBody.appendChild(el("p", "result-footer-note", "Sources: U.S. DOT airline dashboard (updated " + cm.updated + "), 14 CFR 260.6."));
     }
 
     document.getElementById("step-1-next").addEventListener("click", function () {

@@ -74,6 +74,9 @@ jobs:
         continue-on-error: true
         run: python tools/build_places.py --out data
 
+      - name: Build static airport pages
+        run: python tools/build_airport_pages.py
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
@@ -86,20 +89,31 @@ jobs:
               cp "$file" _site/
             fi
           done
+          mkdir -p _site/airports
+          cp airports/*.html _site/airports/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
           for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/brand
           cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
 
-      - name: Check that every public root file is published
-        # The copy list above is an allowlist. Fail loudly if a public file at the root was left off it.
+      - name: Check that every public root file and airport page is published
+        # The copy list above is an allowlist. Fail loudly if a public file at the root or airports/ was left off it.
         run: |
           missing=0
           for f in *.html *.js *.css *.txt *.xml *.svg *.png *.geojson CNAME; do
             [ -f "$f" ] || continue
             [ -f "_site/$f" ] || { echo "::error::$f is in the repo root but not in _site; add it to the copy list"; missing=1; }
           done
+          if [ ! -f "_site/airports/index.html" ]; then
+            echo "::error::_site/airports/index.html is missing"
+            missing=1
+          fi
+          airport_count=$(find _site/airports -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
+          if [ "$airport_count" -ne 30 ]; then
+            echo "::error::Expected 30 airport pages in _site/airports, found $airport_count"
+            missing=1
+          fi
           exit $missing
 
       - name: Upload Pages artifact

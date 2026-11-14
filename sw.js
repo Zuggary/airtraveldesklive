@@ -6,6 +6,7 @@
   var STATIC_FILES = [
     "./",
     "./index.html",
+    "./airports/index.html",
     "./stuck.html",
     "./style.css",
     "./app.js",

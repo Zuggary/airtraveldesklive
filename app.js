@@ -445,7 +445,7 @@
   function guideBlock(a) {
     var wrap = el("div", "guide-wrap");
     var det = el("details", "stuck-details airport-guide");
-    det.appendChild(el("summary", null, "Airport guide"));
+    det.appendChild(el("summary", null, "Airport guide: " + (a.name || a.short || a.code) + " (" + a.code + ") · official pages"));
 
     var body = el("div", "guide-body");
     body.appendChild(el("p", "guide-text guide-purpose", "Purpose: official links and conditions for this airport"));
@@ -480,10 +480,13 @@
     body.appendChild(el("p", "guide-text", "Food, charging and sleeping notes appear only where the airport publishes them; follow the links above."));
 
     var actions = el("div", "guide-actions");
+    var fullLink = el("a", "btn btn-secondary guide-action", "Full page for " + (a.name || a.short || a.code));
+    fullLink.href = "../airports/" + a.code + ".html";
+    actions.appendChild(fullLink);
     var stuckLink = el("a", "btn btn-secondary guide-action", "Missed a flight? Open the I'm stuck guide");
     stuckLink.href = "stuck.html";
     actions.appendChild(stuckLink);
-    actions.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you're owed", "btn btn-primary guide-action"));
+    actions.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you may be owed", "btn btn-primary guide-action"));
     body.appendChild(actions);
 
     det.appendChild(body);
@@ -563,7 +566,7 @@
     renderCommitments(out, "");
 
     stuck.appendChild(el("h5", null, "Owed something?"));
-    stuck.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you're owed", "btn btn-primary"));
+    stuck.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you may be owed", "btn btn-primary"));
     card.appendChild(stuck);
 
     cardRefs = { card: card, live: live, guideNow: guide.nowBox };
