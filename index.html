@@ -1,22 +1,73 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Air Travel Desk</title><meta name="description" content="A live desk for US flight delays and ground stops, from FAA and National Weather Service data. Going live soon on YouTube.">
-<style>
-:root{color-scheme:dark}
-html,body{margin:0;min-height:100%}
-body{background:#0d1722;color:#eef3f7;font:500 18px/1.5 system-ui,-apple-system,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}
-main{max-width:560px;padding:0 16px}
-.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#f2b33d;margin-right:8px;vertical-align:middle}
-h1{font-size:40px;margin:0 0 8px;letter-spacing:-.02em}
-p{margin:0 0 12px;opacity:.88}
-a{color:#9fd3ff}
-small{display:block;margin-top:28px;opacity:.6;font-size:13px}
-</style></head>
-<body><main>
-<p><span class="dot" aria-hidden="true"></span>Going live soon</p>
-<h1>Air Travel Desk</h1>
-<p>A live desk for US flight delays and ground stops, from FAA and National Weather Service data.</p>
-<p>Watch on YouTube: <a href="https://www.youtube.com/@AirTravelDeskLive">@AirTravelDeskLive</a></p>
-<p style="margin-top:24px">Delayed or cancelled? <a href="https://www.downtimecredit.com/flights/">Check what you're owed</a></p>
-<small>An automated broadcast. Data: FAA, NWS. Not affiliated with any airline or government agency.</small>
-</main></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Air Travel Desk — Live US Flight Delays &amp; Ground Stops</title>
+  <meta name="description" content="Live US airport status board, FAA ground stops, ground delays, and National Weather Service alerts.">
+  <link rel="canonical" href="https://www.airtraveldesklive.com/">
+  <meta property="og:title" content="Air Travel Desk — Live US Flight Delays &amp; Ground Stops">
+  <meta property="og:description" content="Live US airport status board, FAA ground stops, ground delays, and National Weather Service alerts.">
+  <meta property="og:image" content="https://www.airtraveldesklive.com/og.png">
+  <meta property="og:url" content="https://www.airtraveldesklive.com/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Air Travel Desk — Live US Flight Delays &amp; Ground Stops">
+  <meta name="twitter:description" content="Live US airport status board, FAA ground stops, ground delays, and National Weather Service alerts.">
+  <meta name="twitter:image" content="https://www.airtraveldesklive.com/og.png">
+  <meta name="theme-color" content="#0d1722">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="container">
+    <header class="site-header">
+      <div class="brand-row">
+        <div class="brand">
+          <span class="live-dot" aria-hidden="true"></span>
+          <h1>Air Travel Desk</h1>
+        </div>
+      </div>
+      <a class="btn btn-primary" href="https://www.youtube.com/@AirTravelDeskLive" target="_blank" rel="noopener noreferrer">
+        Watch live on YouTube
+      </a>
+    </header>
+
+    <main id="main-content">
+      <div class="status-bar">
+        <p id="updated-line" class="updated-text" aria-live="polite">Loading status…</p>
+      </div>
+      <p id="stale-notice" class="stale-notice" role="status" hidden>Data may be out of date</p>
+
+      <section aria-labelledby="events-heading">
+        <h2 id="events-heading" class="section-heading">Active Disruptions</h2>
+        <div id="events" class="events-list"></div>
+      </section>
+
+      <section aria-labelledby="board-heading">
+        <h2 id="board-heading" class="section-heading">30 Busiest US Airports</h2>
+        <div id="board" class="board-grid"></div>
+      </section>
+
+      <section class="owed-panel" aria-labelledby="owed-heading">
+        <div class="owed-copy">
+          <h2 id="owed-heading">Flight trouble today?</h2>
+          <p>See if airline compensation or meal and hotel rules apply to your trip.</p>
+        </div>
+        <a class="btn btn-primary" href="https://www.downtimecredit.com/flights/" target="_blank" rel="noopener noreferrer">
+          Delayed or cancelled? Check what you're owed
+        </a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>An automated desk. Data: FAA, National Weather Service. Not affiliated with any airline or government agency.</p>
+      <p><a href="privacy.html">Privacy</a></p>
+    </footer>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

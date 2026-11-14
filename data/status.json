@@ -1,0 +1,227 @@
+{
+  "updated_utc": "2026-11-14T04:54:42Z",
+  "board": [
+    {
+      "code": "ATL",
+      "name": "Hartsfield-Jackson Atlanta International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "DFW",
+      "name": "Dallas Fort Worth International",
+      "tz": "America/Chicago",
+      "level": "clear"
+    },
+    {
+      "code": "DEN",
+      "name": "Denver International",
+      "tz": "America/Denver",
+      "level": "clear"
+    },
+    {
+      "code": "ORD",
+      "name": "Chicago O'Hare International",
+      "tz": "America/Chicago",
+      "level": "clear"
+    },
+    {
+      "code": "LAX",
+      "name": "Los Angeles International",
+      "tz": "America/Los_Angeles",
+      "level": "clear"
+    },
+    {
+      "code": "JFK",
+      "name": "John F. Kennedy International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "LAS",
+      "name": "Harry Reid International",
+      "tz": "America/Los_Angeles",
+      "level": "clear"
+    },
+    {
+      "code": "MCO",
+      "name": "Orlando International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "MIA",
+      "name": "Miami International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "CLT",
+      "name": "Charlotte Douglas International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "SEA",
+      "name": "Seattle-Tacoma International",
+      "tz": "America/Los_Angeles",
+      "level": "clear"
+    },
+    {
+      "code": "PHX",
+      "name": "Phoenix Sky Harbor International",
+      "tz": "America/Phoenix",
+      "level": "clear"
+    },
+    {
+      "code": "EWR",
+      "name": "Newark Liberty International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "SFO",
+      "name": "San Francisco International",
+      "tz": "America/Los_Angeles",
+      "level": "delay"
+    },
+    {
+      "code": "IAH",
+      "name": "George Bush Intercontinental",
+      "tz": "America/Chicago",
+      "level": "clear"
+    },
+    {
+      "code": "BOS",
+      "name": "Boston Logan International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "FLL",
+      "name": "Fort Lauderdale-Hollywood International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "MSP",
+      "name": "Minneapolis-Saint Paul International",
+      "tz": "America/Chicago",
+      "level": "clear"
+    },
+    {
+      "code": "LGA",
+      "name": "LaGuardia",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "DTW",
+      "name": "Detroit Metropolitan Wayne County",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "PHL",
+      "name": "Philadelphia International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "SLC",
+      "name": "Salt Lake City International",
+      "tz": "America/Denver",
+      "level": "clear"
+    },
+    {
+      "code": "BWI",
+      "name": "Baltimore/Washington International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "IAD",
+      "name": "Washington Dulles International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "SAN",
+      "name": "San Diego International",
+      "tz": "America/Los_Angeles",
+      "level": "delay"
+    },
+    {
+      "code": "DCA",
+      "name": "Ronald Reagan Washington National",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "TPA",
+      "name": "Tampa International",
+      "tz": "America/New_York",
+      "level": "clear"
+    },
+    {
+      "code": "BNA",
+      "name": "Nashville International",
+      "tz": "America/Chicago",
+      "level": "clear"
+    },
+    {
+      "code": "AUS",
+      "name": "Austin-Bergstrom International",
+      "tz": "America/Chicago",
+      "level": "clear"
+    },
+    {
+      "code": "MDW",
+      "name": "Chicago Midway International",
+      "tz": "America/Chicago",
+      "level": "clear"
+    }
+  ],
+  "events": [
+    {
+      "code": "SAN",
+      "name": "San Diego International",
+      "tz": "America/Los_Angeles",
+      "kind": "ground_delay",
+      "reason": "airport volume",
+      "avg": "34 minutes",
+      "max": "1 hour and 21 minutes",
+      "min": null,
+      "trend": null,
+      "direction": null,
+      "end_time": null,
+      "status": "OFFICIAL",
+      "alert": null,
+      "sources": [
+        "FAA"
+      ]
+    },
+    {
+      "code": "SFO",
+      "name": "San Francisco International",
+      "tz": "America/Los_Angeles",
+      "kind": "ground_delay",
+      "reason": "wind",
+      "avg": "2 hours and 18 minutes",
+      "max": "11 hours and 30 minutes",
+      "min": null,
+      "trend": null,
+      "direction": null,
+      "end_time": null,
+      "status": "OFFICIAL",
+      "alert": null,
+      "sources": [
+        "FAA"
+      ]
+    }
+  ],
+  "sources": [
+    "FAA",
+    "NWS"
+  ]
+}

@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"id":"urn:oid:synthetic-test-1","event":"Severe Thunderstorm Warning","severity":"Severe","headline":"SYNTHETIC TEST FIXTURE - not a real alert","senderName":"NWS Upton NY","effective":"2026-11-14T00:40:00Z","expires":"2026-11-14T02:00:00Z"}}],"title":"SYNTHETIC TEST FIXTURE"}
