@@ -43,6 +43,25 @@ def _safe_http_url(raw: Any) -> str:
     return ""
 
 
+ZONE_NAMES = {
+    "America/New_York": "Eastern Time",
+    "America/Detroit": "Eastern Time",
+    "America/Chicago": "Central Time",
+    "America/Denver": "Mountain Time",
+    "America/Phoenix": "Arizona Time (no daylight saving)",
+    "America/Los_Angeles": "Pacific Time",
+    "America/Anchorage": "Alaska Time",
+    "Pacific/Honolulu": "Hawaii Time",
+}
+
+
+def _zone_name(tz: str) -> str:
+    """Plain zone name for an IANA zone id; falls back to the city part of the id."""
+    if tz in ZONE_NAMES:
+        return ZONE_NAMES[tz]
+    return tz.rsplit("/", 1)[-1].replace("_", " ")
+
+
 def _esc(text: Any) -> str:
     return html.escape(str(text if text is not None else ""), quote=True)
 
@@ -96,7 +115,6 @@ def _render_header() -> str:
         '      <div class="brand-row">',
         '        <a class="brand" href="../index.html">',
         '          <img class="brand-logo" src="../brand/logo.svg" width="36" height="36" alt="Air Travel Desk logo">',
-        '          <span class="live-dot" aria-hidden="true"></span>',
         '          <span class="brand-title">Air Travel Desk</span>',
         "        </a>",
         "      </div>",
@@ -127,14 +145,16 @@ def _render_footer() -> str:
     ])
 
 
-def _right_now_script(code: str) -> str:
+def _right_now_script(code: str, tz: str = "") -> str:
     """Inline client-side script that populates #status-chip, #weather-chip, and #right-now from ../data/airports.json."""
     code_json = json.dumps(code)
+    tz_json = json.dumps(tz)
     return "\n".join([
         "  <script>",
         "  (function () {",
         '    "use strict";',
         f"    var CODE = {code_json};",
+        f"    var TZ = {tz_json};",
         '    var box = document.getElementById("right-now");',
         '    var statusChip = document.getElementById("status-chip");',
         '    var wxChip = document.getElementById("weather-chip");',
@@ -154,7 +174,24 @@ def _right_now_script(code: str) -> str:
         "      var m = Math.max(0, Math.floor((Date.now() - ms) / 60000));",
         '      return "updated " + (m < 1 ? "less than 1 min ago" : m + " min ago");',
         "    }",
+        "    function clockLabel(iso) {",
+        '      var ms = Date.parse(iso || "");',
+        '      if (!isFinite(ms)) { return ""; }',
+        "      try {",
+        '        var opts = { hour: "numeric", minute: "2-digit", timeZoneName: "short" };',
+        "        if (TZ) { opts.timeZone = TZ; }",
+        '        return new Intl.DateTimeFormat("en-US", opts).format(new Date(ms));',
+        "      } catch (e) { return \"\"; }",
+        "    }",
+        "    function checkedText(iso) {",
+        "      var c = clockLabel(iso);",
+        '      var m = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60000));',
+        '      var age = m < 1 ? "less than 1 min ago" : (m >= 120 ? Math.floor(m / 60) + " hours ago" : m + " min ago");',
+        '      return c ? "Checked " + c + " (" + age + ")" : "Check time unknown";',
+        "    }",
+        '    var checkedLine = document.getElementById("checked-line");',
         "    function setUnavailable() {",
+        '      if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }',
         "      if (statusChip) {",
         '        statusChip.className = "badge status-chip";',
         '        statusChip.textContent = "Status unavailable";',
@@ -163,6 +200,7 @@ def _right_now_script(code: str) -> str:
         "    }",
         "    function render(data) {",
         "      var a = data && data.airports && data.airports[CODE];",
+        '      if (checkedLine && a) { checkedLine.textContent = "FAA NAS status. " + checkedText(data.updated_utc) + "."; }',
         "      if (!a) {",
         "        setUnavailable();",
         "        box.textContent = \"\";",
@@ -192,7 +230,7 @@ def _right_now_script(code: str) -> str:
         '      var statusRow = el("p", "card-status");',
         '      statusRow.appendChild(el("span", BADGE_CLASS[lvl], BADGE_LABEL[lvl]));',
         "      box.appendChild(statusRow);",
-        '      box.appendChild(el("p", null, LEVEL_TEXT[lvl]));',
+        '      box.appendChild(el("p", null, LEVEL_TEXT[lvl] + " (FAA NAS status)"));',
         "      if (a.reason) {",
         '        box.appendChild(el("p", "event-reason", "Reason: " + a.reason));',
         "      }",
@@ -201,7 +239,7 @@ def _right_now_script(code: str) -> str:
         "        if (w.wind_kt != null) {",
         '          wxText += ", wind " + Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) + " kt" : "");',
         "        }",
-        '        wxText += " (aviationweather.gov, " + ageLabel(w.obs_utc || data.updated_utc) + ")";',
+        '        wxText += " (aviationweather.gov METAR, observed " + clockLabel(w.obs_utc) + ", " + ageLabel(w.obs_utc || data.updated_utc) + ")";',
         '        box.appendChild(el("p", null, wxText));',
         "      }",
         "      if (w && w.next3h_text) {",
@@ -209,7 +247,7 @@ def _right_now_script(code: str) -> str:
         "      }",
         "      var alerts = Array.isArray(a.alerts) ? a.alerts : [];",
         '      box.appendChild(el("p", null, alerts.length ? "Alerts: " + alerts.join(", ") : "Alerts: none listed."));',
-        '      box.appendChild(el("p", "credit", "Sources: FAA NAS status, aviationweather.gov · " + ageLabel(data.updated_utc) + "."));',
+        '      box.appendChild(el("p", "credit", "Sources: FAA NAS status, aviationweather.gov METAR and TAF. Data " + ageLabel(data.updated_utc) + "."));',
         "    }",
         '    fetch("../data/airports.json?ts=" + Date.now(), { cache: "no-store" })',
         '      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })',
@@ -315,7 +353,7 @@ def render_airport_page(
     if city:
         glance_rows.append(("City", city))
     if tz:
-        glance_rows.append(("Time zone", tz))
+        glance_rows.append(("Time zone", _zone_name(tz)))
     if operator:
         glance_rows.append(("Operator", operator))
 
@@ -332,7 +370,7 @@ def render_airport_page(
         ontime_lines = [
             '          <div class="glance-ontime">',
             f'            <p class="glance-ontime-num">{_esc(bts_entry["ontime"])}%</p>',
-            f'            <p class="glance-ontime-label">On-time arrivals, {_esc(bts_month)}</p>',
+            f'            <p class="glance-ontime-label">On-time arrivals, {_esc(bts_month)}, BTS</p>',
         ]
         if comp_text:
             ontime_lines.append(f'            <p class="glance-ontime-comp">{_esc(comp_text)}</p>')
@@ -412,9 +450,8 @@ def render_airport_page(
         '          <span id="status-chip" class="badge status-chip" aria-live="polite">Checking live status…</span>',
         '          <span id="weather-chip" class="badge weather-chip" hidden></span>',
         "        </div>",
-        f'        <p class="last-checked">Last checked: {_esc(build_date)}</p>',
+        '        <p id="checked-line" class="last-checked">Checking FAA NAS status\u2026</p>',
         '        <div class="airport-summary-actions">',
-        '          <a class="btn btn-primary" href="../index.html">Live board</a>',
         '          <a class="btn btn-secondary" href="../stuck.html">I\'m stuck guide</a>',
         "        </div>",
         "      </div>",
@@ -477,7 +514,7 @@ def render_airport_page(
         "      </section>",
         "    </main>",
         _render_footer(),
-        _right_now_script(code),
+        _right_now_script(code, tz),
         "</body>",
         "</html>",
         "",
@@ -556,7 +593,7 @@ def render_index_page(
         '        <ul class="airport-sources">',
         *[f"          <li>{line}</li>" for line in source_items],
         "        </ul>",
-        f'        <p class="last-checked">Last checked: {_esc(build_date)}</p>',
+        f'        <p class="last-checked">Page built {_esc(build_date)}.</p>',
         "      </section>",
         "    </main>",
         _render_footer(),

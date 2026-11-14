@@ -89,6 +89,8 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .updated-text { margin: 0 0 10px; font-size: 0.9375rem; color: var(--text-muted); font-weight: 600; }
 .stale-notice { margin: 0 0 12px; padding: 10px 14px; border-radius: 8px; background: var(--amber-soft); border: 1px solid var(--amber); color: #ffd98a; font-weight: 700; font-size: 0.9375rem; }
 .stale-notice[hidden] { display: none; }
+.stale-notice .stale-link { color: #ffe9b8; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.stale-notice .stale-link:hover { color: #fff; }
 
 .events-list { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .empty-state { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; color: var(--text-muted); font-weight: 600; margin: 0; }
@@ -611,3 +613,4 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .hist-table th, .hist-table td { text-align: left; padding: 6px 10px; border-top: 1px solid var(--border); color: var(--text-muted); }
 .hist-table thead th { color: var(--text); border-top: 0; border-bottom: 2px solid var(--border); }
 .hist-note { margin: 8px 0 0; font-size: 0.9375rem; color: var(--text-muted); }
+.prose-card p .tap, .prose-card li .tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }

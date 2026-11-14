@@ -162,6 +162,16 @@ class TestAirportPagesGenerator(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls._tmp.cleanup()
 
+    def test_sfo_zone_name_bts_scope_and_status_script(self) -> None:
+        text = (self.out_dir / "SFO.html").read_text(encoding="utf-8")
+        p = _inspect(text)
+        self.assertIn("Pacific Time", p.visible_text)
+        self.assertNotIn("America/Los_Angeles", p.visible_text)
+        self.assertIn('var TZ = "America/Los_Angeles";', text)
+        self.assertIn("On-time arrivals, " + self.bts["month_label"] + ", BTS", p.visible_text)
+        for needle in ("FAA NAS status", "aviationweather.gov METAR", "Checked ", "min ago", "timeZoneName"):
+            self.assertIn(needle, text)
+
     def test_generates_30_pages_and_index(self) -> None:
         html_files = sorted(p.name for p in self.out_dir.glob("*.html"))
         expected = sorted(["index.html"] + [f"{c}.html" for c in self.guide["airports"]])
@@ -178,7 +188,16 @@ class TestAirportPagesGenerator(unittest.TestCase):
             for prev, cur in zip(p.headings, p.headings[1:]):
                 self.assertLessEqual(cur, prev + 1, f"{fname} skipped heading level: {p.headings}")
 
-            self.assertIn("Last checked: 2026-11-14", p.visible_text, fname)
+            self.assertNotIn("Last checked", p.visible_text, fname)
+            self.assertNotIn("live-dot", text, fname)
+            self.assertNotIn("America/", p.visible_text, fname)
+            if fname == "index.html":
+                self.assertIn("Page built 2026-11-14.", p.visible_text)
+            else:
+                self.assertIn("Checking FAA NAS status", p.visible_text, fname)
+                self.assertEqual(text.count(">Live board<"), 2, f"{fname}: header chip and footer link only")
+                self.assertNotIn("btn-primary", text, fname)
+                self.assertIn("var TZ = ", text, fname)
             self.assertIn("Where this page's data comes from", p.visible_text, fname)
             self.assertIn("Skip to main content", p.visible_text, fname)
 

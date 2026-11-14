@@ -119,25 +119,39 @@
   }
 
   // ---------- 1: right now ----------
+  function setStale(stale, text) {
+    stale.textContent = text + " ";
+    var a = document.createElement("a");
+    a.className = "stale-link";
+    a.href = "https://nasstatus.faa.gov";
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "nasstatus.faa.gov";
+    stale.appendChild(a);
+    stale.hidden = false;
+  }
+
+  function oldText(m) {
+    if (m == null) { return "of unknown age"; }
+    return m >= 120 ? Math.floor(m / 60) + " hours old" : m + " minutes old";
+  }
+
   function renderFreshness() {
     var upd = D.state && D.state.updated_utc;
     var m = ageMin(upd);
     var line = $("updated-line"), stale = $("stale-notice");
     if (!D.state) {
       line.textContent = "Status not loaded";
-      stale.textContent = "The latest status did not load. Try again in a minute, or check nasstatus.faa.gov.";
-      stale.hidden = false;
+      setStale(stale, "The latest status did not load. Try again in a minute, or see the FAA's own page:");
       return;
     }
     line.textContent = (m == null ? "Update time unavailable" : "Updated " + (m < 1 ? "less than 1 min" : m + " min") + " ago") + " · updates about every 5 minutes";
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
-      stale.textContent = "The FAA status could not be refreshed on the last run, so this list may be out of date. For the FAA's own page, go to nasstatus.faa.gov.";
-      stale.hidden = false;
+      setStale(stale, "The FAA status list is " + oldText(m) + " and could not be refreshed, so it may be out of date. For the FAA's own page, go to");
     } else if (m == null || m > STALE_MIN) {
-      stale.textContent = "This data is more than " + STALE_MIN + " minutes old. The desk normally updates about every 5 minutes, but GitHub's scheduler can run late. For the FAA's own page, go to nasstatus.faa.gov.";
-      stale.hidden = false;
+      setStale(stale, "This data is " + oldText(m) + ". It normally updates about every 5 minutes. For the FAA's own page, go to");
     } else {
       stale.hidden = true;
     }

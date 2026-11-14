@@ -16,6 +16,7 @@ URL_RE = re.compile(r"https?://[^\s'\"<>`]+", re.IGNORECASE)
 ALLOWED_APP_URLS = {
     "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true",
     "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive",
+    "https://nasstatus.faa.gov",
 }
 
 
@@ -72,6 +73,8 @@ class TestAirportGuideIntegration(unittest.TestCase):
             set(),
             f"Unexpected hard-coded URLs in app.js: {found_urls - ALLOWED_APP_URLS}",
         )
+        self.assertNotIn("scheduler", app_js)
+        self.assertIn('a.className = "stale-link"', app_js)
         for required in (
             "Airport guide",
             "Official pages for ",

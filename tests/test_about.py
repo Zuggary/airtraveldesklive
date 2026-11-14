@@ -197,3 +197,14 @@ class TestAdsTxtAndSiteIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStaticPagesFix2(unittest.TestCase):
+    def test_no_live_dot_on_static_pages_and_inline_twitch_link(self):
+        root = Path(__file__).resolve().parent.parent
+        for name in ("about.html", "privacy.html", "sources.html", "stuck.html"):
+            self.assertNotIn("live-dot", (root / name).read_text(encoding="utf-8"), name)
+        self.assertIn("live-dot", (root / "index.html").read_text(encoding="utf-8"))
+        css = (root / "style.css").read_text(encoding="utf-8")
+        self.assertIn(".prose-card p .tap", css)
+        self.assertIn("display: inline;", css.split(".prose-card p .tap", 1)[1].split("}", 1)[0])
