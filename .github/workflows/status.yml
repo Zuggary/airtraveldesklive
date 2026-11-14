@@ -50,6 +50,7 @@ jobs:
             data/nhc.json
             data/national.json
             data/board-history.json
+            data/link-report.json
           key: desk-cache-${{ github.run_id }}
           restore-keys: desk-cache-
 
@@ -80,6 +81,10 @@ jobs:
       - name: Build static airport pages
         run: python tools/build_airport_pages.py
 
+      - name: Check airport guide links (report only; never blocks the build; at most once a day)
+        continue-on-error: true
+        run: python tools/check_links.py --out data/link-report.json --min-age-hours 24
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
@@ -101,6 +106,9 @@ jobs:
           for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/brand
           cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
+
+      - name: Pre-render live status into the home page (reads data/*.json, no network; writes _site/index.html)
+        run: python tools/prerender_home.py --template index.html --data data --out _site/index.html
 
       - name: Check that every public root file and airport page is published
         # The copy list above is an allowlist. Fail loudly if a public file at the root or airports/ was left off it.

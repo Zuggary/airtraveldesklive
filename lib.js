@@ -303,7 +303,7 @@
     if (kind === "stream") { return { text: "Not read by the website", age: null }; }
     if (kind === "static") { return { text: "Static file", age: null }; }
     if (!checked) { return { text: "No time on file", age: null }; }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(checked)) { return { text: checked + " (checked by hand)", age: null }; }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(checked)) { return { text: checked + " (checked on this date)", age: null }; }
     var ms = Date.parse(checked);
     if (!isFinite(ms)) { return { text: "No time on file", age: null }; }
     var m = Math.max(0, Math.floor(((nowMs == null ? Date.now() : nowMs) - ms) / 60000));

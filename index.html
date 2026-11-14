@@ -37,17 +37,7 @@
         <span class="live-dot" aria-hidden="true"></span>
         <h1 class="brand-title">Air Travel Desk</h1>
       </div>
-      <nav class="watch-bar" aria-label="Watch live with voice">
-        <span class="watch-label">Watch live with voice</span>
-        <a class="chip" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>
-        <!-- YouTube link goes here when the channel is live (AN5). -->
-        <a class="chip" href="tv.html">TV mode</a>
-        <button type="button" class="chip chip--button" id="load-live" aria-expanded="false" aria-controls="live-panel">Load live video</button>
-      </nav>
-      <div class="live-panel" id="live-panel" hidden>
-        <p class="live-note">The video plays from Twitch. Loading it contacts Twitch, which sets its own cookies. Nothing loads from Twitch until you press the button.</p>
-        <div class="live-frame" id="live-frame"></div>
-      </div>
+      <p class="watch-link-row"><a class="tap" href="#watch">Watch live</a> (video with voice, on Twitch)</p>
     </header>
 
     <a class="owed-shortcut" href="#owed" id="owed-shortcut">Delayed? What you may be owed <span aria-hidden="true">&darr;</span></a>
@@ -60,26 +50,6 @@
     </noscript>
 
     <main id="main-content">
-      <section id="now" aria-labelledby="now-heading">
-        <h2 id="now-heading" class="section-heading">Right now</h2>
-        <p id="summary" class="summary" aria-live="polite">Loading the latest FAA status…</p>
-        <p id="updated-line" class="updated-text">&nbsp;</p>
-        <p id="stale-notice" class="stale-notice" role="status" hidden></p>
-        <div id="events" class="events-list"></div>
-        <div id="latest-box" class="latest" hidden>
-          <h3 class="sub-heading">Latest</h3>
-          <ul id="latest-list" class="latest-list"></ul>
-          <p class="latest-note">Changes, ground stop end times, weather in the next 3 hours and aircraft that look to be holding. Each line names its source and age.</p>
-        </div>
-      </section>
-
-      <section id="changed" aria-labelledby="changed-heading">
-        <h2 id="changed-heading" class="section-heading">Changed in the last hour</h2>
-        <p id="changed-summary" class="summary" aria-live="polite">Loading the hourly readings…</p>
-        <ul id="changed-list" class="change-list"></ul>
-        <p id="changed-note" class="change-note"></p>
-      </section>
-
       <section id="airports" aria-labelledby="airports-heading">
         <h2 id="airports-heading" class="section-heading">Find your airport</h2>
         <div class="search-box">
@@ -90,8 +60,30 @@
         <p id="search-empty" class="search-empty" hidden>No match among the 30 busiest airports.</p>
 
         <div id="airport-card-slot" class="card-slot" tabindex="-1"></div>
+      </section>
 
-        <h3 class="sub-heading">The 30 busiest airports</h3>
+      <section id="now" aria-labelledby="now-heading">
+        <h2 id="now-heading" class="section-heading">Right now</h2>
+        <p id="summary" class="summary" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></p>
+        <p id="updated-line" class="updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
+        <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
+        <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
+        <div id="latest-box" class="latest" hidden>
+          <h3 class="sub-heading">Latest</h3>
+          <ul id="latest-list" class="latest-list"></ul>
+          <p class="latest-note">Changes, ground stop end times, weather in the next 3 hours and aircraft that look to be holding. Each line names its source and age.</p>
+        </div>
+      </section>
+
+      <section id="changed" aria-labelledby="changed-heading">
+        <h2 id="changed-heading" class="section-heading">Changed in the last hour</h2>
+        <p id="changed-summary" class="summary" aria-live="polite">The hourly readings load here.</p>
+        <ul id="changed-list" class="change-list"></ul>
+        <p id="changed-note" class="change-note"></p>
+      </section>
+
+      <section id="board-section" aria-labelledby="board-heading">
+        <h2 id="board-heading" class="section-heading">The 30 busiest airports</h2>
         <div id="board" class="board-grid"></div>
         <p id="board-note" class="board-note"></p>
       </section>
@@ -100,7 +92,7 @@
         <h2 id="history-heading" class="section-heading">Last 24 hours</h2>
         <p class="map-help">How many of the 30 airports were not clear, by hour.</p>
         <div class="hist-box" id="hist-box">
-          <p id="hist-empty" class="empty-state">Loading the hourly readings…</p>
+          <p id="hist-empty" class="empty-state">The hourly readings load here.</p>
         </div>
       </section>
 
@@ -129,7 +121,21 @@
 
       <section id="compare" aria-labelledby="compare-heading">
         <h2 id="compare-heading" class="section-heading">How busy is travel?</h2>
-        <div id="compare-cards" class="compare-grid"></div>
+        <div id="compare-cards" class="compare-grid"><!--pr:tsa--><!--/pr:tsa--></div>
+      </section>
+
+      <section id="watch" class="watch-section" aria-labelledby="watch-heading">
+        <h2 id="watch-heading" class="section-heading">Watch live with voice</h2>
+        <nav class="watch-bar" aria-label="Watch live with voice">
+          <a class="chip" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>
+          <!-- YouTube link goes here when the channel is live (AN5). -->
+          <a class="chip" href="tv.html">TV mode</a>
+          <button type="button" class="chip chip--button" id="load-live" aria-expanded="false" aria-controls="live-panel">Load live video</button>
+        </nav>
+        <div class="live-panel" id="live-panel" hidden>
+          <p class="live-note">The video plays from Twitch. Loading it contacts Twitch, which sets its own cookies. Nothing loads from Twitch until you press the button.</p>
+          <div class="live-frame" id="live-frame"></div>
+        </div>
       </section>
 
       <section id="while-you-wait" class="wait-card" aria-labelledby="wait-heading">

@@ -145,7 +145,8 @@
       setStale(stale, "The latest status did not load. Try again in a minute, or see the FAA's own page:");
       return;
     }
-    line.textContent = (m == null ? "Update time unavailable" : "Updated " + (m < 1 ? "less than 1 min" : m + " min") + " ago") + " · updates about every 5 minutes";
+    var clock = m == null ? "" : fmtTime(new Date(Date.parse(upd)));
+    line.textContent = (m == null ? "Update time unavailable" : "FAA NAS status, checked " + (clock ? clock + " " : "") + "(" + (m < 1 ? "less than 1 min" : m >= 120 ? Math.floor(m / 60) + " hours" : m + " min") + " ago)") + " · updates about every 5 minutes";
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
@@ -540,22 +541,19 @@
       body.appendChild(el("p", "places-empty", "Official airport guide links are not available right now."));
     } else {
       var ul = el("ul", "guide-pills");
+      var anyBlocked = false;
       (entry.links || []).forEach(function (item) {
         if (!item || !A.safeUrl(item.url)) { return; }
         var baseLabel = item.label || "Airport website";
-        var unchecked = item.verified === false;
-        var text = unchecked ? baseLabel + " (unchecked)" : baseLabel;
+        if (item.verified === false) { anyBlocked = true; }
         var li = el("li", "guide-pill-item");
-        var aLink = link(item.url, text, "tap guide-pill");
-        if (unchecked) {
-          var note = baseLabel + " — we could not check this link by script";
-          aLink.title = note;
-          aLink.setAttribute("aria-label", note);
-        }
-        li.appendChild(aLink);
+        li.appendChild(link(item.url, baseLabel, "tap guide-pill"));
         ul.appendChild(li);
       });
       body.appendChild(ul);
+      if (anyBlocked) {
+        body.appendChild(el("p", "small guide-note", "Some airport sites block automatic checks, so we could not verify every link by script."));
+      }
     }
 
     var nowBox = el("div", "guide-now");
@@ -570,7 +568,7 @@
     det.appendChild(body);
     wrap.appendChild(det);
 
-    var srcText = "Sources: Links from each airport operator's own website, FAA, NWS, aviationweather.gov" + (checked ? ". Last checked " + checked : "") + ".";
+    var srcText = "Sources: Links from each airport operator's own website, FAA, NWS, aviationweather.gov" + (checked && !anyBlocked ? ". Last checked " + checked : "") + ".";
     wrap.appendChild(el("p", "credit guide-source", srcText));
     return { wrap: wrap, nowBox: nowBox };
   }

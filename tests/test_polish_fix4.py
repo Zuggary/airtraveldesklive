@@ -38,7 +38,7 @@ class TestAirportRound4(unittest.TestCase):
         out = tmp / "out"
         res = subprocess.run(
             [sys.executable, str(ROOT / "tools" / "build_airport_pages.py"), "--data", str(d), "--out", str(out),
-             "--sitemap", str(tmp / "sitemap.xml"), "--date", "2026-11-14"],
+             "--now", "2026-11-14T09:55:00Z", "--sitemap", str(tmp / "sitemap.xml"), "--date", "2026-11-14"],
             capture_output=True, text=True, timeout=60)
         assert res.returncode == 0, res.stderr
         cls.sfo = (out / "SFO.html").read_text(encoding="utf-8")

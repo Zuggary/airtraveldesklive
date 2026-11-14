@@ -106,7 +106,7 @@ def wx_words(wx_string: str) -> set[str]:
 
 
 def describe(cat: str, ceiling: Optional[float], vis_sm: Optional[float], words: set[str]) -> str:
-    """Plain traveller words for one set of conditions. At most two pieces."""
+    """Plain traveler words for one set of conditions. At most two pieces."""
     pieces: list[str] = []
     if "freezing" in words and ("rain" in words or "fog" in words):
         pieces.append("freezing rain" if "rain" in words else "freezing fog")

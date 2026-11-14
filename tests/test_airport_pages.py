@@ -147,6 +147,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 str(cls.data_dir),
                 "--out",
                 str(cls.out_dir),
+                "--now",
+                "2026-11-14T09:55:00Z",
                 "--sitemap",
                 str(cls.sitemap_path),
                 "--date",
@@ -170,7 +172,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
         self.assertNotIn("America/Los_Angeles", p.visible_text)
         self.assertIn('var TZ = "America/Los_Angeles";', text)
         self.assertIn("On-time arrivals, " + self.bts["month_label"] + ", BTS", p.visible_text)
-        for needle in ("FAA NAS status", "aviationweather.gov METAR", "Checked ", "min ago", "timeZoneName"):
+        for needle in ("FAA NAS status", "aviationweather.gov METAR", "checked ", "min ago", "timeZoneName"):
             self.assertIn(needle, text)
 
     def test_generates_30_pages_and_index(self) -> None:
@@ -195,7 +197,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
             if fname == "index.html":
                 self.assertIn("Page built 2026-11-14.", p.visible_text)
             else:
-                self.assertIn("Checking FAA NAS status", p.visible_text, fname)
+                self.assertIn("FAA NAS status, checked ", p.visible_text, fname)
                 self.assertEqual(text.count(">Live board<"), 2, f"{fname}: header chip and footer link only")
                 self.assertNotIn("btn-primary", text, fname)
                 self.assertIn("var TZ = ", text, fname)
@@ -231,7 +233,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 self.assertIn("not legal advice", vis_lower, fname)
                 self.assertIn("© OpenStreetMap contributors", p.visible_text, fname)
                 self.assertIn("We show no prices and do not know what is available", p.visible_text, fname)
-                self.assertIn("Live status needs JavaScript; see nasstatus.faa.gov", p.visible_text, fname)
+                self.assertIn("Live refresh needs JavaScript. The status above is from the last site build", p.visible_text, fname)
                 self.assertIn("About this page", p.visible_text, fname)
                 self.assertIn("independent and not affiliated with the airport, the faa or any airline", vis_lower, fname)
                 self.assertIn('href="../about.html"', text, fname)
@@ -247,8 +249,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 else:
                     self.assertIn("Fewer than 4 official links", text)
                 if any(item.get("verified") is False for item in guide_links):
-                    self.assertIn("we could not check this link by script", text, code)
-                    self.assertIn("(unchecked)", p.visible_text, code)
+                    self.assertIn("Some airport sites block automatic checks, so we could not verify every link by script.", p.visible_text, code)
+                    self.assertNotIn("(unchecked)", text, code)
 
                 places_entry = (self.places.get("airports") or {}).get(code) or {}
                 hotels = [x for x in (places_entry.get("hotels") or []) if x.get("name")]
@@ -328,7 +330,9 @@ class TestAirportPagesGenerator(unittest.TestCase):
                         str(self.data_dir),
                         "--out",
                         str(out),
-                        "--sitemap",
+                        "--now",
+                "2026-11-14T09:55:00Z",
+                "--sitemap",
                         str(sm),
                         "--date",
                         dt,
@@ -360,7 +364,9 @@ class TestAirportPagesGenerator(unittest.TestCase):
                     str(ROOT / "tools" / "build_airport_pages.py"),
                     "--out",
                     str(out1),
-                    "--sitemap",
+                    "--now",
+                "2026-11-14T09:55:00Z",
+                "--sitemap",
                     str(sm1),
                     "--date",
                     "2026-11-14",

@@ -62,7 +62,7 @@ SOURCES: list[dict[str, Any]] = [
     {"id": "airport-sites", "group": "site", "name": "Airport operators' own websites", "page": "airports/index.html",
      "terms": "airports/index.html", "licence": "Links only; no text copied",
      "used_for": "Official airport guide links and security wait page links",
-     "update": "Links checked by hand", "file": "airport-guide.json", "key": "checked_utc", "kind": "date"},
+     "update": "Links tested by script on the check date; some sites block the test", "file": "airport-guide.json", "key": "checked_utc", "kind": "date"},
     {"id": "natural-earth", "group": "site", "name": "Natural Earth map outlines", "page": "https://www.naturalearthdata.com/",
      "terms": "https://www.naturalearthdata.com/about/terms-of-use/", "licence": "Public domain",
      "used_for": "U.S. state borders on the map", "update": "Static map file", "file": None, "key": None, "kind": "static"},
