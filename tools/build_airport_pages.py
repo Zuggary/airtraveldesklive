@@ -982,14 +982,15 @@ def render_index_page(
             if isinstance(b, dict) and b.get("ontime") is not None and bts_month:
                 rate_line = f"Last month's on-time rate ({bts_month}): {b['ontime']}%"
             else:
-                rate_line = "Last month's on-time rate: unavailable"
+                rate_line = ""      # no BTS number for this airport: show nothing instead of 'unavailable' on every card
             sections.append('          <li class="airport-index-card">')
             sections.append(
                 f'            <a class="tap airport-index-link" href="{_esc(code)}.html">{_esc(name)} ({_esc(code)})</a>'
             )
             if city:
                 sections.append(f'            <p class="airport-index-meta">{_esc(city)}</p>')
-            sections.append(f'            <p class="airport-index-meta">{_esc(rate_line)}</p>')
+            if rate_line:
+                sections.append(f'            <p class="airport-index-meta">{_esc(rate_line)}</p>')
             sections.append("          </li>")
         sections.append("        </ul>")
 
