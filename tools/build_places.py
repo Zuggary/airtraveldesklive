@@ -24,7 +24,7 @@ from typing import Any, Callable, Optional
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from desk.airports import AIRPORTS, BUSIEST_30  # noqa: E402
+from desk.airports import AIRPORTS, BUSIEST_30, BUSIEST_100  # noqa: E402
 from desk.feeds import USER_AGENT  # noqa: E402
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
@@ -195,11 +195,75 @@ def update(out_dir: Path, now: Optional[float] = None, fetcher: Callable[[str], 
     return "ok" if not failed else "partial"
 
 
+# ---- AN23: the 70 airports after the first 30, in a separate file and a slower, gentler step ----
+
+MORE_FILE = "places-more.json"
+MORE_BATCH = 8                 # airports per run
+MORE_MIN_GAP_SEC = 3600.0      # at least an hour between runs that ask Overpass
+MORE_PAUSE_SEC = 5.0           # between two queries
+MORE_MAX_AGE_SEC = 7 * 86400.0 # an airport is asked again after a week
+
+
+def _parse_iso(text: Any) -> Optional[float]:
+    try:
+        return datetime.strptime(str(text), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+    except ValueError:
+        return None
+
+
+def update_more(out_dir: Path, now: Optional[float] = None, fetcher: Callable[[str], str] = fetch_overpass,
+                pause: float = MORE_PAUSE_SEC, batch: int = MORE_BATCH, sleep: Callable[[float], None] = time.sleep) -> str:
+    """Fetch places for a few of the 70 airports after the first 30. One query at a time, with a pause.
+
+    Each run takes at most `batch` airports: first those never fetched, then the oldest ones older than a week.
+    A run is skipped when the last attempt was less than an hour ago. Failures keep the older data for that airport.
+    Returns 'skip', 'idle' (nothing is due), 'ok', 'partial' or 'error'."""
+    out = Path(out_dir)
+    path = out / MORE_FILE
+    now = time.time() if now is None else now
+    existing = load_existing(path)
+    last_try = _parse_iso(existing.get("attempt_utc"))
+    if last_try is not None and 0 <= now - last_try < MORE_MIN_GAP_SEC:
+        return "skip"
+    old: dict[str, Any] = dict(existing.get("airports") or {})
+    pool = [c for c in BUSIEST_100 if c not in BUSIEST_30]
+
+    def age_key(code: str) -> float:
+        got = _parse_iso((old.get(code) or {}).get("fetched_utc"))
+        return -1.0 if got is None else got
+
+    due = [c for c in pool if c not in old or now - age_key(c) >= MORE_MAX_AGE_SEC]
+    due.sort(key=lambda c: (age_key(c), pool.index(c)))
+    targets = due[:batch]
+    if not targets:
+        return "idle"
+    failed = 0
+    for i, code in enumerate(targets):
+        _, lat, lon = AIRPORTS[code]
+        if i and pause > 0:
+            sleep(pause)
+        try:
+            raw = fetcher(build_query(lat, lon))
+            got = parse_places(raw, lat, lon)
+            got["fetched_utc"] = _iso(now)
+            old[code] = got
+        except Exception as exc:
+            failed += 1
+            print(f"places-more {code}: {type(exc).__name__}: {exc}", file=sys.stderr)
+    # The attempt time is written even on failure, so a down server is not asked again for an hour.
+    write_json(path, {"attempt_utc": _iso(now), "source": SOURCE, "radius_km": RADIUS_M / 1000.0, "airports": old})
+    return "error" if failed == len(targets) else ("ok" if not failed else "partial")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT / "data"))
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--more", action="store_true", help="the 70 airports after the first 30 (separate file, small batches)")
     a = ap.parse_args()
+    if a.more:
+        print(f"{MORE_FILE}: {update_more(Path(a.out))}")
+        return 0
     res = update(Path(a.out), force=a.force)
     print(f"places.json: {res}")
     return 0

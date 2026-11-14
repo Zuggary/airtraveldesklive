@@ -1,0 +1,501 @@
+{
+ "version": 1,
+ "source": "OurAirports (public domain)",
+ "source_url": "https://ourairports.com/data/",
+ "checked_utc": "2026-11-14",
+ "note": "The airport's own website, from OurAirports (public domain). verified is true only when one GET request on the checked date returned a status below 400; false means the site blocked the check, did not answer or the address was not tested, not that the link is wrong.",
+ "airports": {
+  "HNL": {
+   "home_link": "http://airports.hawaii.gov/hnl/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "DAL": {
+   "home_link": "http://www.dallas-lovefield.com/",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "PDX": {
+   "home_link": "https://www.flypdx.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "STL": {
+   "home_link": "https://www.flystl.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "HOU": {
+   "home_link": "http://www.fly2houston.com/hobbyHome",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 308,
+   "checked": "2026-11-14"
+  },
+  "SMF": {
+   "home_link": "https://sacramento.aero/smf",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "SJC": {
+   "home_link": "https://www.flysanjose.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "OAK": {
+   "home_link": "https://www.iflyoak.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "RDU": {
+   "home_link": "https://www.rdu.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "BDL": {
+   "home_link": "http://www.bradleyairport.com/",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "SNA": {
+   "home_link": "http://www.ocair.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MSY": {
+   "home_link": "https://flymsy.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "PIT": {
+   "home_link": "https://flypittsburgh.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "IND": {
+   "home_link": "https://www.ind.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "CMH": {
+   "home_link": "https://flycolumbus.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "CLE": {
+   "home_link": "http://www.clevelandairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MCI": {
+   "home_link": "http://www.flykci.com/",
+   "origin": "ourairports",
+   "verified": false,
+   "status": null,
+   "checked": "2026-11-14",
+   "error": "URLError"
+  },
+  "SAT": {
+   "home_link": "https://www.sanantonio.gov/aviation",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "OGG": {
+   "home_link": "https://airports.hawaii.gov/ogg/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "BUR": {
+   "home_link": "https://www.hollywoodburbankairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ONT": {
+   "home_link": "https://www.flyontario.com/",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "LGB": {
+   "home_link": "http://www.lgb.org/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "RSW": {
+   "home_link": "http://www.flylcpa.com/",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "JAX": {
+   "home_link": "https://www.flyjacksonville.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MKE": {
+   "home_link": "https://www.mitchellairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ABQ": {
+   "home_link": "http://www.abqsunport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "BOI": {
+   "home_link": "http://www.cityofboise.org/departments/airport/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "OMA": {
+   "home_link": "https://www.flyoma.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "RNO": {
+   "home_link": "https://www.renoairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "TUS": {
+   "home_link": "https://www.flytucson.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ELP": {
+   "home_link": "https://elpasointernationalairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "PVD": {
+   "home_link": "https://flyri.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ALB": {
+   "home_link": "http://www.albanyairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "BUF": {
+   "home_link": "https://www.buffaloairport.com/",
+   "origin": "ourairports",
+   "verified": false,
+   "status": null,
+   "checked": "2026-11-14",
+   "error": "URLError"
+  },
+  "ORF": {
+   "home_link": "https://www.norfolkairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "RIC": {
+   "home_link": "https://flyrichmond.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "CHS": {
+   "home_link": "https://www.iflychs.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "SAV": {
+   "home_link": "https://savannahairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MEM": {
+   "home_link": "https://flymemphis.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "SDF": {
+   "home_link": "http://www.flylouisville.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "OKC": {
+   "home_link": "https://flyokc.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "TUL": {
+   "home_link": "https://www.flytulsa.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "PBI": {
+   "home_link": "https://flydjt.org/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "CVG": {
+   "home_link": "https://www.cvgairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "SRQ": {
+   "home_link": "https://flysrq.com",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "DSM": {
+   "home_link": "https://www.flydsm.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "GEG": {
+   "home_link": "https://spokaneairports.net/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ICT": {
+   "home_link": "https://flywichita.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MHT": {
+   "home_link": "https://flymanchester.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "PWM": {
+   "home_link": "https://portlandjetport.org/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "BTV": {
+   "home_link": "http://www.vermontairports.com/btv.html",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ANC": {
+   "home_link": "https://dot.alaska.gov/anc/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "COS": {
+   "home_link": "https://www.flycos.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "GSO": {
+   "home_link": "https://flyfrompti.com",
+   "origin": "ourairports",
+   "verified": false,
+   "status": 403,
+   "checked": "2026-11-14"
+  },
+  "BHM": {
+   "home_link": "http://www.flybirmingham.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 308,
+   "checked": "2026-11-14"
+  },
+  "LIT": {
+   "home_link": "https://clintonairport.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "GRR": {
+   "home_link": "https://www.grr.org/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "DAY": {
+   "home_link": "https://flydayton.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "SYR": {
+   "home_link": "http://www.syrairport.org/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "ROC": {
+   "home_link": "https://rocairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "TYS": {
+   "home_link": "https://www.flyknoxville.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "PSP": {
+   "home_link": "https://flypsp.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MSN": {
+   "home_link": "https://www.msnairport.com/",
+   "origin": "manual",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "LEX": {
+   "home_link": "http://www.bluegrassairport.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "HSV": {
+   "home_link": "http://www.flyhuntsville.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "FAT": {
+   "home_link": "https://flyfresno.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "MYR": {
+   "home_link": "https://www.flymyrtlebeach.com",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "KOA": {
+   "home_link": "https://airports.hawaii.gov/koa/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "LIH": {
+   "home_link": "https://airports.hawaii.gov/lih",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 200,
+   "checked": "2026-11-14"
+  },
+  "PNS": {
+   "home_link": "http://www.flypensacola.com/",
+   "origin": "ourairports",
+   "verified": true,
+   "status": 308,
+   "checked": "2026-11-14"
+  }
+ }
+}

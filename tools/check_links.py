@@ -8,7 +8,7 @@ Polite by design: one HEAD request per URL, one URL at a time, a pause between r
 same host, a short timeout, a cap on the number of URLs, and a User-Agent that names the site.
 
 Usage: python tools/check_links.py [--guide data/airport-guide.json] [--out data/link-report.json]
-                                    [--min-age-hours 24] [--limit 400]
+                                    [--min-age-hours 24] [--limit 600]
 Stdlib only. Tests use a fake opener; they make no network calls.
 """
 from __future__ import annotations
@@ -48,9 +48,9 @@ def default_opener(request: urllib.request.Request, timeout: float) -> Any:
     return urllib.request.urlopen(request, timeout=timeout)  # noqa: S310 (http/https only, checked by collect_links)
 
 
-def check_url(url: str, opener: Opener = default_opener, timeout: float = TIMEOUT_S) -> dict[str, Any]:
-    """One HEAD request. Returns {status, ok, error}. Never raises."""
-    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT})
+def check_url(url: str, opener: Opener = default_opener, timeout: float = TIMEOUT_S, method: str = "HEAD") -> dict[str, Any]:
+    """One request (HEAD by default; GET reads only the response headers). Returns {status, ok, error}. Never raises."""
+    request = urllib.request.Request(url, method=method, headers={"User-Agent": USER_AGENT})
     try:
         resp = opener(request, timeout)
         status = int(getattr(resp, "status", None) or resp.getcode())
@@ -59,6 +59,8 @@ def check_url(url: str, opener: Opener = default_opener, timeout: float = TIMEOU
             close()
         return {"status": status, "ok": 200 <= status < 400, "error": ""}
     except urllib.error.HTTPError as exc:
+        if 300 <= exc.code < 400:  # a redirect this opener did not follow (for example 308): the site answered
+            return {"status": exc.code, "ok": True, "error": ""}
         return {"status": exc.code, "ok": False, "error": f"HTTP {exc.code}"}
     except Exception as exc:  # timeout, DNS, TLS, anything else
         return {"status": None, "ok": False, "error": type(exc).__name__}
@@ -69,8 +71,9 @@ def run_checks(
     opener: Opener = default_opener,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
-    limit: int = 400,
+    limit: int = 600,
     host_pause: float = HOST_PAUSE_S,
+    method: str = "HEAD",
 ) -> list[dict[str, Any]]:
     """Check each distinct URL once, pausing between requests to the same host."""
     results: list[dict[str, Any]] = []
@@ -85,7 +88,7 @@ def run_checks(
             wait = host_pause - (clock() - last_hit[host]) if host in last_hit else 0
             if wait > 0:
                 sleep(wait)
-            seen[url] = check_url(url, opener)
+            seen[url] = check_url(url, opener, method=method)
             last_hit[host] = clock()
         results.append({**link, **seen[url]})
     return results
@@ -119,9 +122,10 @@ def report_is_fresh(path: Path, min_age_hours: float, now: datetime | None = Non
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="HEAD-check the airport guide links and write a report.")
     ap.add_argument("--guide", default=str(ROOT / "data" / "airport-guide.json"))
+    ap.add_argument("--links", default=None, help="Airport website links for the other 70 airports (default: airports-links.json next to the guide file)")
     ap.add_argument("--out", default=str(ROOT / "data" / "link-report.json"))
     ap.add_argument("--min-age-hours", type=float, default=0, help="Skip when the report is newer than this")
-    ap.add_argument("--limit", type=int, default=400)
+    ap.add_argument("--limit", type=int, default=600)
     args = ap.parse_args(argv)
     out = Path(args.out)
     if report_is_fresh(out, args.min_age_hours):
@@ -132,7 +136,14 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         print(f"check_links: cannot read the guide file ({exc}); no report written")
         return 0
-    report = build_report(run_checks(collect_links(guide), limit=args.limit))
+    links = collect_links(guide)
+    try:
+        extra = json.loads((Path(args.links) if args.links else Path(args.guide).with_name("airports-links.json")).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        extra = {}
+    links += collect_links({"airports": {c: {"links": [{"label": "Airport website", "url": (e or {}).get("home_link")}]}
+                                         for c, e in (extra.get("airports") or {}).items()}})
+    report = build_report(run_checks(links, limit=args.limit))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
     print(f"check_links: {report['ok']} ok, {report['failed']} failed of {report['total']}; wrote {out}")

@@ -105,12 +105,12 @@ class TestAirportSunNow(unittest.TestCase):
 
     def test_every_page_has_a_hidden_sun_line_with_zone_and_source(self) -> None:
         pages = [p for p in self.out.glob("*.html") if p.name != "index.html"]
-        self.assertEqual(len(pages), 30)
-        airports = json.loads(read("data/airports.json"))["airports"]
+        self.assertEqual(len(pages), 100)
+        from desk.airports import AIRPORTS, TZ
         for p in pages:
             t = p.read_text(encoding="utf-8")
             code = p.stem
-            a = airports[code]
+            a = {"tz": TZ[code], "lat": AIRPORTS[code][1]}
             m = re.search(r'<p id="sun-now" class="sun-now" data-lat="([^"]+)" data-lon="([^"]+)" data-tz="([^"]+)" hidden></p>', t)
             self.assertIsNotNone(m, code)
             self.assertEqual(m.group(3), a["tz"], code)

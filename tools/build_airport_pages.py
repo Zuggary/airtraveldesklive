@@ -20,6 +20,10 @@ except ImportError:  # run as a script: tools/ is on the path
     import prerender_text as pt  # type: ignore[no-redef]
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from desk import airports as desk_airports  # noqa: E402
+
 SITE_URL = "https://www.airtraveldesklive.com"
 DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive"
 CONTACT_EMAIL = "hello@airtraveldesklive.com"
@@ -28,10 +32,13 @@ BTS_DEFINITION_SHORT = "BTS counts a flight on time if it arrives less than 15 m
 ILLUS_DIR = ROOT / "assets" / "illustrations"
 
 # AN17: airport type for the hero illustration. Every other airport is a hub.
+# AN23: the other 70 airports are typed by hand from where the field sits. Coastal: on or next to open water or a bay.
+# Mountain: in or beside mountains or on a high plateau. Desert: in a desert basin. Inland fields stay "hub".
 AIRPORT_TYPE = {
-    **{c: "coastal" for c in "SFO LAX SAN SEA MIA FLL TPA BOS JFK LGA EWR".split()},
-    **{c: "mountain" for c in "DEN SLC".split()},
-    **{c: "desert" for c in "PHX LAS".split()},
+    **{c: "coastal" for c in "SFO LAX SAN SEA MIA FLL TPA BOS JFK LGA EWR "
+       "HNL OGG KOA LIH ANC OAK SNA LGB PBI SRQ RSW CHS SAV MYR PNS PVD ORF MSY".split()},
+    **{c: "mountain" for c in "DEN SLC BOI COS RNO ABQ".split()},
+    **{c: "desert" for c in "PHX LAS TUS ELP PSP".split()},
 }
 
 
@@ -633,6 +640,8 @@ def render_airport_page(
     the weather and a timestamp as text (no JavaScript needed). Without it the page holds fallback text.
     """
     now = now or pt.now_utc()
+    guide_checked_date = str(guide_entry.get("checked") or guide_checked_date or "")
+    has_places = places_entry is not None
     name = str(airport_info.get("name") or code)
     city = str(airport_info.get("city") or "")
     tz = str(airport_info.get("tz") or "")
@@ -656,7 +665,8 @@ def render_airport_page(
     else:
         description = (
             f"Live FAA delay status, airport weather, official {code} operator links, "
-            f"nearby hotels and car rental, and delay help for {name} ({code})."
+            + ("nearby hotels and car rental, " if has_places else "")
+            + f"and delay help for {name} ({code})."
         )
     canonical = f"{SITE_URL}/airports/{code}.html"
     breadcrumb = {
@@ -755,7 +765,14 @@ def render_airport_page(
     has_blocked_links = any(item.get("verified") is False for item in guide_links)
     if has_blocked_links:
         official_lines.append(f'        <p class="small guide-note">{_esc(NOTE_BLOCKED_LINKS)}</p>')
-    if len(guide_links) < 4:
+    if not guide_links:
+        official_lines.append(f'        <p class="small">We do not list an official link for {_esc(code)} yet.</p>')
+    elif guide_entry.get("origin") == "ourairports":
+        official_lines.append(
+            f'        <p class="small">Only the airport\'s own website is listed for {_esc(code)}. '
+            'The address comes from OurAirports (public domain).</p>'
+        )
+    elif len(guide_links) < 4:
         official_lines.append(
             f'        <p class="small">Fewer than 4 official links were available for {_esc(code)} when checked on {_esc(guide_checked_date or build_date)}.</p>'
         )
@@ -775,15 +792,40 @@ def render_airport_page(
         source_items.append(f"BTS ({bts_month}) — monthly on-time arrival rate and flight count.")
     elif bts_month:
         source_items.append(f"BTS ({bts_month}) — monthly on-time arrival data (no entry for {code}).")
-    source_items.append(
-        f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 5 km, fetched {places_credit_date}."
-    )
+    if has_places:
+        source_items.append(
+            f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 5 km, fetched {places_credit_date}."
+        )
+    if guide_entry.get("origin") == "ourairports":
+        source_items.append("OurAirports (public domain) — the address of the airport's website.")
     if has_blocked_links:
         source_items.append(f"{_esc(op_label)} — {_esc(LINKS_NOT_ALL_CHECKED)}")
     else:
         source_items.append(
             f"{_esc(op_label)} — {_esc(LINKS_ALL_CHECKED.format(date=guide_checked_date or build_date))}"
         )
+
+    places_html: list[str] = []
+    if has_places:
+        places_html = [
+            '      <section class="airport-section" aria-labelledby="places-heading">',
+            '        <h2 id="places-heading">Hotels and car rental within 5 km</h2>',
+            '        <div class="places-columns">',
+            '          <div class="places-col">',
+            "            <h3>Hotels</h3>",
+            _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 5 km.", "hotels"),
+            "          </div>",
+            '          <div class="places-col">',
+            "            <h3>Car rental</h3>",
+            _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 5 km.", "car rental places"),
+            "          </div>",
+            "        </div>",
+            (
+                f'        <p class="credit">&copy; OpenStreetMap contributors. Data from {_esc(places_credit_date)}. '
+                "Distances are straight-line. We show no prices and do not know what is available.</p>"
+            ),
+            "      </section>",
+        ]
 
     parts = [
         _render_head(title=title, description=description, canonical=canonical, breadcrumb=breadcrumb),
@@ -832,23 +874,7 @@ def render_airport_page(
         '        <h2 id="official-heading">Official pages</h2>',
         *official_lines,
         "      </section>",
-        '      <section class="airport-section" aria-labelledby="places-heading">',
-        '        <h2 id="places-heading">Hotels and car rental within 5 km</h2>',
-        '        <div class="places-columns">',
-        '          <div class="places-col">',
-        "            <h3>Hotels</h3>",
-        _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 5 km.", "hotels"),
-        "          </div>",
-        '          <div class="places-col">',
-        "            <h3>Car rental</h3>",
-        _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 5 km.", "car rental places"),
-        "          </div>",
-        "        </div>",
-        (
-            f'        <p class="credit">&copy; OpenStreetMap contributors. Data from {_esc(places_credit_date)}. '
-            "Distances are straight-line. We show no prices and do not know what is available.</p>"
-        ),
-        "      </section>",
+        *places_html,
         '      <section class="airport-section" aria-labelledby="stuck-heading">',
         '        <h2 id="stuck-heading">If you are stuck here</h2>',
         '        <div class="stuck-note">',
@@ -883,6 +909,24 @@ def render_airport_page(
     return "\n".join(parts)
 
 
+STATE_NAMES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado",
+    "CT": "Connecticut", "DC": "District of Columbia", "FL": "Florida", "GA": "Georgia", "HI": "Hawaii", "ID": "Idaho",
+    "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana",
+    "ME": "Maine", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MO": "Missouri",
+    "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York",
+    "NC": "North Carolina", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island",
+    "SC": "South Carolina", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia",
+    "WA": "Washington", "WI": "Wisconsin",
+}
+
+
+def _state_of(city: str) -> str:
+    """Two-letter state from a 'City, ST' label; '' when there is none."""
+    tail = city.rsplit(",", 1)[-1].strip() if "," in city else ""
+    return tail if tail in STATE_NAMES else ""
+
+
 def render_index_page(
     codes: list[str],
     *,
@@ -892,10 +936,11 @@ def render_index_page(
     bts_data: dict[str, Any],
     build_date: str,
 ) -> str:
-    """Render HTML for airports/index.html listing all 30 airports."""
-    title = "US airport status: 30 busiest airports, live delays"
+    """Render HTML for airports/index.html: all airports, grouped by state (the list is static HTML, no script)."""
+    n = len(codes)
+    title = f"US airport status: {n} busiest airports, live delays"
     description = (
-        "Directory of the 30 busiest US airports on Air Travel Desk with city, "
+        f"Directory of the {n} busiest US airports on Air Travel Desk with city, "
         "monthly BTS on-time arrival rate, live status links and traveler guides."
     )
     canonical = f"{SITE_URL}/airports/index.html"
@@ -911,31 +956,49 @@ def render_index_page(
     bts_airports = bts_data.get("airports") or {}
     bts_month = str(bts_data.get("month_label") or "")
 
-    cards: list[str] = ['        <ul class="airport-index-list">']
+    groups: dict[str, list[str]] = {}
     for code in codes:
         info = airports_map.get(code) or {}
-        name = str(info.get("name") or code)
-        city = str(info.get("city") or "")
-        b = bts_airports.get(code)
-        if isinstance(b, dict) and b.get("ontime") is not None and bts_month:
-            rate_line = f"Last month's on-time rate ({bts_month}): {b['ontime']}%"
-        else:
-            rate_line = "Last month's on-time rate: unavailable"
-        cards.append('          <li class="airport-index-card">')
-        cards.append(
-            f'            <a class="tap airport-index-link" href="{_esc(code)}.html">{_esc(name)} ({_esc(code)})</a>'
-        )
-        if city:
-            cards.append(f'            <p class="airport-index-meta">{_esc(city)}</p>')
-        cards.append(f'            <p class="airport-index-meta">{_esc(rate_line)}</p>')
-        cards.append("          </li>")
-    cards.append("        </ul>")
+        groups.setdefault(_state_of(str(info.get("city") or "")), []).append(code)
+    states = sorted((st for st in groups if st), key=lambda st: STATE_NAMES[st])
+    if "" in groups:
+        states.append("")
+
+    def group_id(st: str) -> str:
+        return f"state-{st.lower()}" if st else "state-other"
+
+    jump = ['        <nav class="airport-jump" aria-label="Jump to a state">', "          <p class=\"small\">Jump to: " + " ".join(
+        f'<a class="tap" href="#{group_id(st)}">{_esc(st or "Other")}</a>' for st in states) + "</p>", "        </nav>"]
+
+    sections: list[str] = []
+    for st in states:
+        sections.append(f'        <h3 id="{group_id(st)}" class="airport-index-state">{_esc(STATE_NAMES.get(st, "Other"))}</h3>')
+        sections.append('        <ul class="airport-index-list">')
+        for code in sorted(groups[st], key=lambda c: codes.index(c)):
+            info = airports_map.get(code) or {}
+            name = str(info.get("name") or code)
+            city = str(info.get("city") or "")
+            b = bts_airports.get(code)
+            if isinstance(b, dict) and b.get("ontime") is not None and bts_month:
+                rate_line = f"Last month's on-time rate ({bts_month}): {b['ontime']}%"
+            else:
+                rate_line = "Last month's on-time rate: unavailable"
+            sections.append('          <li class="airport-index-card">')
+            sections.append(
+                f'            <a class="tap airport-index-link" href="{_esc(code)}.html">{_esc(name)} ({_esc(code)})</a>'
+            )
+            if city:
+                sections.append(f'            <p class="airport-index-meta">{_esc(city)}</p>')
+            sections.append(f'            <p class="airport-index-meta">{_esc(rate_line)}</p>')
+            sections.append("          </li>")
+        sections.append("        </ul>")
 
     source_items = [
         "FAA NAS status and aviationweather.gov — live delays and weather on each airport page.",
         f"BTS ({bts_month or 'monthly'}) — monthly on-time arrival rate where available.",
-        f"OpenStreetMap (&copy; OpenStreetMap contributors) — nearby hotels and car rental, fetched {places_fetched_date or 'unknown date'}.",
+        f"OpenStreetMap (&copy; OpenStreetMap contributors) — nearby hotels and car rental where we have them, fetched {places_fetched_date or 'unknown date'}.",
         "Airport operators' own websites — official airport links. Some sites block automatic checks, so not every link is verified by script.",
+        "OurAirports (public domain) — the website address for airports outside the first 30.",
     ]
 
     parts = [
@@ -944,10 +1007,12 @@ def render_index_page(
         _render_header(),
         '    <main id="main-content" class="airport-main">',
         '      <h1 class="airport-page-title">US Airports: delays, weather and traveler help</h1>',
-        '      <p class="airport-purpose">Purpose: directory of the 30 busiest US airports with city, last month\'s on-time arrival rate and a dedicated help page for each airport.</p>',
+        f'      <p class="airport-purpose">Purpose: directory of the {n} busiest US airports with city, last month\'s on-time arrival rate and a dedicated help page for each airport.</p>',
+        '      <p class="small">The <a href="../index.html">live board</a> on the home page shows the first 30.</p>',
         '      <section class="airport-section" aria-labelledby="directory-heading">',
-        '        <h2 id="directory-heading">30 busiest US airports</h2>',
-        *cards,
+        f'        <h2 id="directory-heading">{n} busiest US airports, by state</h2>',
+        *jump,
+        *sections,
         "      </section>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',
@@ -1008,40 +1073,74 @@ def build_pages(
     build_date: str | None = None,
     now: Any = None,
 ) -> list[Path]:
-    """Generate all 30 airport pages and airports/index.html, and optionally update sitemap.xml."""
+    """Generate the pages for the 100 busiest airports and airports/index.html, and optionally update sitemap.xml."""
     now = now or pt.now_utc()
     date_str = build_date or now.strftime("%Y-%m-%d")
 
     guide_data = _load_json(data_dir / "airport-guide.json")
+    links_data = _load_json(data_dir / "airports-links.json")
     airports_data = _load_json(data_dir / "airports.json")
     places_data = _load_json(data_dir / "places.json")
     bts_data = _load_json(data_dir / "bts.json")
 
     live_updated = str(airports_data.get("updated_utc") or "")
-    guide_airports = guide_data.get("airports") or {}
+    guide_airports = dict(guide_data.get("airports") or {})
     if not guide_airports:
         raise ValueError(f"No airports found in {data_dir / 'airport-guide.json'}")
+    links_checked = str(links_data.get("checked_utc") or "")[:10]
+    for code, item in (links_data.get("airports") or {}).items():
+        url = _safe_http_url((item or {}).get("home_link"))
+        if code in guide_airports or not url:
+            continue
+        checked = str((item or {}).get("checked") or links_checked)[:10]
+        guide_airports[code] = {
+            "operator": "",
+            "origin": "ourairports",
+            "checked": checked if (item or {}).get("verified") else "",
+            "links": [{"label": "Airport website", "url": url, "verified": bool((item or {}).get("verified"))}],
+        }
 
-    airports_map = airports_data.get("airports") or {}
-    places_airports = places_data.get("airports") or {}
+    # Static facts come from desk/airports.py; the live data file adds the live parts.
+    airports_map: dict[str, Any] = {}
+    live_cards = airports_data.get("airports") or {}
+    for code in desk_airports.BUSIEST_100:
+        _, lat, lon = desk_airports.AIRPORTS[code]
+        info = {
+            "code": code, "name": desk_airports.display(code), "city": desk_airports.CITY.get(code, ""),
+            "tz": desk_airports.TZ.get(code, ""), "lat": lat, "lon": lon,
+        }
+        card = live_cards.get(code)
+        if isinstance(card, dict):
+            info.update({k: v for k, v in card.items() if v not in (None, "") and k in ("name", "city", "tz", "lat", "lon")})
+        airports_map[code] = info
+    places_airports = dict(places_data.get("airports") or {})
+    # The other 70 airports have their own places file, filled in small batches. A missing entry means no list on the page.
+    more = _load_json(data_dir / "places-more.json")
+    places_dates: dict[str, str] = {}
+    for code, entry in (more.get("airports") or {}).items():
+        if code not in places_airports and isinstance(entry, dict):
+            places_airports[code] = entry
+            places_dates[code] = str(entry.get("fetched_utc") or "")[:10]
     guide_checked_date = str(guide_data.get("checked_utc") or "")[:10]
     places_fetched_date = str(places_data.get("fetched_utc") or "")[:10]
 
-    codes = list(guide_airports.keys())
+    # Pages for the 100 busiest airports, in rank order. An airport with no link entry still gets a page.
+    codes = list(desk_airports.BUSIEST_100)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     written: list[Path] = []
     for code in codes:
+        live_card = live_cards.get(code)
         page_html = render_airport_page(
             code,
-            guide_entry=guide_airports[code],
+            guide_entry=guide_airports.get(code) or {},
             guide_checked_date=guide_checked_date,
-            airport_info=airports_map.get(code) or {},
+            airport_info=airports_map[code],
             places_entry=places_airports.get(code),
-            places_fetched_date=places_fetched_date,
+            places_fetched_date=places_dates.get(code) or places_fetched_date,
             bts_data=bts_data,
             build_date=date_str,
-            live_entry=airports_map.get(code) if isinstance(airports_map.get(code), dict) else None,
+            live_entry=live_card if isinstance(live_card, dict) else None,
             live_updated_utc=live_updated,
             now=now,
         )

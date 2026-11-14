@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from desk import board_history, bts, feeds, holding, holiday, lines, nhc, radar, screen, state, storms, ticker, tracks, tsa, wx  # noqa: E402
-from desk.airports import AIRPORTS, BUSIEST_30, SHORT, TZ, display, nearest_airport, spoken  # noqa: E402
+from desk.airports import AIRPORTS, BUSIEST_30, BUSIEST_100, CITY, SHORT, TZ, display, nearest_airport, spoken  # noqa: E402
 
 MAX_LINES = 8
 NWS_TIMEOUT = 15
@@ -32,17 +32,6 @@ NEAR_MAX_CALLS = 5
 NEAR_TIMEOUT = 15
 DATA_VERSION = 1
 
-# City words for the search box and the card subtitle. A label only.
-CITY = {
-    "ATL": "Atlanta, GA", "DFW": "Dallas-Fort Worth, TX", "DEN": "Denver, CO", "ORD": "Chicago, IL",
-    "LAX": "Los Angeles, CA", "JFK": "New York, NY", "LAS": "Las Vegas, NV", "MCO": "Orlando, FL",
-    "MIA": "Miami, FL", "CLT": "Charlotte, NC", "SEA": "Seattle, WA", "PHX": "Phoenix, AZ",
-    "EWR": "Newark, NJ", "SFO": "San Francisco, CA", "IAH": "Houston, TX", "BOS": "Boston, MA",
-    "FLL": "Fort Lauderdale, FL", "MSP": "Minneapolis, MN", "LGA": "New York, NY", "DTW": "Detroit, MI",
-    "PHL": "Philadelphia, PA", "SLC": "Salt Lake City, UT", "BWI": "Baltimore, MD", "IAD": "Washington, DC",
-    "SAN": "San Diego, CA", "DCA": "Washington, DC", "TPA": "Tampa, FL", "BNA": "Nashville, TN",
-    "AUS": "Austin, TX", "MDW": "Chicago, IL",
-}
 _LEVEL_WORD = {"green": "clear", "amber": "delay", "red": "stop"}
 
 
@@ -145,7 +134,11 @@ def build_extras(out_dir: Path, prev: dict, prev_national: dict, prev_history: d
     tick = ticker.Ticker(keep_sec=TICKER_KEEP_SEC, max_items=24)
     tick.same_text_sec = TICKER_KEEP_SEC
     tick.restore(prev.get("ticker"))
-    items = tick.update(now_ts, changes, events, wx_json, hold, first_poll=prev.get("events") is None)
+    # The weather file holds all 100 airports (for the airport pages). The "Latest" list keeps to the board airports
+    # and airports with an FAA event, as before.
+    keep = set(BUSIEST_30) | set(event_codes)
+    wx_ticker = dict(wx_json, hubs={c: h for c, h in (wx_json.get("hubs") or {}).items() if c in keep})
+    items = tick.update(now_ts, changes, events, wx_ticker, hold, first_poll=prev.get("events") is None)
     tsa_json = _read_json(out_dir / "tsa.json")
     try:
         hol = holiday.assemble(tsa_json, tsa._today_et(now_ts)) if tsa_json else None
@@ -217,8 +210,12 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
         last_lines.append({"time_utc": stamp, "text": text, "event_id": event_id})
     last_lines = last_lines[-MAX_LINES:]
 
+    # When the FAA feed failed, the events above are the last good ones. Say when they were fetched, so a page
+    # never reads "no FAA delays" as if it were fresh.
+    faa_updated = stamp if "FAA" not in stale else str(prev.get("faa_updated_utc") or prev.get("updated_utc") or "")
     payload = {
         "updated_utc": stamp,
+        "faa_updated_utc": faa_updated,
         "stale_feeds": stale,
         "events": events,
         "board": screen.board_from_events(events),
@@ -234,7 +231,7 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
         payload["layer_notes"] = ex["notes"]
         write_json(out_dir / "board-history.json", ex["history"])
     write_json(out_dir / "state.json", payload)
-    cards = build_airport_cards(events, payload["board"], nws_by_airport, stamp, near_fetch=near_fetch, skip_near=skip_slow or nws_map is not None and near_fetch is None, extras=ex)
+    cards = build_airport_cards(events, payload["board"], nws_by_airport, faa_updated, near_fetch=near_fetch, skip_near=skip_slow or nws_map is not None and near_fetch is None, extras=ex)
     write_json(out_dir / "airports.json", cards)
     if not skip_slow:
         build_bts(out_dir)
@@ -267,8 +264,17 @@ def count_near(json_text: str) -> int:
 
 def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: dict, stamp: str,
                         near_fetch=None, skip_near: bool = False, extras: dict | None = None) -> dict:
-    """One card per busiest-30 airport: status, reason, events, NWS alert names, aircraft nearby, local tz."""
+    """One card per busiest-100 airport: status, reason, events, NWS alert names, aircraft nearby, local tz.
+    `stamp` is when the FAA feed was last fetched fresh. The board holds the first 30; the other 70 get their level from the events."""
     level_by = {b["code"]: _LEVEL_WORD.get(b["level"], "clear") for b in board}
+    on_board = set(level_by)
+    rank = {"clear": 0, "delay": 1, "stop": 2}
+    kind_level = {"ground_stop": "stop", "closure": "stop", "ground_delay": "delay", "delay": "delay"}
+    for e in events:
+        c = str(e.get("airport") or "").upper()
+        lv = kind_level.get(e.get("kind") or "")
+        if e.get("source") == "FAA" and c in BUSIEST_100 and c not in on_board and lv and rank[lv] > rank[level_by.get(c, "clear")]:
+            level_by[c] = lv
     near: dict[str, int] = {}
     if not skip_near:
         get = near_fetch or (lambda url: feeds.fetch(url, timeout=NEAR_TIMEOUT))
@@ -285,7 +291,7 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
     wx_src = (ex.get("wx") or {}).get("source")
     hold = ex.get("holding") or {}
     cards = {}
-    for code in BUSIEST_30:
+    for code in BUSIEST_100:
         evs = [e for e in events if e.get("source") == "FAA" and str(e.get("airport") or "").upper() == code]
         reasons = []
         for e in evs:

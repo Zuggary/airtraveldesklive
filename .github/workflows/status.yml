@@ -45,6 +45,7 @@ jobs:
             data/radar.json
             data/bts.json
             data/places.json
+            data/places-more.json
             data/wx.json
             data/storms.json
             data/nhc.json
@@ -74,6 +75,10 @@ jobs:
       - name: Build places list (OpenStreetMap, refreshed at most weekly)
         continue-on-error: true
         run: python tools/build_places.py --out data
+
+      - name: Build places list for the other 70 airports (OpenStreetMap; small batches, one query at a time, at most hourly)
+        continue-on-error: true
+        run: python tools/build_places.py --out data --more
 
       - name: Build data and sources list (reads the data files above; no network)
         run: python tools/build_sources.py --out data
@@ -123,8 +128,8 @@ jobs:
             missing=1
           fi
           airport_count=$(find _site/airports -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
-          if [ "$airport_count" -ne 30 ]; then
-            echo "::error::Expected 30 airport pages in _site/airports, found $airport_count"
+          if [ "$airport_count" -ne 100 ]; then
+            echo "::error::Expected 100 airport pages in _site/airports, found $airport_count"
             missing=1
           fi
           exit $missing

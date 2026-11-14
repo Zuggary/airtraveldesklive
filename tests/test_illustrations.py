@@ -131,7 +131,7 @@ class TestPages(unittest.TestCase):
 
     def test_airport_pages_hero(self) -> None:
         pages = [p for p in self.out.glob("*.html") if p.name != "index.html"]
-        self.assertEqual(len(pages), 30)
+        self.assertEqual(len(pages), 100)
         for page in pages:
             code = page.stem
             imgs = scan(page.read_text(encoding="utf-8"))
@@ -146,11 +146,20 @@ class TestPages(unittest.TestCase):
             self.assertIn(f"Illustration of a {bap.airport_type(code)} airport", page.read_text(encoding="utf-8"))
 
     def test_airport_types(self) -> None:
+        first30 = set("ATL DFW DEN ORD LAX JFK LAS MCO MIA CLT SEA PHX EWR SFO IAH BOS FLL MSP LGA DTW PHL SLC BWI IAD SAN DCA TPA BNA AUS MDW".split())
         self.assertEqual(
-            {c for c, t in bap.AIRPORT_TYPE.items() if t == "coastal"},
+            {c for c, t in bap.AIRPORT_TYPE.items() if t == "coastal" and c in first30},
             set("SFO LAX SAN SEA MIA FLL TPA BOS JFK LGA EWR".split()))
-        self.assertEqual({c for c, t in bap.AIRPORT_TYPE.items() if t == "mountain"}, {"DEN", "SLC"})
-        self.assertEqual({c for c, t in bap.AIRPORT_TYPE.items() if t == "desert"}, {"PHX", "LAS"})
+        self.assertEqual({c for c, t in bap.AIRPORT_TYPE.items() if t == "mountain" and c in first30}, {"DEN", "SLC"})
+        self.assertEqual({c for c, t in bap.AIRPORT_TYPE.items() if t == "desert" and c in first30}, {"PHX", "LAS"})
+        # the other 70: every typed airport is on the list, and the Hawaii airports are coastal
+        from desk.airports import BUSIEST_100
+        self.assertTrue(set(bap.AIRPORT_TYPE) <= set(BUSIEST_100))
+        for c in ("HNL", "OGG", "KOA", "LIH", "ANC"):
+            self.assertEqual(bap.airport_type(c), "coastal", c)
+        self.assertEqual(bap.airport_type("TUS"), "desert")
+        self.assertEqual(bap.airport_type("BOI"), "mountain")
+        self.assertEqual(bap.airport_type("BHM"), "hub")
         self.assertEqual(bap.airport_type("ATL"), "hub")
 
     def test_hero_choice_is_stable(self) -> None:

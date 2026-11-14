@@ -148,7 +148,8 @@ class TestAirportCards(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p = build_web.build(Path(d), {}, (FX / "faa-1.xml").read_text(), '{"ac":[]}', {}, True)
             cards = json.loads((Path(d) / "airports.json").read_text())
-        self.assertEqual(sorted(cards["airports"]), sorted(BUSIEST_30))
+        from desk.airports import BUSIEST_100
+        self.assertEqual(sorted(cards["airports"]), sorted(BUSIEST_100))
         self.assertEqual(len(p["board"]), 30)
         for c in cards["airports"].values():
             self.assertIn(c["level"], ("clear", "delay", "stop"))

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from desk import demo, feeds, timefmt
-from desk.airports import AIRPORTS, BUSIEST_30, TZ
+from desk.airports import AIRPORTS, BUSIEST_100, TZ
 
 SOURCE = "aviationweather.gov (METAR, TAF)"
 BASE = "https://aviationweather.gov/api/data"
@@ -24,11 +24,17 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 CAT_RANK = {"VFR": 0, "MVFR": 1, "IFR": 2, "LIFR": 3}
 
 
+# Stations outside the lower 48 do not use K + code. These are the ICAO ids for the Hawaii and Alaska airports on the list.
+ICAO_OTHER = {"HNL": "PHNL", "OGG": "PHOG", "KOA": "PHKO", "LIH": "PHLI", "ANC": "PANC"}
+
+
 def icao(code: str) -> Optional[str]:
-    """'K' + code for the lower 48; None for anything else."""
+    """'K' + code for the lower 48; the listed PH/PA id for Hawaii and Anchorage; None for anything else."""
     code = (code or "").upper()
     if code not in AIRPORTS:
         return None
+    if code in ICAO_OTHER:
+        return ICAO_OTHER[code]
     _, lat, lon = AIRPORTS[code]
     if not (24 <= lat <= 50 and -125 <= lon <= -66):
         return None
@@ -37,7 +43,7 @@ def icao(code: str) -> Optional[str]:
 
 def wanted_codes(event_airports: list[str]) -> list[str]:
     out: list[str] = []
-    for c in list(BUSIEST_30) + [str(a).upper() for a in event_airports]:
+    for c in list(BUSIEST_100) + [str(a).upper() for a in event_airports]:
         if icao(c) and c not in out:
             out.append(c)
     return out
@@ -192,7 +198,7 @@ def build(metars: list[dict[str, Any]], tafs: list[dict[str, Any]], now_ts: floa
     hubs: dict[str, Any] = {}
     for m in metars:
         ic = str(m.get("icaoId") or "")
-        code = ic[1:] if ic.startswith("K") else ic
+        code = next((c for c, i in ICAO_OTHER.items() if i == ic), ic[1:] if ic.startswith("K") else ic)
         rec = parse_metar(m, now_ts)
         if rec is None or code not in AIRPORTS:
             continue

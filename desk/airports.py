@@ -89,6 +89,22 @@ AIRPORTS: dict[str, tuple[str, float, float]] = {
     "ANC": ("Anchorage Ted Stevens", 61.174, -149.996),
     "COS": ("Colorado Springs", 38.806, -104.701),
     "GSO": ("Greensboro Piedmont Triad", 36.098, -79.937),
+    "BHM": ("Birmingham-Shuttlesworth", 33.563, -86.754),
+    "LIT": ("Little Rock", 34.729, -92.224),
+    "GRR": ("Grand Rapids Ford", 42.881, -85.523),
+    "DAY": ("Dayton International", 39.902, -84.219),
+    "SYR": ("Syracuse Hancock", 43.111, -76.106),
+    "ROC": ("Rochester International", 43.119, -77.672),
+    "TYS": ("Knoxville McGhee Tyson", 35.811, -83.994),
+    "PSP": ("Palm Springs", 33.83, -116.507),
+    "MSN": ("Madison Dane County", 43.14, -89.338),
+    "LEX": ("Lexington Blue Grass", 38.037, -84.606),
+    "HSV": ("Huntsville International", 34.637, -86.775),
+    "FAT": ("Fresno Yosemite", 36.776, -119.718),
+    "MYR": ("Myrtle Beach", 33.68, -78.928),
+    "KOA": ("Kona", 19.739, -156.046),
+    "LIH": ("Lihue Kauai", 21.976, -159.339),
+    "PNS": ("Pensacola International", 30.473, -87.187),
 }
 
 # Official display names for every airport in AIRPORTS
@@ -177,6 +193,22 @@ DISPLAY: dict[str, str] = {
     "ANC": "Ted Stevens Anchorage International",
     "COS": "Colorado Springs Airport",
     "GSO": "Piedmont Triad International",
+    "BHM": "Birmingham-Shuttlesworth International",
+    "LIT": "Bill and Hillary Clinton National",
+    "GRR": "Gerald R. Ford International",
+    "DAY": "James M. Cox Dayton International",
+    "SYR": "Syracuse Hancock International",
+    "ROC": "Frederick Douglass Greater Rochester International",
+    "TYS": "McGhee Tyson Airport, Knoxville",
+    "PSP": "Palm Springs International",
+    "MSN": "Dane County Regional, Madison",
+    "LEX": "Blue Grass Airport, Lexington",
+    "HSV": "Huntsville International",
+    "FAT": "Fresno Yosemite International",
+    "MYR": "Myrtle Beach International",
+    "KOA": "Kona International, Ellison Onizuka",
+    "LIH": "Lihue Airport, Kauai",
+    "PNS": "Pensacola International",
 }
 
 
@@ -282,10 +314,29 @@ TZ: dict[str, str] = {
     "ANC": "America/Anchorage",
     "COS": "America/Denver",
     "GSO": "America/New_York",
+    "BHM": "America/Chicago",
+    "LIT": "America/Chicago",
+    "GRR": "America/Detroit",
+    "DAY": "America/New_York",
+    "SYR": "America/New_York",
+    "ROC": "America/New_York",
+    "TYS": "America/New_York",
+    "PSP": "America/Los_Angeles",
+    "MSN": "America/Chicago",
+    "LEX": "America/New_York",
+    "HSV": "America/Chicago",
+    "FAT": "America/Los_Angeles",
+    "MYR": "America/New_York",
+    "KOA": "Pacific/Honolulu",
+    "LIH": "Pacific/Honolulu",
+    "PNS": "America/Chicago",
 }
 
 # AIRPORTS is in traffic order (FAA 2024 boardings); the board uses the first 30.
 BUSIEST_30: list[str] = list(AIRPORTS.keys())[:30]
+
+# AN15 Stage 2: the board shows the first 100 of AIRPORTS (traffic rank order, rank 1 = ATL).
+BUSIEST_100: list[str] = list(AIRPORTS.keys())[:100]
 
 # Short names for the board tiles.
 SHORT: dict[str, str] = {
@@ -351,4 +402,51 @@ SHORT: dict[str, str] = {
     "HOU": "Houston Hobby",
     "HNL": "Honolulu",
     "SMF": "Sacramento",
+    "BHM": "Birmingham",
+    "LIT": "Little Rock",
+    "GRR": "Grand Rapids",
+    "DAY": "Dayton",
+    "SYR": "Syracuse",
+    "ROC": "Rochester NY",
+    "TYS": "Knoxville",
+    "PSP": "Palm Springs",
+    "MSN": "Madison",
+    "LEX": "Lexington",
+    "HSV": "Huntsville",
+    "FAT": "Fresno",
+    "MYR": "Myrtle Beach",
+    "KOA": "Kona",
+    "LIH": "Kauai",
+    "PNS": "Pensacola",
+}
+
+
+# City and state labels for the search box and the page subtitles. A label only (AN23: 100 airports).
+CITY: dict[str, str] = {
+    "ATL": "Atlanta, GA", "DFW": "Dallas-Fort Worth, TX", "DEN": "Denver, CO", "ORD": "Chicago, IL",
+    "LAX": "Los Angeles, CA", "JFK": "New York, NY", "LAS": "Las Vegas, NV", "MCO": "Orlando, FL",
+    "MIA": "Miami, FL", "CLT": "Charlotte, NC", "SEA": "Seattle, WA", "PHX": "Phoenix, AZ",
+    "EWR": "Newark, NJ", "SFO": "San Francisco, CA", "IAH": "Houston, TX", "BOS": "Boston, MA",
+    "FLL": "Fort Lauderdale, FL", "MSP": "Minneapolis, MN", "LGA": "New York, NY", "DTW": "Detroit, MI",
+    "PHL": "Philadelphia, PA", "SLC": "Salt Lake City, UT", "BWI": "Baltimore, MD", "IAD": "Washington, DC",
+    "SAN": "San Diego, CA", "DCA": "Washington, DC", "TPA": "Tampa, FL", "BNA": "Nashville, TN",
+    "AUS": "Austin, TX", "MDW": "Chicago, IL",
+    "HNL": "Honolulu, HI", "DAL": "Dallas, TX", "PDX": "Portland, OR", "STL": "St. Louis, MO",
+    "HOU": "Houston, TX", "SMF": "Sacramento, CA", "SJC": "San Jose, CA", "OAK": "Oakland, CA",
+    "RDU": "Raleigh-Durham, NC", "BDL": "Hartford, CT", "SNA": "Santa Ana, CA", "MSY": "New Orleans, LA",
+    "PIT": "Pittsburgh, PA", "IND": "Indianapolis, IN", "CMH": "Columbus, OH", "CLE": "Cleveland, OH",
+    "MCI": "Kansas City, MO", "SAT": "San Antonio, TX", "OGG": "Kahului, HI", "BUR": "Burbank, CA",
+    "ONT": "Ontario, CA", "LGB": "Long Beach, CA", "RSW": "Fort Myers, FL", "JAX": "Jacksonville, FL",
+    "MKE": "Milwaukee, WI", "ABQ": "Albuquerque, NM", "BOI": "Boise, ID", "OMA": "Omaha, NE",
+    "RNO": "Reno, NV", "TUS": "Tucson, AZ", "ELP": "El Paso, TX", "PVD": "Providence, RI",
+    "ALB": "Albany, NY", "BUF": "Buffalo, NY", "ORF": "Norfolk, VA", "RIC": "Richmond, VA",
+    "CHS": "Charleston, SC", "SAV": "Savannah, GA", "MEM": "Memphis, TN", "SDF": "Louisville, KY",
+    "OKC": "Oklahoma City, OK", "TUL": "Tulsa, OK", "PBI": "West Palm Beach, FL", "CVG": "Cincinnati, OH",
+    "SRQ": "Sarasota, FL", "DSM": "Des Moines, IA", "GEG": "Spokane, WA", "ICT": "Wichita, KS",
+    "MHT": "Manchester, NH", "PWM": "Portland, ME", "BTV": "Burlington, VT", "ANC": "Anchorage, AK",
+    "COS": "Colorado Springs, CO", "GSO": "Greensboro, NC", "BHM": "Birmingham, AL", "LIT": "Little Rock, AR",
+    "GRR": "Grand Rapids, MI", "DAY": "Dayton, OH", "SYR": "Syracuse, NY", "ROC": "Rochester, NY",
+    "TYS": "Knoxville, TN", "PSP": "Palm Springs, CA", "MSN": "Madison, WI", "LEX": "Lexington, KY",
+    "HSV": "Huntsville, AL", "FAT": "Fresno, CA", "MYR": "Myrtle Beach, SC", "KOA": "Kailua-Kona, HI",
+    "LIH": "Lihue, HI", "PNS": "Pensacola, FL",
 }

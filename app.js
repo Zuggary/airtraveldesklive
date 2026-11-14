@@ -13,8 +13,10 @@
   var FALLBACK_LEVEL = { green: "clear", amber: "delay", red: "stop" };
 
   var D = { history: null, state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
-  var airports = [];       // [{code, name, short, city, level, ...}] in board order
+  var airports = [];       // [{code, name, short, city, level, ...}] the board airports (the first 30), in board order
+  var allAirports = [];    // all 100 busiest airports, for the search box
   var byCode = {};
+  var allByCode = {};
   var currentCode = "";
   var cardRefs = null;
   var slowLoaded = false;
@@ -90,9 +92,18 @@
       });
     }
     // Levels and events always come from state.json when it is newer than airports.json.
+    // The board, the map and the airport card cover the airports on the state.json board (30). The search covers all of them;
+    // an airport outside the board opens its own page.
+    allAirports = list;
+    var boardCodes = {};
+    var hasBoard = D.state && Array.isArray(D.state.board) && D.state.board.length;
+    if (hasBoard) { D.state.board.forEach(function (b) { boardCodes[b.code] = true; }); }
+    list = hasBoard ? list.filter(function (a) { return boardCodes[a.code]; }) : list.slice(0, 30);
     airports = list;
     byCode = {};
+    allByCode = {};
     list.forEach(function (a) { byCode[a.code] = a; });
+    allAirports.forEach(function (a) { allByCode[a.code] = a; });
   }
 
   function faaEvents() {
@@ -342,7 +353,7 @@
       list.textContent = "";
       empty.hidden = true;
       if (!A.norm(q)) { list.hidden = true; return; }
-      var res = A.searchAirports(airports, q).slice(0, 6);
+      var res = A.searchAirports(allAirports, q).slice(0, 6);
       if (!res.length) { list.hidden = true; empty.hidden = false; return; }
       res.forEach(function (a) {
         var li = el("li");
@@ -361,7 +372,7 @@
     input.addEventListener("input", run);
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
-        var res = A.searchAirports(airports, input.value);
+        var res = A.searchAirports(allAirports, input.value);
         if (res.length) { e.preventDefault(); list.hidden = true; openAirport(res[0].code, true); }
       }
     });
@@ -691,7 +702,11 @@
 
   function openAirport(code, scroll) {
     var a = byCode[code];
-    if (!a) { return; }
+    if (!a) {
+      // An airport after the first 30 has no card on this page: open its own page.
+      if (/^[A-Z]{3}$/.test(code || "") && allByCode[code]) { window.location.href = "airports/" + code + ".html"; }
+      return;
+    }
     var slot = $("airport-card-slot");
     currentCode = code;
     slot.textContent = "";
@@ -1220,7 +1235,7 @@
     initSearch();
     initMap();
     loadLive().then(function () {
-      var code = A.airportFromSearch(window.location.search, Object.keys(byCode));
+      var code = A.airportFromSearch(window.location.search, Object.keys(allByCode));
       return loadSlow().then(function () { if (code) { openAirport(code, true); } });
     });
     // Poll only while the tab is visible; refresh at once when the viewer comes back.
