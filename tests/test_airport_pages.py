@@ -116,6 +116,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
             "https://www.openstreetmap.org/copyright",
             "https://www.adsb.lol",
             "https://www.adsb.lol/",
+            "https://nasstatus.faa.gov",
         }
         for code, entry in cls.guide["airports"].items():
             cls.allowed_urls.add(f"{SITE_URL}/airports/{code}.html")

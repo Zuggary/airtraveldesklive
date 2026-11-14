@@ -96,8 +96,7 @@ class TestAboutPage(unittest.TestCase):
         self.assertEqual("".join(self.p.title_parts).strip(), "About Air Travel Desk")
         self.assertEqual(self.p.h1_count, 1)
         self.assertGreaterEqual(self.p.h2_count, 6)
-        self.assertEqual(self.p.table_count, 1)
-        self.assertEqual(self.p.caption_count, 1)
+        self.assertEqual(self.p.table_count, 0)  # the full source table lives on sources.html
 
     def test_canonical_description_and_og_tags(self) -> None:
         canon = [l.get("href") for l in self.p.links if l.get("rel") == "canonical"]

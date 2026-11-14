@@ -634,3 +634,13 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
   .data-table tbody td::before { margin-bottom: 2px; }
 }
 .right-now-box p .tap, .last-checked .tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+/* AN polish round 4: disclosure chevron, inline links in airport notes, crumb, source groups */
+.glance-details summary { list-style: none; }
+.glance-details summary::-webkit-details-marker { display: none; }
+.glance-details summary::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; margin-right: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
+.glance-details[open] > summary::before { transform: rotate(45deg); }
+.stuck-note p .tap, .airport-section p .tap, .airport-sources li .tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+.crumb { margin: 0 0 8px; font-size: 0.9375rem; color: var(--text-muted); }
+.crumb a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+.prose-card ul.source-groups { padding-left: 20px; }

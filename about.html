@@ -60,106 +60,21 @@
         </ul>
 
         <h2>How pages are made</h2>
-        <p>The live status board, weather notes, radar image, aircraft map and travel numbers are updated automatically from public data every 5 minutes by a script.</p>
+        <p>The live status board, weather notes, radar image, aircraft map and travel numbers are updated automatically from public data by a script. The site tries to refresh about every 5 minutes and keeps the last good data if a source is late.</p>
         <p>The wording in the <a class="tap" href="stuck.html">I'm-stuck guide</a> and the airport guide link lists are written and checked by hand; both were checked on 2026-11-14.</p>
         <p>Nothing on this site is written by a reader or a paid party. There are no ads on this site yet.</p>
         <p>Where this site uses "what you may be owed" or "possibly owed" wording, it is plain-language help based on public U.S. Department of Transportation rules and airline customer service plans, not legal advice. Your airline decides every claim, voucher or reimbursement.</p>
 
         <h2>Where the data comes from</h2>
-        <p>This is a short list. The full list, with terms links and the last time we checked each feed, is on the <a class="tap" href="sources.html">Data and sources</a> page.</p>
-        <div class="table-wrap" tabindex="0" role="region" aria-label="Public data sources">
-          <table class="data-table">
-            <caption>Public data sources used on Air Travel Desk</caption>
-            <thead>
-              <tr>
-                <th scope="col">Source</th>
-                <th scope="col">What we use it for</th>
-                <th scope="col">How often it updates</th>
-                <th scope="col">Licence or terms</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th scope="row"><a href="https://nasstatus.faa.gov/" target="_blank" rel="noopener noreferrer">FAA NAS status</a></th>
-                <td data-label="What we use it for">Airport delays, ground delays, ground stops and closures</td>
-                <td data-label="How often it updates">About every minute (fetched every 5 minutes)</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.weather.gov/" target="_blank" rel="noopener noreferrer">National Weather Service alerts</a></th>
-                <td data-label="What we use it for">Active weather alerts near airports (via api.weather.gov)</td>
-                <td data-label="How often it updates">Every 10 minutes</td>
-                <td data-label="Licence or terms">U.S. government</td>
-              </tr>
-              <tr>
-                <th scope="row">NOAA radar MRMS</th>
-                <td data-label="What we use it for">Base reflectivity radar image over the lower 48 states</td>
-                <td data-label="How often it updates">Every 5 minutes</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.spc.noaa.gov/" target="_blank" rel="noopener noreferrer">NOAA SPC storm outlooks</a></th>
-                <td data-label="What we use it for">Day-1 convective storm outlook areas</td>
-                <td data-label="How often it updates">Every 15 minutes</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener noreferrer">NOAA NHC hurricanes</a></th>
-                <td data-label="What we use it for">Active tropical storms and hurricanes</td>
-                <td data-label="How often it updates">Every 30 minutes</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://aviationweather.gov/" target="_blank" rel="noopener noreferrer">aviationweather.gov METAR and TAF</a></th>
-                <td data-label="What we use it for">Airport weather reports, 3-hour forecasts and convective SIGMETs</td>
-                <td data-label="How often it updates">Every 10 minutes (SIGMETs every 15 minutes)</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.tsa.gov/travel/passenger-volumes" target="_blank" rel="noopener noreferrer">TSA checkpoint numbers</a></th>
-                <td data-label="What we use it for">Daily passenger screening counts and holiday travel comparisons</td>
-                <td data-label="How often it updates">Daily</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.bts.gov/" target="_blank" rel="noopener noreferrer">Bureau of Transportation Statistics on-time data</a></th>
-                <td data-label="What we use it for">Monthly airline and airport on-time and cancellation rates</td>
-                <td data-label="How often it updates">Monthly</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.adsb.lol/" target="_blank" rel="noopener noreferrer">adsb.lol</a></th>
-                <td data-label="What we use it for">Aircraft positions for map trails, traffic counts and holding notes</td>
-                <td data-label="How often it updates">Every 5 minutes (full sweep about every 15 minutes)</td>
-                <td data-label="Licence or terms">ODbL 1.0; credit required</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap via Overpass</a></th>
-                <td data-label="What we use it for">Hotels and car rental places near each airport</td>
-                <td data-label="How often it updates">Weekly</td>
-                <td data-label="Licence or terms">ODbL (&copy; OpenStreetMap contributors)</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT Airline Cancellation and Delay Dashboard</a></th>
-                <td data-label="What we use it for">Airline customer service commitments table</td>
-                <td data-label="How often it updates">Last updated 2025-09-11</td>
-                <td data-label="Licence or terms">U.S. government work</td>
-              </tr>
-              <tr>
-                <th scope="row">Airport operators' own websites</th>
-                <td data-label="What we use it for">Official airport guide links and security wait page links</td>
-                <td data-label="How often it updates">Checked 2026-11-14</td>
-                <td data-label="Licence or terms">Public airport operator pages</td>
-              </tr>
-              <tr>
-                <th scope="row"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth map outlines</a></th>
-                <td data-label="What we use it for">U.S. state borders on the map</td>
-                <td data-label="How often it updates">Static map file</td>
-                <td data-label="Licence or terms">Public domain</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <p>Every feed is public. The full table, with licences and the last time we checked each feed, is on the <a class="tap" href="sources.html">Data and sources</a> page.</p>
+        <ul class="source-groups">
+          <li><strong>FAA and U.S. Department of Transportation.</strong> FAA NAS status gives airport delays, ground stops and closures. The DOT Airline Cancellation and Delay Dashboard gives the airline commitments table.</li>
+          <li><strong>Weather.</strong> The NOAA National Weather Service gives alerts and radar. aviationweather.gov gives airport weather reports, forecasts and SIGMETs. The NOAA Storm Prediction Center gives storm outlooks and the National Hurricane Center gives active storms.</li>
+          <li><strong>Aircraft positions.</strong> adsb.lol gives the positions behind the map trails and traffic counts, under the ODbL licence.</li>
+          <li><strong>Maps and places.</strong> OpenStreetMap gives hotels and car rental near each airport. Natural Earth gives the state outlines on the map.</li>
+          <li><strong>Statistics.</strong> TSA checkpoint numbers and Bureau of Transportation Statistics on-time data give travel counts and monthly on-time rates.</li>
+        </ul>
+        <p>Airport guide links come from the airports' own websites.</p>
 
         <h2>Limits of the data</h2>
         <ul>

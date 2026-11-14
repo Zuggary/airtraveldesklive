@@ -96,7 +96,8 @@ class TestSourcesPage(unittest.TestCase):
         for r in rows:
             for label in ("What we use it for", "Licence and terms", "How often it updates", "Last checked"):
                 self.assertIn('data-label="%s"' % label, r)
-            self.assertIn(">Terms</a>", r)
+            self.assertNotIn(">Terms</a>", r)
+            self.assertRegex(r, r'<td data-label="Licence and terms"><a href="[^"]+"[^>]*>[^<]+</a></td>')
             self.assertIn("src-checked", r)
 
     def test_script_files_exist(self) -> None:

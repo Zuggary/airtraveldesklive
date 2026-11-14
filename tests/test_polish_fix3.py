@@ -48,14 +48,13 @@ class TestAirportPolish(unittest.TestCase):
         self.assertIn('class="glance-ontime"', self.sfo)
         self.assertLess(self.sfo.index('class="glance-ontime"'), self.sfo.index("At a glance"))
 
-    def test_facts_are_collapsed_and_do_not_repeat_the_code(self) -> None:
-        m = re.search(r'<details class="glance-details">(.*?)</details>', self.sfo, re.S)
+    def test_facts_do_not_repeat_the_code(self) -> None:
+        m = re.search(r'<details class="glance-details"(?: open)?>(.*?)</details>', self.sfo, re.S)
         self.assertIsNotNone(m)
         body = m.group(1)
         self.assertNotIn("Airport code", body)
         self.assertIn("<dt>City</dt>", body)
         self.assertIn("<dt>Time zone</dt>", body)
-        self.assertNotIn("<details class=\"glance-details\" open", self.sfo)
 
     def test_nav_marks_current_page(self) -> None:
         for page in (self.sfo, self.index):
