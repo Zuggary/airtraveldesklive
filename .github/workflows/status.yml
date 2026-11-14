@@ -94,6 +94,8 @@ jobs:
           done
           mkdir -p _site/airports
           cp airports/*.html _site/airports/
+          mkdir -p _site/assets/illustrations
+          cp assets/illustrations/*.webp assets/illustrations/library.json _site/assets/illustrations/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
           for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done

@@ -20,6 +20,53 @@ DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesk
 CONTACT_EMAIL = "hello@airtraveldesklive.com"
 BTS_DEFINITION_SHORT = "BTS counts a flight on time if it arrives less than 15 minutes late"
 
+ILLUS_DIR = ROOT / "assets" / "illustrations"
+
+# AN17: airport type for the hero illustration. Every other airport is a hub.
+AIRPORT_TYPE = {
+    **{c: "coastal" for c in "SFO LAX SAN SEA MIA FLL TPA BOS JFK LGA EWR".split()},
+    **{c: "mountain" for c in "DEN SLC".split()},
+    **{c: "desert" for c in "PHX LAS".split()},
+}
+
+
+def airport_type(code: str) -> str:
+    return AIRPORT_TYPE.get(code, "hub")
+
+
+def _stable_index(code: str, n: int) -> int:
+    """Stable choice from an airport code (no hash(), which changes between runs)."""
+    return sum((i + 1) * ord(ch) for i, ch in enumerate(code)) % n
+
+
+def pick_hero_illustration(code: str, library: dict[str, Any]) -> dict[str, Any] | None:
+    """Choose a 'meaning' image of the airport's type from library.json, or None when there is none."""
+    kind = airport_type(code)
+    pool = sorted(
+        (i for i in library.get("images") or []
+         if i.get("category") == f"airport-{kind}" and i.get("role") == "meaning"),
+        key=lambda i: i.get("file", ""),
+    )
+    return pool[_stable_index(code, len(pool))] if pool else None
+
+
+def _render_hero_illustration(code: str) -> list[str]:
+    """Hero figure for an airport page. A missing library or image gives no figure."""
+    library = _load_json(ILLUS_DIR / "library.json")
+    img = pick_hero_illustration(code, library)
+    if not img or not (ILLUS_DIR / img["file"]).is_file():
+        return []
+    kind = airport_type(code)
+    return [
+        '      <figure class="illus illus--hero">',
+        f'        <img src="../assets/illustrations/{_esc(img["file"])}" alt="{_esc(img["alt"])}" '
+        f'width="{int(library.get("width", 1280))}" height="{int(library.get("height", 720))}" loading="lazy" decoding="async">',
+        '        <figcaption class="illus-tag">Illustration</figcaption>',
+        "      </figure>",
+        f'      <p class="illus-caption">Illustration of a {kind} airport. It does not show {_esc(code)}.</p>',
+    ]
+
+
 SITEMAP_BEGIN = "<!-- airports:begin -->"
 SITEMAP_END = "<!-- airports:end -->"
 
@@ -535,6 +582,7 @@ def render_airport_page(
         _render_header(),
         '    <main id="main-content" class="airport-main">',
         f'      <h1 class="airport-page-title">{_esc(name)} ({_esc(code)}): delays, weather and traveller help</h1>',
+        *_render_hero_illustration(code),
         '      <div class="airport-summary-band">',
         '        <div class="airport-summary-chips">',
         '          <span id="status-chip" class="badge status-chip" aria-live="polite">Checking live status…</span>',

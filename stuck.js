@@ -80,6 +80,21 @@
     ]
   };
 
+  // AN17: one illustration each for the meal step and the hotel step. Rebooking and refund steps stay plain text.
+  // The file names and alt text are copied from assets/illustrations/library.json (a test checks this).
+  var STEP_ILLUSTRATIONS = {
+    "stuck-meal": { "file": "stuck-meal-1.webp", "alt": "Illustration: A plain tray with a cup and a plate." },
+    "stuck-hotel": { "file": "stuck-hotel-1.webp", "alt": "Illustration: A plain bed shape with a moon and stars." }
+  };
+
+  // Which illustration a step gets: only a step that tells you to ask for a hotel or a meal. Hotel wins.
+  function stepIllustrationKey(stepText) {
+    if (!/\bask\b/i.test(stepText)) { return ""; }
+    if (/\bhotel\b/i.test(stepText)) { return "stuck-hotel"; }
+    if (/\bmeal\b/i.test(stepText)) { return "stuck-meal"; }
+    return "";
+  }
+
   function safeUrl(u) {
     try {
       var p = new URL(String(u || ""));
@@ -270,6 +285,23 @@
     return node;
   }
 
+  // A figure with a visible "Illustration" tag, a fixed 16:9 box and a lazy image.
+  // If the picture cannot load (offline), the figure is removed and the text still works.
+  function illustrationFigure(info) {
+    var fig = el("figure", "illus illus--step");
+    var img = document.createElement("img");
+    img.src = "assets/illustrations/" + info.file;
+    img.alt = info.alt;
+    img.width = 1280;
+    img.height = 720;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("error", function () { if (fig.parentNode) { fig.parentNode.removeChild(fig); } });
+    fig.appendChild(img);
+    fig.appendChild(el("figcaption", "illus-tag", "Illustration"));
+    return fig;
+  }
+
   function renderRadioGroup(container, name, options, selectedValue, onChange) {
     container.textContent = "";
     options.forEach(function (opt) {
@@ -375,7 +407,16 @@
       secA.appendChild(el("h2", "result-heading", "Do this now"));
       var ol = el("ol", "result-steps");
       var steps = STEPS_BY_SITUATION[state.situationId] || STEPS_BY_SITUATION.delayed;
-      steps.forEach(function (stepText) { ol.appendChild(el("li", null, stepText)); });
+      var shownIllus = {};
+      steps.forEach(function (stepText) {
+        var li = el("li", null, stepText);
+        var key = stepIllustrationKey(stepText);
+        if (key && !shownIllus[key]) {
+          shownIllus[key] = true;
+          li.appendChild(illustrationFigure(STEP_ILLUSTRATIONS[key]));
+        }
+        ol.appendChild(li);
+      });
       secA.appendChild(ol);
       resultBody.appendChild(secA);
 
@@ -590,6 +631,8 @@
     REFUND_QUOTE: REFUND_QUOTE,
     PLAIN_READING: PLAIN_READING,
     DOWNTIME_URL: DOWNTIME_URL,
+    STEP_ILLUSTRATIONS: STEP_ILLUSTRATIONS,
+    stepIllustrationKey: stepIllustrationKey,
     buildScripts: buildScripts,
     buildCommitmentsModel: buildCommitmentsModel,
     buildEmailDraft: buildEmailDraft,

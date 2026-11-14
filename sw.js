@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var CACHE_NAME = "atd-offline-v4";
+  var CACHE_NAME = "atd-offline-v5";
   var STATIC_FILES = [
     "./",
     "./index.html",
@@ -95,6 +95,22 @@
           });
           return Promise.race([net, slow]).catch(function () {
             return cache.match(cacheKey).then(function (c) { return c || Response.error(); });
+          });
+        })
+      );
+      return;
+    }
+
+    // Illustrations are not precached. Each one is saved the first time a page shows it (cache first after that).
+    if (cacheKey.indexOf(scopeUrl("./assets/illustrations/").pathname) === 0) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then(function (cache) {
+          return cache.match(cacheKey).then(function (hit) {
+            if (hit) { return hit; }
+            return fetch(req).then(function (resp) {
+              if (resp && resp.ok && resp.type === "basic") { cache.put(cacheKey, resp.clone()); }
+              return resp;
+            });
           });
         })
       );

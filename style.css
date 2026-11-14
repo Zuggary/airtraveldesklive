@@ -651,3 +651,16 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .wait-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
 .wait-card .wait-link { min-height: 44px; display: inline-flex; align-items: center; }
 .sun-now { margin: 8px 0 0; }
+
+/* AN17: illustrations. A fixed 16:9 box, so nothing jumps while the picture loads. */
+.illus { position: relative; margin: 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--surface-alt); }
+.illus img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.illus-tag { position: absolute; left: 6px; bottom: 6px; padding: 1px 7px; border-radius: 999px; background: var(--navy); color: var(--text); border: 1px solid var(--border); font-size: var(--fs-xs); font-weight: 700; line-height: 1.4; }
+.illus--hero { margin: 0 0 6px; max-width: 560px; }
+.illus-caption { margin: 0 0 10px; font-size: var(--fs-sm); color: var(--text-muted); }
+.illus--step { margin: 8px 0 4px; max-width: 360px; }
+.illus--card { margin: 0 0 10px; max-width: 280px; }
+.illus--thumb { grid-row: 1 / span 3; grid-column: 1; width: 96px; align-self: start; border-radius: 6px; }
+.illus--thumb .illus-tag { left: 3px; bottom: 3px; padding: 0 4px; font-size: 0.625rem; line-height: 1.3; }
+.latest-item--thumb { grid-template-columns: 96px minmax(0, 1fr); }
+.latest-item--thumb .latest-tag, .latest-item--thumb .latest-text, .latest-item--thumb .latest-src { grid-column: 2; }
