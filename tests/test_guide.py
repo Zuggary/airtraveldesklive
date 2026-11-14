@@ -17,6 +17,7 @@ ALLOWED_APP_URLS = {
     "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true",
     "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive",
     "https://nasstatus.faa.gov",
+    "https://www.lanterndrift.com/",
 }
 
 

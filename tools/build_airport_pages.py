@@ -150,6 +150,33 @@ def _render_footer() -> str:
     ])
 
 
+def _sun_now_script() -> str:
+    """Inline script: fills #sun-now from ../sun.js. No network request. Any failure leaves the line hidden."""
+    return "\n".join([
+        '  <script src="../sun.js"></script>',
+        "  <script>",
+        "  (function () {",
+        '    "use strict";',
+        '    var p = document.getElementById("sun-now");',
+        '    var src = document.getElementById("sun-now-source");',
+        "    if (!p || !window.Sun) { return; }",
+        "    function paint() {",
+        "      try {",
+        "        var t = window.Sun.hubCardText(parseFloat(p.getAttribute(\"data-lat\")), parseFloat(p.getAttribute(\"data-lon\")), p.getAttribute(\"data-tz\"), Date.now());",
+        '        t = String(t).replace(/^Sun: /, "Sun now: ").replace(/ \\u00b7 computed$/, "");',
+        "        var zone = new Intl.DateTimeFormat(\"en-US\", { timeZone: p.getAttribute(\"data-tz\"), timeZoneName: \"short\" }).formatToParts(new Date()).filter(function (x) { return x.type === \"timeZoneName\"; })[0];",
+        '        p.textContent = t + (zone ? ". Times are local to the airport (" + zone.value + ")." : ".");',
+        "        p.hidden = false;",
+        "        if (src) { src.hidden = false; }",
+        "      } catch (e) { p.hidden = true; if (src) { src.hidden = true; } }",
+        "    }",
+        "    paint();",
+        "    setInterval(paint, 60000);",
+        "  })();",
+        "  </script>",
+    ])
+
+
 def _right_now_script(code: str, tz: str = "") -> str:
     """Inline client-side script that populates #status-chip, #weather-chip, and #right-now from ../data/airports.json."""
     code_json = json.dumps(code)
@@ -441,6 +468,19 @@ def render_airport_page(
     else:
         glance_html = []
 
+    # "Sun now": filled in by the browser (sun.js). Hidden and empty when JavaScript is off.
+    sun_now_html: list[str] = []
+    try:
+        sun_lat = float(airport_info.get("lat"))
+        sun_lon = float(airport_info.get("lon"))
+    except (TypeError, ValueError):
+        sun_lat = sun_lon = None
+    if tz and sun_lat is not None and sun_lon is not None:
+        sun_now_html = [
+            f'        <p id="sun-now" class="sun-now" data-lat="{sun_lat}" data-lon="{sun_lon}" data-tz="{_esc(tz)}" hidden></p>',
+            '        <p id="sun-now-source" class="small" hidden>Computed from NOAA solar equations.</p>',
+        ]
+
     # Official pages from airport-guide.json
     guide_links = [
         item for item in (guide_entry.get("links") or [])
@@ -513,6 +553,7 @@ def render_airport_page(
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}">',
         '          <p class="updated-text">Loading current FAA status and weather…</p>',
         "        </div>",
+        *sun_now_html,
         "        <noscript>",
         '          <p class="noscript-note">Live status needs JavaScript; see nasstatus.faa.gov.</p>',
         "        </noscript>",
@@ -563,6 +604,7 @@ def render_airport_page(
         "      </section>",
         "    </main>",
         _render_footer(),
+        _sun_now_script() if tz else "",
         _right_now_script(code, tz),
         "</body>",
         "</html>",

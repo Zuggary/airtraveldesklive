@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var CACHE_NAME = "atd-offline-v3";
+  var CACHE_NAME = "atd-offline-v4";
   var STATIC_FILES = [
     "./",
     "./index.html",
@@ -14,6 +14,7 @@
     "./style.css",
     "./app.js",
     "./lib.js",
+    "./sun.js",
     "./stuck.js",
     "./sources.js",
     "./brand/logo.svg",

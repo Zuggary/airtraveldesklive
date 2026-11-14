@@ -27,6 +27,7 @@
     --purple: #a855f7;
     --blue: #3b82f6;
     --green: #22c55e;
+    --sun-accent: #4CC3FF;   /* same as --accent in tokens.css */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -132,6 +133,7 @@
     background: rgba(6, 14, 28, 0.45); border-radius: 4px; padding: 0.12rem 0.45rem;
     font-size: 0.875rem; font-weight: 600; color: rgba(203, 213, 225, 0.72);
   }
+  .k-sun { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: #ffe2a8; box-shadow: 0 0 0 0.12rem var(--sun-accent); display: inline-block; }
   .map-key .k-item { display: inline-flex; align-items: center; gap: 0.3rem; }
   .k-grad { width: 2.2rem; height: 0.28rem; border-radius: 2px; background: linear-gradient(90deg, #2dd4bf, #22d3ee, #dbeafe); display: inline-block; }
   .map-key.dim { opacity: 0; }
@@ -408,6 +410,7 @@
           <span class="k-item"><span class="legend-dot" style="background:#ef4444"></span>stop / closed</span>
           <span class="k-item"><span class="k-ring"></span>pulse = ground stop</span>
           <span class="k-item">· aircraft: adsb.lol (ODbL)</span>
+          <span id="k-sun" class="k-item"><span class="k-sun"></span>Sun position: computed</span>
           <span id="k-ifr" class="k-item off"><span class="k-ifr" style="background:#ef4444"></span>IFR</span>
           <span id="k-lifr" class="k-item off"><span class="k-lifr" style="background:#d946ef"></span>LIFR</span>
           <span id="k-storm" class="k-item off"><span class="k-storm"></span>storms</span>
@@ -493,6 +496,7 @@
 </div>
 
 <script src="cine.js"></script>
+<script src="sun.js"></script>
 <script>
 (function () {
   const params = new URLSearchParams(window.location.search);
@@ -956,6 +960,75 @@
     }
   }
 
+  // ---------- sun: day and night (AN18). Computed from UTC with sun.js; no network. One layer per minute, never per pixel per frame. ----------
+  const SUN_CELL = 4;                  // CSS px per shading cell; the layer is drawn smoothed
+  let sunLayer = null;                 // {key, canvas, sub, dark}
+  const sunPhone = () => window.innerWidth < 700;
+  const sunMinuteNow = () => Math.floor(Date.now() / 60000);
+  function sunLayerFor(w, h, u, fit) {
+    if (!window.Sun) return null;
+    const min = sunMinuteNow();
+    const phone = sunPhone();
+    const board = currentState.board || [];
+    const key = [w, h, u, fit.scale.toFixed(3), min, phone ? "p" : "d", board.length].join("|");
+    if (sunLayer && sunLayer.key === key) return sunLayer;
+    try {
+      const ms = min * 60000;
+      const cols = Math.max(2, Math.ceil(w / SUN_CELL)), rows = Math.max(2, Math.ceil(h / SUN_CELL));
+      const c = document.createElement("canvas"); c.width = cols; c.height = rows;
+      const g = c.getContext("2d");
+      const img = g.createImageData(cols, rows), d = img.data;
+      const sp = Sun.subsolar(ms);
+      let flat = null;
+      if (phone) flat = Sun.flatBands(ms, 360, 180, { dayTint: false });   // phones: terminator band only
+      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+        const ll = unprojectWith(fit, (x + 0.5) * SUN_CELL, (y + 0.5) * SUN_CELL);
+        if (!ll || ll[1] < -85 || ll[1] > 85) continue;
+        let col;
+        if (flat) {
+          const fx = Math.max(0, Math.min(359, Math.floor((ll[0] + 180) / 360 * 360))), fy = Math.max(0, Math.min(179, Math.floor((90 - ll[1]) / 180 * 180)));
+          const k = (fy * 360 + fx) * 4;
+          col = [flat.rgba[k], flat.rgba[k + 1], flat.rgba[k + 2], flat.rgba[k + 3]];
+        } else col = Sun.shade(Sun.altitude(ll[1], ll[0], ms, sp));
+        const i = (y * cols + x) * 4;
+        d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = col[3];
+      }
+      g.putImageData(img, 0, 0);
+      const dark = {};
+      for (const t of board) {
+        if (typeof t.lat !== "number" || typeof t.lon !== "number") continue;
+        const k = Sun.darkness(Sun.altitude(t.lat, t.lon, ms, sp));
+        if (k > 0.3) dark[t.code] = k;
+      }
+      sunLayer = { key, canvas: c, sub: sp, dark };
+    } catch (e) { sunLayer = null; }
+    return sunLayer;
+  }
+  let citySprite = null;
+  function cityGlow() {
+    return citySprite || (citySprite = sprite(64, [[0, "rgba(255,214,140,0.85)"], [0.3, "rgba(255,196,110,0.35)"], [1, "rgba(255,190,100,0)"]]));
+  }
+  // Small sun marker. When the sun is straight overhead off the map, it sits on the nearest edge.
+  function drawSunMarker(ctx, view, fit, w, h, u) {
+    if (!sunLayer || sunPhone()) return;
+    const sp = sunLayer.sub;
+    let x, y, edge = false;
+    if (sp.lon > -128 && sp.lon < -64 && sp.lat > 10 && sp.lat < 60) { const q = view.pt(...projectWith(fit, sp.lon, sp.lat)); x = q[0]; y = q[1]; }
+    else {
+      const east = Sun.wrap180(sp.lon + 96) > 0;
+      const q = view.pt(...projectWith(fit, east ? -66 : -125, Math.max(26, Math.min(48, sp.lat + 20))));
+      x = east ? w - 16 * u : 16 * u; y = q[1]; edge = true;
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath(); ctx.arc(0, 0, 9 * u, 0, Math.PI * 2); ctx.fillStyle = "rgba(7, 14, 28, 0.7)"; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = "#4CC3FF"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 4 * u, 0, Math.PI * 2); ctx.fillStyle = "#ffe2a8"; ctx.fill();
+    for (let a = 0; a < 8; a++) { const t = a * Math.PI / 4; ctx.beginPath(); ctx.moveTo(Math.cos(t) * 5.5 * u, Math.sin(t) * 5.5 * u); ctx.lineTo(Math.cos(t) * 7.5 * u, Math.sin(t) * 7.5 * u); ctx.strokeStyle = "#ffe2a8"; ctx.lineWidth = 1.2; ctx.stroke(); }
+    if (edge) { const dir = x > w / 2 ? 1 : -1; ctx.beginPath(); ctx.moveTo(dir * 12 * u, -4 * u); ctx.lineTo(dir * 17 * u, 0); ctx.lineTo(dir * 12 * u, 4 * u); ctx.fillStyle = "#4CC3FF"; ctx.fill(); }
+    ctx.restore();
+  }
+
   function buildStatic(w, h, u, fit) {
     const c = document.createElement("canvas");
     c.width = Math.round(w * SS); c.height = Math.round(h * SS);
@@ -988,6 +1061,9 @@
       }
     }
     g.restore();
+    // day and night shading: over the land, under the radar and everything that moves
+    const sl = sunLayerFor(w, h, u, fit);
+    if (sl) { g.imageSmoothingEnabled = true; g.drawImage(sl.canvas, 0, 0, c.width, c.height); }
     // radar under everything that moves (reprojected at the layer's own resolution)
     if (radarImg && radarImg.naturalWidth) {
       const fitSS = { scale: fit.scale * SS, offsetX: fit.offsetX * SS, offsetY: fit.offsetY * SS };
@@ -1508,7 +1584,7 @@
     const fit = fitFor(w, h, u);
 
     // 1. cached static layer (land, state lines, radar), warped into the tilt row by row
-    const stKey = [w, h, u, radarImg && radarImg.naturalWidth ? (radarMeta && radarMeta.fetched_utc) : "none", stormsFresh() ? stormsData.fetched_utc + liveSigmets().length : "none"].join("|");
+    const stKey = [w, h, u, radarImg && radarImg.naturalWidth ? (radarMeta && radarMeta.fetched_utc) : "none", sunMinuteNow(), (currentState.board || []).length, stormsFresh() ? stormsData.fetched_utc + liveSigmets().length : "none"].join("|");
     if (!staticLayer || staticLayer.key !== stKey) staticLayer = { key: stKey, canvas: buildStatic(w, h, u, fit) };
     const cam = cameraFor(w, h, nowMs);
     if (spot && !spot.fit) { const p = projectWith(fit, spot.lon, spot.lat); spot.fit = p; }
@@ -1575,6 +1651,20 @@
       items = layoutLabels(ctx, entries, w, h, u, home, lkey);
     } else items = labelLayout.items;
     for (const e of entries) { const q = view.pt(e.X, e.Y); e.px = q[0]; e.py = q[1]; }
+
+    // city-light glow at hubs that are in the dark, then the sun marker
+    if (sunLayer && sunLayer.dark) {
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      for (const e of entries) {
+        const k = sunLayer.dark[e.code];
+        if (!k) continue;
+        const r = (e.tier === "top" ? 20 : 13) * u;
+        ctx.globalAlpha = Math.min(0.9, k * 0.9);
+        ctx.drawImage(cityGlow(), e.px - r, e.py - r, 2 * r, 2 * r);
+      }
+      ctx.restore();
+    }
+    drawSunMarker(ctx, view, fit, w, h, u);
 
     // small dots for clear airports; the 12 busiest a little larger
     for (const e of entries) {
