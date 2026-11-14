@@ -560,6 +560,10 @@
       })
       .then(function (json) {
         state.data = json;
+        var dotDate = document.getElementById("dot-updated-date");
+        if (dotDate && json && json.source_last_updated) {
+          dotDate.textContent = json.source_last_updated;
+        }
         dataNotice.hidden = true;
         renderAirlines();
       })

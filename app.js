@@ -448,6 +448,7 @@
     det.appendChild(el("summary", null, "Airport guide"));
 
     var body = el("div", "guide-body");
+    body.appendChild(el("p", "guide-text guide-purpose", "Purpose: official links and conditions for this airport"));
     var entry = D.guide && D.guide.airports && D.guide.airports[a.code];
     var checked = (D.guide && D.guide.checked_utc) ? String(D.guide.checked_utc).slice(0, 10) : "";
 
@@ -488,7 +489,7 @@
     det.appendChild(body);
     wrap.appendChild(det);
 
-    var srcText = "Links from each airport operator's own website" + (checked ? "; checked on " + checked : "") + ".";
+    var srcText = "Sources: Links from each airport operator's own website, FAA, NWS, aviationweather.gov" + (checked ? ". Last checked " + checked : "") + ".";
     wrap.appendChild(el("p", "credit guide-source", srcText));
     return { wrap: wrap, nowBox: nowBox };
   }

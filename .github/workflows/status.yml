@@ -81,7 +81,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html stuck.html tv.html us-states.geojson qr-owed.svg privacy.html app.js lib.js stuck.js sw.js cine.js style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html stuck.html about.html tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js cine.js style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
