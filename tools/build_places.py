@@ -198,7 +198,7 @@ def update(out_dir: Path, now: Optional[float] = None, fetcher: Callable[[str], 
 # ---- AN23: the 70 airports after the first 30, in a separate file and a slower, gentler step ----
 
 MORE_FILE = "places-more.json"
-MORE_BATCH = 8                 # airports per run
+MORE_BATCH = 3                 # airports per run (an Overpass query can take 30 s; the step also has a 3 minute timeout in the workflow)
 MORE_MIN_GAP_SEC = 3600.0      # at least an hour between runs that ask Overpass
 MORE_PAUSE_SEC = 5.0           # between two queries
 MORE_MAX_AGE_SEC = 7 * 86400.0 # an airport is asked again after a week

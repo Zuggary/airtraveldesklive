@@ -51,7 +51,6 @@ jobs:
             data/nhc.json
             data/national.json
             data/board-history.json
-            data/link-report.json
           key: desk-cache-${{ github.run_id }}
           restore-keys: desk-cache-
 
@@ -78,6 +77,7 @@ jobs:
 
       - name: Build places list for the other 70 airports (OpenStreetMap; small batches, one query at a time, at most hourly)
         continue-on-error: true
+        timeout-minutes: 3
         run: python tools/build_places.py --out data --more
 
       - name: Build data and sources list (reads the data files above; no network)
@@ -88,10 +88,6 @@ jobs:
 
       - name: Build static airline pages (reads data/dot-commitments.json and data/airline-pages.json; no network)
         run: python tools/build_airline_pages.py
-
-      - name: Check airport guide links (report only; never blocks the build; at most once a day)
-        continue-on-error: true
-        run: python tools/check_links.py --out data/link-report.json --min-age-hours 24
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

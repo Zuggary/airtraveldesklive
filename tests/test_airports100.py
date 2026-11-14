@@ -350,7 +350,7 @@ class TestPlacesInBatches(unittest.TestCase):
             self.assertEqual(len(calls), 8)
             build_places.update_more(Path(d), now=t0 + 3700, fetcher=fetcher, sleep=lambda s: None)
             second = json.loads((Path(d) / "places-more.json").read_text())
-            self.assertEqual(list(second["airports"]), NEW70[:16])
+            self.assertEqual(list(second["airports"]), NEW70[:8 + build_places.MORE_BATCH])
 
     def test_a_failure_keeps_the_old_entry_and_still_records_the_attempt(self) -> None:
         def boom(q: str) -> str:
@@ -365,7 +365,7 @@ class TestPlacesInBatches(unittest.TestCase):
         asked: list[str] = []
         with tempfile.TemporaryDirectory() as d:
             t = 1_800_000_000.0
-            for i in range(12):
+            for i in range(-(-70 // build_places.MORE_BATCH) + 1):
                 build_places.update_more(Path(d), now=t + i * 4000, fetcher=lambda q: (asked.append(q), '{"elements":[]}')[1],
                                          sleep=lambda s: None)
             data = json.loads((Path(d) / "places-more.json").read_text())

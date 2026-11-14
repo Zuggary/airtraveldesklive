@@ -399,10 +399,11 @@ class TestWorkflow(unittest.TestCase):
         self.assertIn("--out _site/index.html", wf)
         self.assertLess(wf.index("Prepare _site directory"), wf.index("tools/prerender_home.py"))
         self.assertLess(wf.index("tools/build_airport_pages.py"), wf.index("Prepare _site directory"))
-        step = wf.split("Check airport guide links")[1].split("- name:")[0]
-        self.assertIn("continue-on-error: true", step)
-        self.assertIn("tools/check_links.py", step)
-        self.assertNotIn("link-report.json", wf.split("Prepare _site directory")[1].split("Check that every public")[0])
+        self.assertNotIn("check_links", wf)         # the slow link check runs in its own daily workflow, never in the 5-minute deploy job
+        links = (ROOT / ".github" / "workflows" / "links.yml").read_text(encoding="utf-8")
+        self.assertIn("tools/check_links.py", links)
+        self.assertIn("continue-on-error: true", links)
+        self.assertIn("timeout-minutes: 3", wf.split("other 70 airports")[1].split("- name:")[0])
 
 
 class _Resp:
