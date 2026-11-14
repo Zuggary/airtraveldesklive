@@ -11,6 +11,7 @@ from typing import Any, Optional, Union
 
 from desk.airports import AIRPORTS
 
+SYNTHETIC_MARK = "SYNTHETIC TEST FIXTURE"
 USER_AGENT = "AirTravelDeskLive/1.0 (+https://www.airtraveldesklive.com)"
 
 FAA_URL = "https://nasstatus.faa.gov/api/airport-status-information"
@@ -250,4 +251,8 @@ def fetch(url: str, timeout: int = 20) -> str:
         return Replay().fetch(url, timeout=timeout)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read().decode("utf-8")
+        text = resp.read().decode("utf-8")
+    # Live mode never carries test data: fixture files are marked SYNTHETIC and only Replay serves them.
+    if SYNTHETIC_MARK in text:
+        raise ValueError(f"refusing synthetic test data from {url}")
+    return text

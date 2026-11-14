@@ -121,16 +121,19 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
     last_lines = list(prev.get("last_lines") or [])
     prev_events = prev.get("events")
     if prev_events is None:
-        new_texts = [lines.recap(events)] + [lines.still(e) for e in events[:3]]
+        new_items = [(lines.recap(events), "recap")] + [(lines.still(e), e.get("id")) for e in events[:3]]
     else:
-        new_texts = [lines.line(ch) for ch in state.diff(prev_events, events)]
-        if not new_texts:
+        new_items = [(lines.line(ch), (ch.get("event") or {}).get("id")) for ch in state.diff(prev_events, events)]
+        if not new_items:
             recap = lines.recap(events)
             # Skip a recap identical to the last line, so a quiet board does not fill the ticker.
             if not last_lines or last_lines[-1].get("text") != recap:
-                new_texts = [recap]
-    for text in new_texts:
-        last_lines.append({"time_utc": stamp, "text": text})
+                new_items = [(recap, "recap")]
+    for text, event_id in new_items:
+        # One snapshot rule: a line about an event replaces earlier lines about it.
+        if event_id:
+            last_lines = [l for l in last_lines if l.get("event_id") != event_id]
+        last_lines.append({"time_utc": stamp, "text": text, "event_id": event_id})
     last_lines = last_lines[-MAX_LINES:]
 
     payload = {

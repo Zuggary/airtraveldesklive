@@ -18,6 +18,7 @@ class TestBuildWeb(unittest.TestCase):
             texts = [l["text"] for l in p2["last_lines"]]
             self.assertTrue(any("ground stop at J F K" in t for t in texts))
             self.assertTrue(any("Boston Logan has ended" in t for t in texts))
+            self.assertFalse(any("Boston Logan" in t and "ended" not in t for t in texts), texts)
             jfk = [e for e in p2["events"] if e.get("airport") == "JFK"][0]
             self.assertEqual(jfk["status"], "CONFIRMED")
             self.assertLessEqual(len(p2["last_lines"]), build_web.MAX_LINES)
