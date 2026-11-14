@@ -67,6 +67,8 @@ jobs:
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
           for f in radar.png radar.json tsa.json; do [ -f "data/$f" ] && cp "data/$f" _site/data/; done
+          mkdir -p _site/brand
+          cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

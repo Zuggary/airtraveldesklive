@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1520"/><stop offset="0.55" stop-color="#132a42"/><stop offset="1" stop-color="#0b1520"/></linearGradient></defs>
+<rect width="2560" height="1440" fill="url(#g)"/>
+<path d="M461 893 Q614 562 768 576" stroke="#9fd3ff" stroke-opacity="0.10" stroke-width="3.0" fill="none" stroke-dasharray="10 12"/><path d="M768 576 Q960 590 1152 950" stroke="#9fd3ff" stroke-opacity="0.10" stroke-width="3.0" fill="none" stroke-dasharray="10 12"/><path d="M1152 950 Q1318 554 1485 504" stroke="#9fd3ff" stroke-opacity="0.10" stroke-width="3.0" fill="none" stroke-dasharray="10 12"/><path d="M1485 504 Q1664 511 1843 864" stroke="#9fd3ff" stroke-opacity="0.10" stroke-width="3.0" fill="none" stroke-dasharray="10 12"/><path d="M1843 864 Q1997 562 2150 605" stroke="#9fd3ff" stroke-opacity="0.10" stroke-width="3.0" fill="none" stroke-dasharray="10 12"/><path d="M2150 605 Q1306 576 461 893" stroke="#9fd3ff" stroke-opacity="0.10" stroke-width="3.0" fill="none" stroke-dasharray="10 12"/><circle cx="461" cy="893" r="7.0" fill="#3ccf7c"/><circle cx="768" cy="576" r="7.0" fill="#f2b33d"/><circle cx="1152" cy="950" r="7.0" fill="#3ccf7c"/><circle cx="1485" cy="504" r="7.0" fill="#e5484d"/><circle cx="1843" cy="864" r="7.0" fill="#3ccf7c"/><circle cx="2150" cy="605" r="7.0" fill="#f2b33d"/><g transform="translate(718 720)">
+<circle r="152" fill="#10233a" stroke="#9fd3ff" stroke-opacity="0.35" stroke-width="4.0"/>
+<circle r="101" fill="none" stroke="#9fd3ff" stroke-opacity="0.25" stroke-width="3.0"/>
+<circle r="50" fill="none" stroke="#9fd3ff" stroke-opacity="0.25" stroke-width="3.0"/>
+<path d="M0 0 L152 0 A152 152 0 0 0 108 -108 Z" fill="#f2b33d" fill-opacity="0.45"/>
+<g transform="rotate(45) scale(3.81)" fill="#eef3f7"><path d="M0 -34 C3 -34 4 -30 4 -26 L4 -8 L30 6 L30 12 L4 4 L4 20 L12 26 L12 31 L0 28 L-12 31 L-12 26 L-4 20 L-4 4 L-30 12 L-30 6 L-4 -8 L-4 -26 C-4 -30 -3 -34 0 -34 Z"/></g></g>
+<text x="964" y="703" font-family="-apple-system,Helvetica,Arial,sans-serif" font-weight="800" font-size="106" fill="#eef3f7" letter-spacing="1.7">AIR TRAVEL DESK</text>
+<text x="964" y="775" font-family="-apple-system,Helvetica,Arial,sans-serif" font-weight="600" font-size="36" fill="#9fd3ff">Live US flight delays and ground stops, 24/7</text>
+<text x="964" y="834" font-family="-apple-system,Helvetica,Arial,sans-serif" font-weight="600" font-size="27" fill="#f2b33d">FAA · NWS · TSA data  ·  airtraveldesklive.com</text>
+</svg>
