@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>I'm Stuck at the Airport — Air Travel Desk</title>
+  <meta name="description" content="Step-by-step airport delay and cancellation guide: what to do now, what to say, airline commitments, refund rules, checklist, and email draft.">
+  <meta name="theme-color" content="#0d1722">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="container">
+    <header class="site-header">
+      <div class="brand-row">
+        <a class="brand" href="index.html">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="brand-title">Air Travel Desk</span>
+        </a>
+      </div>
+      <a class="btn btn-secondary" href="index.html">Back to live board</a>
+    </header>
+
+    <main id="main-content" class="stuck-main">
+      <div class="wizard-shell">
+        <h1 class="stuck-page-title">I'm stuck at the airport</h1>
+        <p class="stuck-page-intro">Step-by-step help while you wait. Works offline after your first visit. Nothing you pick or type is stored or sent anywhere.</p>
+        <p id="wizard-progress" class="wizard-progress" aria-live="polite">Step 1 of 4</p>
+        <p id="data-notice" class="stale-notice" role="status" hidden></p>
+
+        <noscript>
+          <p class="noscript-note">This step-by-step guide needs JavaScript. Go back to the <a href="index.html">live board</a> or check your airline's app and customer service desk.</p>
+        </noscript>
+
+        <section id="step-1" class="wizard-step" aria-labelledby="step-1-heading">
+          <h2 id="step-1-heading" class="wizard-heading" tabindex="-1">1. Pick your airline</h2>
+          <fieldset class="wizard-fieldset">
+            <legend class="sr-only">Pick your airline</legend>
+            <div id="airline-options" class="radio-group"></div>
+          </fieldset>
+          <p id="step-1-error" class="wizard-error" role="alert" hidden></p>
+          <div class="wizard-actions">
+            <button type="button" class="btn btn-primary" id="step-1-next">Next</button>
+          </div>
+        </section>
+
+        <section id="step-2" class="wizard-step" aria-labelledby="step-2-heading" hidden>
+          <h2 id="step-2-heading" class="wizard-heading" tabindex="-1">2. What happened?</h2>
+          <fieldset class="wizard-fieldset">
+            <legend class="sr-only">Pick your situation</legend>
+            <div id="situation-options" class="radio-group"></div>
+          </fieldset>
+          <p id="step-2-error" class="wizard-error" role="alert" hidden></p>
+          <div class="wizard-actions">
+            <button type="button" class="btn btn-secondary" id="step-2-back">Back</button>
+            <button type="button" class="btn btn-primary" id="step-2-next">Next</button>
+          </div>
+        </section>
+
+        <section id="step-3" class="wizard-step" aria-labelledby="step-3-heading" hidden>
+          <h2 id="step-3-heading" class="wizard-heading" tabindex="-1">3. Do you know the cause? (Optional)</h2>
+          <p class="wizard-help">Optional: the airline's app, gate screen, or the FAA status page usually says whether it is the airline's own issue or weather / air traffic control.</p>
+          <fieldset class="wizard-fieldset">
+            <legend class="sr-only">Cause of the disruption (optional)</legend>
+            <div id="cause-options" class="radio-group"></div>
+          </fieldset>
+          <div class="wizard-actions">
+            <button type="button" class="btn btn-secondary" id="step-3-back">Back</button>
+            <button type="button" class="btn btn-primary" id="step-3-next">See what to do</button>
+          </div>
+        </section>
+
+        <section id="step-4" class="wizard-step wizard-results" aria-labelledby="result-summary" hidden>
+          <div class="result-top">
+            <p id="result-summary" class="result-summary" tabindex="-1"></p>
+            <div class="wizard-actions">
+              <button type="button" class="btn btn-secondary" id="step-4-back">Back</button>
+              <button type="button" class="btn btn-secondary" id="step-4-restart">Start over</button>
+            </div>
+          </div>
+          <div id="result-body" class="result-body"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Plain-language help, not legal advice. Nothing you pick or type is stored or sent anywhere.</p>
+      <p><a class="tap" href="index.html">Live board</a> · <a class="tap" href="privacy.html">Privacy</a></p>
+    </footer>
+  </div>
+
+  <script src="stuck.js" defer></script>
+  <script>if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }</script>
+</body>
+</html>

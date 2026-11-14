@@ -49,6 +49,9 @@
     </header>
 
     <a class="owed-shortcut" href="#owed" id="owed-shortcut">Delayed? What you're owed <span aria-hidden="true">&darr;</span></a>
+    <div class="stuck-cta-bar">
+      <a class="btn btn-secondary stuck-cta-btn" href="stuck.html">I'm stuck at the airport</a>
+    </div>
 
     <noscript>
       <p class="noscript-note">This page needs JavaScript to show live data. For the FAA's own status page, go to nasstatus.faa.gov.</p>
@@ -122,5 +125,6 @@
 
   <script src="lib.js" defer></script>
   <script src="app.js" defer></script>
+  <script>if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }</script>
 </body>
 </html>

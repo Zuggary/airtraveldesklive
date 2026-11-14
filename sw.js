@@ -1,0 +1,112 @@
+/* Air Travel Desk service worker: offline support using same-origin caching only. */
+(function () {
+  "use strict";
+
+  var CACHE_NAME = "atd-offline-v1";
+  var STATIC_FILES = [
+    "./",
+    "./index.html",
+    "./stuck.html",
+    "./style.css",
+    "./app.js",
+    "./lib.js",
+    "./stuck.js",
+    "./data/dot-commitments.json",
+    "./data/airports.json",
+    "./favicon.svg",
+    "./favicon.png"
+  ];
+
+  function scopeUrl(rel) {
+    return new URL(rel, self.registration.scope);
+  }
+
+  function staticPathSet() {
+    var set = {};
+    for (var i = 0; i < STATIC_FILES.length; i++) {
+      set[scopeUrl(STATIC_FILES[i]).pathname] = true;
+    }
+    return set;
+  }
+
+  function isDataJson(pathname) {
+    var dataPrefix = scopeUrl("./data/").pathname;
+    return pathname.indexOf(dataPrefix) === 0 && pathname.slice(-5) === ".json";
+  }
+
+  self.addEventListener("install", function (event) {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then(function (cache) {
+        return cache.addAll(STATIC_FILES.map(function (f) { return scopeUrl(f).pathname; }));
+      }).then(function () {
+        return self.skipWaiting();
+      })
+    );
+  });
+
+  self.addEventListener("activate", function (event) {
+    event.waitUntil(
+      caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (key) {
+          return key === CACHE_NAME ? Promise.resolve() : caches.delete(key);
+        }));
+      }).then(function () {
+        return self.clients.claim();
+      })
+    );
+  });
+
+  self.addEventListener("fetch", function (event) {
+    var req = event.request;
+    if (req.method !== "GET") { return; }
+
+    var url;
+    try {
+      url = new URL(req.url);
+    } catch (e) {
+      return;
+    }
+
+    // Never cache or intercept off-origin requests.
+    if (url.origin !== self.location.origin) { return; }
+
+    var staticPaths = staticPathSet();
+    var cacheKey = url.pathname;
+
+    // Site files: network first with a 4-second timeout, so updates reach visitors at once;
+    // the cached copy answers when the network is slow or down (airport wifi).
+    if (staticPaths[cacheKey]) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then(function (cache) {
+          var net = fetch(req).then(function (resp) {
+            if (resp && resp.ok && resp.type === "basic") { cache.put(cacheKey, resp.clone()); }
+            return resp;
+          });
+          var slow = new Promise(function (resolve) { setTimeout(resolve, 4000); }).then(function () {
+            return cache.match(cacheKey).then(function (c) { return c || net; });
+          });
+          return Promise.race([net, slow]).catch(function () {
+            return cache.match(cacheKey).then(function (c) { return c || Response.error(); });
+          });
+        })
+      );
+      return;
+    }
+
+    // Network-first for data/state.json and other data/*.json.
+    if (isDataJson(cacheKey)) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then(function (cache) {
+          return fetch(req).then(function (resp) {
+            if (resp && resp.ok && resp.type === "basic") {
+              cache.put(cacheKey, resp.clone());
+            }
+            return resp;
+          }).catch(function () {
+            return cache.match(cacheKey);
+          });
+        })
+      );
+    }
+  });
+})();
