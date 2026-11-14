@@ -1,0 +1,67 @@
+{
+ "month": [
+  2026,
+  8
+ ],
+ "month_label": "Aug 2026",
+ "ly_month_label": "Aug 2025",
+ "definition": "On-time = arrival less than 15 minutes late (ArrDel15 = 0), as a share of flights that were not cancelled and not diverted. Cancelled = share of all scheduled flights in the file. Airport figures count arrivals at that airport (Dest). Carrier = reporting airline.",
+ "nation": {
+  "ontime": 73.13,
+  "ly_ontime": 77.44,
+  "cancel": 1.86,
+  "ly_cancel": 1.08,
+  "flights": 608389,
+  "ly_flights": 602378
+ },
+ "airports": {
+  "ATL": {
+   "ontime": 78.68,
+   "ly_ontime": 82.99,
+   "flights": 26788
+  },
+  "JFK": {
+   "ontime": 67.48,
+   "ly_ontime": 79.06,
+   "flights": 8468
+  },
+  "ORD": {
+   "ontime": 67.98,
+   "ly_ontime": 73.31,
+   "flights": 32130
+  },
+  "SFO": {
+   "ontime": 57.37,
+   "ly_ontime": 77.32,
+   "flights": 13445
+  },
+  "LAX": {
+   "ontime": 75.3,
+   "ly_ontime": 81.77,
+   "flights": 16334
+  }
+ },
+ "carriers": [
+  {
+   "code": "WN",
+   "name": "Southwest",
+   "ontime": 70.1,
+   "ly_ontime": 78.56,
+   "cancel": 0.81,
+   "ly_cancel": 0.38,
+   "flights": 116362
+  },
+  {
+   "code": "DL",
+   "name": "Delta",
+   "ontime": 78.38,
+   "ly_ontime": 82.97,
+   "cancel": 1.03,
+   "ly_cancel": 0.76,
+   "flights": 91186
+  }
+ ],
+ "source": "BTS",
+ "fetched_utc": "2026-11-14T06:12:01Z",
+ "checked_utc": "2026-11-14T06:12:01Z"
+}

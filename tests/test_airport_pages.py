@@ -96,7 +96,14 @@ class TestAirportPagesGenerator(unittest.TestCase):
         cls.guide = json.loads((DATA_DIR / "airport-guide.json").read_text(encoding="utf-8"))
         cls.airports_data = json.loads((DATA_DIR / "airports.json").read_text(encoding="utf-8"))
         cls.places = json.loads((DATA_DIR / "places.json").read_text(encoding="utf-8"))
-        cls.bts = json.loads((DATA_DIR / "bts.json").read_text(encoding="utf-8"))
+        # data/bts.json is built in CI after the tests run, so the tests use their own small BTS sample
+        # (the same shape and real values) and a private data folder for the generator.
+        cls._data_tmp = tempfile.TemporaryDirectory()
+        cls.data_dir = Path(cls._data_tmp.name)
+        for name in ("airport-guide.json", "airports.json", "places.json"):
+            shutil.copy2(DATA_DIR / name, cls.data_dir / name)
+        shutil.copy2(ROOT / "tests" / "fixtures" / "bts-sample.json", cls.data_dir / "bts.json")
+        cls.bts = json.loads((cls.data_dir / "bts.json").read_text(encoding="utf-8"))
 
         cls.allowed_urls: set[str] = {
             DOWNTIME_URL,
@@ -135,6 +142,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
             [
                 sys.executable,
                 str(ROOT / "tools" / "build_airport_pages.py"),
+                "--data",
+                str(cls.data_dir),
                 "--out",
                 str(cls.out_dir),
                 "--sitemap",
@@ -248,7 +257,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
             data_sub.mkdir()
             for name in ("airport-guide.json", "airports.json", "places.json"):
                 shutil.copy2(DATA_DIR / name, data_sub / name)
-            bts_copy = json.loads((DATA_DIR / "bts.json").read_text(encoding="utf-8"))
+            bts_copy = json.loads((ROOT / "tests" / "fixtures" / "bts-sample.json").read_text(encoding="utf-8"))
             bts_copy["airports"].pop("SFO", None)
             (data_sub / "bts.json").write_text(json.dumps(bts_copy), encoding="utf-8")
 
@@ -295,6 +304,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
                     [
                         sys.executable,
                         str(ROOT / "tools" / "build_airport_pages.py"),
+                        "--data",
+                        str(self.data_dir),
                         "--out",
                         str(out),
                         "--sitemap",
