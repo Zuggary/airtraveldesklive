@@ -107,7 +107,12 @@ def _render_head(
     ])
 
 
-def _render_header() -> str:
+def _nav_chip(label: str, href: str, current: bool) -> str:
+    attrs = ' aria-current="page"' if current else ""
+    return f'        <a class="chip" href="{href}"{attrs}>{label}</a>'
+
+
+def _render_header(current: str = "airports") -> str:
     return "\n".join([
         '  <a class="skip-link" href="#main-content">Skip to main content</a>',
         '  <div class="container">',
@@ -119,10 +124,10 @@ def _render_header() -> str:
         "        </a>",
         "      </div>",
         '      <nav class="header-nav" aria-label="Site navigation">',
-        '        <a class="chip" href="../index.html">Live board</a>',
-        '        <a class="chip" href="index.html">Airports</a>',
-        '        <a class="chip" href="../about.html">About</a>',
-        '        <a class="chip" href="../privacy.html">Privacy</a>',
+        _nav_chip("Live board", "../index.html", current == "board"),
+        _nav_chip("Airports", "index.html", current == "airports"),
+        _nav_chip("About", "../about.html", current == "about"),
+        _nav_chip("Privacy", "../privacy.html", current == "privacy"),
         "      </nav>",
         "    </header>",
     ])
@@ -168,6 +173,15 @@ def _right_now_script(code: str, tz: str = "") -> str:
         "      if (text != null) { n.textContent = text; }",
         "      return n;",
         "    }",
+        "    function srcLine(cls, before, linkText, after) {",
+        '      var p = el("p", cls);',
+        '      if (before) { p.appendChild(document.createTextNode(before)); }',
+        '      var a = el("a", "tap", linkText);',
+        '      a.href = "../sources.html";',
+        "      p.appendChild(a);",
+        '      if (after) { p.appendChild(document.createTextNode(after)); }',
+        "      return p;",
+        "    }",
         "    function ageLabel(iso) {",
         '      var ms = Date.parse(iso || "");',
         '      if (!isFinite(ms)) { return "update time unknown"; }',
@@ -200,7 +214,13 @@ def _right_now_script(code: str, tz: str = "") -> str:
         "    }",
         "    function render(data) {",
         "      var a = data && data.airports && data.airports[CODE];",
-        '      if (checkedLine && a) { checkedLine.textContent = "FAA NAS status. " + checkedText(data.updated_utc) + "."; }',
+        '      if (checkedLine && a) {',
+        '        checkedLine.textContent = "";',
+        '        var cl = el("a", "tap", "FAA NAS status");',
+        '        cl.href = "../sources.html";',
+        "        checkedLine.appendChild(cl);",
+        '        checkedLine.appendChild(document.createTextNode(". " + checkedText(data.updated_utc) + "."));',
+        "      }",
         "      if (!a) {",
         "        setUnavailable();",
         "        box.textContent = \"\";",
@@ -218,7 +238,7 @@ def _right_now_script(code: str, tz: str = "") -> str:
         "        if (w && w.now_text) {",
         '          var chipWx = "Weather: " + w.now_text;',
         "          if (w.wind_kt != null) {",
-        '            chipWx += ", " + Math.round(w.wind_kt) + " kt";',
+        '            chipWx += ", " + (Math.round(w.wind_kt) === 0 ? "calm (0 kt)" : Math.round(w.wind_kt) + " kt");',
         "          }",
         "          wxChip.textContent = chipWx;",
         "          wxChip.hidden = false;",
@@ -230,24 +250,24 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '      var statusRow = el("p", "card-status");',
         '      statusRow.appendChild(el("span", BADGE_CLASS[lvl], BADGE_LABEL[lvl]));',
         "      box.appendChild(statusRow);",
-        '      box.appendChild(el("p", null, LEVEL_TEXT[lvl] + " (FAA NAS status)"));',
+        '      box.appendChild(srcLine(null, LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
         "      if (a.reason) {",
         '        box.appendChild(el("p", "event-reason", "Reason: " + a.reason));',
         "      }",
         "      if (w && w.now_text) {",
         '        var wxText = "Weather now: " + w.now_text;',
         "        if (w.wind_kt != null) {",
-        '          wxText += ", wind " + Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) + " kt" : "");',
+        '          wxText += ", wind " + (Math.round(w.wind_kt) === 0 ? "calm (0 kt)" : Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) + " kt" : ""));',
         "        }",
-        '        wxText += " (aviationweather.gov METAR, observed " + clockLabel(w.obs_utc) + ", " + ageLabel(w.obs_utc || data.updated_utc) + ")";',
-        '        box.appendChild(el("p", null, wxText));',
+        '        var wxAfter = ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(w.obs_utc || data.updated_utc) + ")";',
+        '        box.appendChild(srcLine(null, wxText + " (", "aviationweather.gov METAR", wxAfter));',
         "      }",
         "      if (w && w.next3h_text) {",
-        '        box.appendChild(el("p", null, "Next 3 hours: " + w.next3h_text + " (aviationweather.gov TAF)"));',
+        '        box.appendChild(srcLine(null, "Next 3 hours: " + w.next3h_text + " (", "aviationweather.gov TAF", ")"));',
         "      }",
         "      var alerts = Array.isArray(a.alerts) ? a.alerts : [];",
         '      box.appendChild(el("p", null, alerts.length ? "Alerts: " + alerts.join(", ") : "Alerts: none listed."));',
-        '      box.appendChild(el("p", "credit", "Sources: FAA NAS status, aviationweather.gov METAR and TAF. Data " + ageLabel(data.updated_utc) + "."));',
+        '      box.appendChild(srcLine("credit", "Sources: ", "FAA NAS status, aviationweather.gov METAR and TAF", ". Data " + ageLabel(data.updated_utc) + "."));',
         "    }",
         '    fetch("../data/airports.json?ts=" + Date.now(), { cache: "no-store" })',
         '      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })',
@@ -349,7 +369,7 @@ def render_airport_page(
     bts_ly_month = str(bts_data.get("ly_month_label") or "")
     has_bts = bool(isinstance(bts_entry, dict) and bts_entry.get("ontime") is not None and bts_month)
 
-    glance_rows: list[tuple[str, str]] = [("Airport code", code)]
+    glance_rows: list[tuple[str, str]] = []
     if city:
         glance_rows.append(("City", city))
     if tz:
@@ -382,14 +402,21 @@ def render_airport_page(
             f'            <p class="small">{BTS_DEFINITION_SHORT}; source BTS, {_esc(bts_month)}.</p>'
         )
         ontime_lines.append("          </div>")
+        ontime_html = ['      <section class="airport-section" aria-label="On-time arrivals">', *ontime_lines, "      </section>"]
+    else:
+        ontime_html = []
+    if glance_rows:
         glance_html = [
-            '        <div class="glance-grid">',
+            '      <section class="airport-section" aria-labelledby="glance-heading">',
+            '        <h2 id="glance-heading">At a glance</h2>',
+            '        <details class="glance-details">',
+            "          <summary>Airport facts</summary>",
             *glance_facts,
-            *ontime_lines,
-            "        </div>",
+            "        </details>",
+            "      </section>",
         ]
     else:
-        glance_html = ['        <div class="glance-grid glance-grid--single">', *glance_facts, "        </div>"]
+        glance_html = []
 
     # Official pages from airport-guide.json
     guide_links = [
@@ -452,13 +479,11 @@ def render_airport_page(
         "        </div>",
         '        <p id="checked-line" class="last-checked">Checking FAA NAS status\u2026</p>',
         '        <div class="airport-summary-actions">',
-        '          <a class="btn btn-secondary" href="../stuck.html">I\'m stuck guide</a>',
+        '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
         "        </div>",
         "      </div>",
-        '      <section class="airport-section" aria-labelledby="glance-heading">',
-        '        <h2 id="glance-heading">At a glance</h2>',
+        *ontime_html,
         *glance_html,
-        "      </section>",
         '      <section class="airport-section" aria-labelledby="right-now-heading">',
         '        <h2 id="right-now-heading">Right now</h2>',
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}">',

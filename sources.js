@@ -20,10 +20,10 @@
         var v = A.checkedView(s.kind, s.checked);
         cell.textContent = v.text + (v.age ? " (" + v.age + ")" : "");
       });
-      done("Check times built " + A.checkedView("time", d.generated_utc).age + ".");
+      done("Last updated " + A.checkedView("time", d.generated_utc).age + ".");
     })
     .catch(function () {
       Array.prototype.forEach.call(document.querySelectorAll(".src-checked"), function (c) { c.textContent = "Could not load"; });
-      done("Could not load the check times. The list below is still correct.");
+      done("Could not load the update times. The list below is still correct.");
     });
 })();

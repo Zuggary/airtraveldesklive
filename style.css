@@ -614,3 +614,23 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .hist-table thead th { color: var(--text); border-top: 0; border-bottom: 2px solid var(--border); }
 .hist-note { margin: 8px 0 0; font-size: 0.9375rem; color: var(--text-muted); }
 .prose-card p .tap, .prose-card li .tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+/* AN polish: nav selected state, accent CTA, glance details, about/sources spacing */
+.chip[aria-current="page"], .chip[aria-current="page"]:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 800; }
+.btn-accent:hover { background: var(--accent-hover); }
+.glance-details { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.glance-details summary { display: flex; align-items: center; min-height: 44px; padding: 0 12px; cursor: pointer; font-weight: 700; color: var(--text-muted); }
+.glance-details .glance-list { padding: 4px 12px 12px; }
+.prose-card ul.rules-list { gap: 0; padding-left: 0; list-style: none; }
+.prose-card ul.rules-list li { padding: 12px 0; border-top: 1px solid var(--border); }
+.prose-card ul.rules-list li:first-child { border-top: 0; padding-top: 0; }
+.data-table caption.sr-only { display: block; width: 1px; padding: 0; border: 0; }
+.table-wrap--flat { border: 0; background: transparent; }
+@media (max-width: 699px) {
+  .table-wrap--flat .data-table tbody tr { padding: 14px 0 12px; }
+  .table-wrap--flat .data-table tbody tr:nth-child(even) { background: transparent; }
+  .data-table tbody td { padding-top: 14px; }
+  .data-table tbody td::before { margin-bottom: 2px; }
+}
+.right-now-box p .tap, .last-checked .tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }

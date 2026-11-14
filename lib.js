@@ -300,7 +300,7 @@
 
   // Source line for any "checked" time in sources.json: a UTC time, a day, or nothing.
   function checkedView(kind, checked, nowMs) {
-    if (kind === "stream") { return { text: "Not read by the site job", age: null }; }
+    if (kind === "stream") { return { text: "Not read by the website", age: null }; }
     if (kind === "static") { return { text: "Static file", age: null }; }
     if (!checked) { return { text: "No time on file", age: null }; }
     if (/^\d{4}-\d{2}-\d{2}$/.test(checked)) { return { text: checked + " (checked by hand)", age: null }; }

@@ -31,20 +31,25 @@
           <span class="brand-title">Air Travel Desk</span>
         </a>
       </div>
-      <a class="btn btn-secondary" href="index.html">Back to live board</a>
+      <nav class="header-nav" aria-label="Site navigation">
+        <a class="chip" href="index.html">Live board</a>
+        <a class="chip" href="airports/index.html">Airports</a>
+        <a class="chip" href="about.html">About</a>
+        <a class="chip" href="privacy.html">Privacy</a>
+      </nav>
     </header>
 
     <main id="main-content">
       <article class="prose-card prose-card--wide">
         <h1>Data and sources</h1>
-        <p>This page lists every feed the site reads. The site job reads each feed about every 5 minutes and keeps the last good data if a feed fails. The last-checked time comes from the data file the feed fills, so it shows when the job last had good data from that source.</p>
+        <p>This page lists every feed the site reads. The site checks each feed about every 5 minutes. If a feed is down, the site keeps the last good report and says so.</p>
         <p>This site is automated and may be wrong or late. Check the official source or your airline before you travel.</p>
-        <p id="src-status" class="updated-text" role="status">Loading the check times&hellip;</p>
+        <p id="src-status" class="updated-text" role="status">Loading the update times&hellip;</p>
 
         <h2>Feeds the site reads</h2>
-        <div class="table-wrap" tabindex="0" role="region" aria-label="Feeds the site reads">
+        <div class="table-wrap table-wrap--flat" tabindex="0" role="region" aria-label="Feeds the site reads">
           <table class="data-table" id="src-site">
-            <caption>Feeds the site reads</caption>
+            <caption class="sr-only">Feeds the site reads</caption>
             <thead>
               <tr>
                 <th scope="col">Source</th>
@@ -151,10 +156,10 @@
         </div>
 
         <h2>Used only in TV mode on the stream</h2>
-        <p>These feeds are not read by this website or its 5-minute job. The live stream's TV mode can show them when its own computer has fetched them, so no check time is kept here.</p>
-        <div class="table-wrap" tabindex="0" role="region" aria-label="Feeds used only in TV mode on the stream">
+        <p>These feeds are not read by this website or its 5-minute check. The live stream's TV mode can show them when its own computer has fetched them, so no check time is kept here.</p>
+        <div class="table-wrap table-wrap--flat" tabindex="0" role="region" aria-label="Feeds used only in TV mode on the stream">
           <table class="data-table" id="src-stream">
-            <caption>Feeds used only in TV mode on the stream</caption>
+            <caption class="sr-only">Feeds used only in TV mode on the stream</caption>
             <thead>
               <tr>
                 <th scope="col">Source</th>
@@ -203,7 +208,7 @@
         <ul>
           <li>Delays shown here are what the FAA NAS status feed lists, not every individual flight delay.</li>
           <li>Aircraft positions are a sample with a delay, not a real-time radar feed.</li>
-          <li>A time in this table is when the site job last had good data, not when the agency last updated it.</li>
+          <li>A time in this table is when the site last had good data from that feed, not when the agency last updated it.</li>
           <li>This site is not for flight dispatch or navigation.</li>
         </ul>
 
