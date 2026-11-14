@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AIR TRAVEL DESK — Automated Broadcast</title>
-<meta name="description" content="Air Travel Desk: an automated live screen of US airport delays and ground stops from FAA, NWS, NOAA and TSA data.">
+<title>AIR TRAVEL DESK — TV mode</title>
+<meta name="description" content="Air Travel Desk TV mode: a full-screen live view of US airport delays, ground stops, weather and storms from FAA, NWS, NOAA and TSA data.">
+<meta name="robots" content="noindex, follow">
 <style>
   /* Designed at 1280x720: 1rem = 16px there. 1080p scales every rem by 1.5. */
   /* 16:9 desk, letterboxed to any window: 1 rem = 1/80 of the desk width. */
@@ -43,6 +44,7 @@
   }
 
   .screen {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 80rem;
@@ -73,7 +75,6 @@
   .live-dot {
     width: 0.6rem; height: 0.6rem; border-radius: 50%;
     background: #38bdf8; box-shadow: 0 0 10px #38bdf8;
-    
   }
   @keyframes livePulse {
     0%, 100% { opacity: 1; transform: scale(1); }
@@ -91,11 +92,22 @@
     min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   }
   .stale-banner.visible { display: inline-flex; }
-  .clocks { display: flex; align-items: center; gap: 0.9rem; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .clocks { display: flex; align-items: center; gap: 0.7rem; font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .clock-box { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
   .clock-label { font-size: 0.875rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-dim); }
   .clock-value { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
   .clock-box.utc .clock-value { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
+  .zclock { display: flex; flex-direction: column; align-items: stretch; gap: 0.1rem; line-height: 1.1; }
+  .zhead { display: flex; align-items: center; gap: 0.3rem; }
+  .zchip { margin-left: auto; font-size: 0.875rem; font-weight: 700; padding: 0 0.35rem; border-radius: 3px; background: rgba(34, 197, 94, 0.14); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.4); white-space: nowrap; line-height: 1.2; }
+  .zchip.hit { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border-color: rgba(245, 158, 11, 0.7); }
+  .mark { width: 0.8rem; height: 0.8rem; border-radius: 50%; display: inline-block; flex: none; }
+  .mark.sun { background: radial-gradient(circle at 35% 35%, #fef08a, #f59e0b); box-shadow: 0 0 0.45rem 0.08rem rgba(251, 191, 36, 0.65); }
+  .mark.moon { background: transparent; box-shadow: inset -0.28rem -0.06rem 0 0 #cbd5e1; transform: rotate(-20deg); }
+  .plate { position: relative; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; color: #f1f5ff; padding: 0.05rem 0.4rem; border-radius: 4px; text-align: center; white-space: nowrap;
+    background: linear-gradient(180deg, #243a66 0%, #16264a 49%, #0d1830 51%, #12203f 100%); border: 1px solid #2c4478;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 3px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.5); text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7); }
+  .plate::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0, 0, 0, 0.55); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06); }
 
   /* ---------- main grid ---------- */
   .main {
@@ -114,14 +126,51 @@
     text-transform: uppercase; background: rgba(8, 18, 36, 0.8);
     padding: 0.25rem 0.6rem; border: 1px solid var(--border); border-radius: 5px;
   }
-  .map-legend {
-    position: absolute; bottom: 0.6rem; left: 0.75rem;
-    display: flex; gap: 0.9rem; align-items: center;
-    background: rgba(8, 18, 36, 0.88); border: 1px solid var(--border); border-radius: 6px;
-    padding: 0.3rem 0.7rem; font-size: 0.875rem; color: var(--text-muted);
+  .map-key {
+    position: absolute; bottom: 0.45rem; left: 0.6rem; z-index: 4; max-width: calc(100% - 1.2rem);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.1rem 0.7rem; white-space: nowrap;
+    background: rgba(6, 14, 28, 0.45); border-radius: 4px; padding: 0.12rem 0.45rem;
+    font-size: 0.875rem; font-weight: 600; color: rgba(203, 213, 225, 0.72);
   }
+  .map-key .k-item { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .k-grad { width: 2.2rem; height: 0.28rem; border-radius: 2px; background: linear-gradient(90deg, #2dd4bf, #22d3ee, #dbeafe); display: inline-block; }
+  .map-key.dim { opacity: 0; }
+  .k-sw { width: 1.35rem; height: 0.32rem; border-radius: 2px; display: inline-block; }
+  .k-ring { width: 0.7rem; height: 0.7rem; border-radius: 50%; border: 2px solid #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.3); display: inline-block; }
   .legend-item { display: flex; align-items: center; gap: 0.35rem; font-weight: 600; }
   .legend-dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; display: inline-block; }
+
+  .lower-third {
+    position: absolute; left: 0; right: 0; bottom: 0; min-height: 3.75rem; z-index: 7;
+    display: flex; align-items: stretch; background: linear-gradient(90deg, rgba(4, 10, 22, 0.97), rgba(8, 18, 36, 0.93));
+    border-top: 2px solid var(--lt, #38bdf8); opacity: 1; transform: translateY(0);
+    transition: opacity 0.6s ease, transform 0.6s ease; pointer-events: none;
+  }
+  .map-key { transition: opacity 0.6s ease; }
+  .map-pane.spot-on .map-key { opacity: 0; }
+  .lower-third.off { opacity: 0; transform: translateY(0.8rem); }
+  .lower-third .lt-bar { width: 0.55rem; background: var(--lt, #38bdf8); flex: none; }
+  .lower-third .lt-text { padding: 0.25rem 0.9rem; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+  .lower-third .lt-name { font-size: 1.4rem; font-weight: 800; color: #f8fafc; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lower-third .lt-name .lt-code { color: var(--lt, #38bdf8); }
+  .lower-third .lt-wx, .lower-third .lt-hold { font-size: 0.875rem; font-weight: 600; color: #bfdbfe; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lower-third .lt-hold { color: #fde68a; }
+  .lower-third .lt-line { font-size: 1rem; font-weight: 600; color: #cbd5e1; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .map-note b { color: #7dd3fc; font-weight: 800; }
+  #tsa-date { white-space: nowrap; flex-shrink: 0; }
+  #tsa-title + .dots { flex-shrink: 0; }
+  .inset {
+    position: absolute; z-index: 5; display: flex; flex-direction: column;
+    background: #0a1a33; border: 1px solid #3b5a92; border-radius: 6px; overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  }
+  .inset-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-shrink: 0;
+    padding: 0.15rem 0.5rem; font-size: 0.875rem; font-weight: 700; color: var(--text-main);
+    background: rgba(15, 28, 53, 0.95); border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .inset-head .src { color: var(--text-muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  #inset-map { flex: 1; min-height: 0; width: 100%; display: block; }
 
   /* ---------- panels ---------- */
   .panel-header {
@@ -133,7 +182,7 @@
   .panel-title { font-size: 0.875rem; font-weight: 800; letter-spacing: 0.1em; color: #cfe0ff; text-transform: uppercase; white-space: nowrap; }
   .panel-count { font-size: 0.875rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  .bottom-left { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+  .bottom-left { display: grid; grid-template-columns: 1.25fr 1fr; min-height: 0; }
   .tsa-panel, .owed-panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
   .tsa-panel { border-right: 1px solid var(--border); }
   .tsa-body { padding: 0.45rem 0.9rem; display: flex; flex-direction: column; justify-content: center; flex: 1; gap: 0.15rem; }
@@ -145,10 +194,86 @@
   .tsa-pct.neg { color: #fdba74; }
   .tsa-label { font-size: 0.875rem; color: var(--text-dim); font-weight: 600; }
 
+  .dots { display: inline-flex; gap: 0.3rem; margin-left: 0.5rem; vertical-align: middle; }
+  .dots i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #34507f; display: inline-block; }
+  .dots i.on { background: #e6eefc; }
+  .tsa-row { display: flex; gap: 0.7rem; align-items: stretch; }
+  .tsa-chart-box { flex: 1.25; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .tsa-chart { width: 100%; aspect-ratio: 220 / 72; display: block; background: rgba(8, 18, 36, 0.6); border: 1px solid var(--border); border-radius: 4px; }
+  .tsa-chart .l-now { fill: none; stroke: #7dd3fc; stroke-width: 2.4; stroke-linejoin: round; }
+  .tsa-chart .l-ly { fill: none; stroke: #8296ba; stroke-width: 1.8; stroke-dasharray: 4 3; }
+  .tsa-chart .d-now { fill: #7dd3fc; }
+  .tsa-days { display: flex; justify-content: space-between; font-size: 0.875rem; line-height: 1; color: var(--text-dim); font-weight: 600; padding: 0 0.1rem; }
+  .tsa-side { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.1rem; }
+  .tsa-mid { font-size: 1.3rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; color: #fff; }
+  .tsa-line { font-size: 0.875rem; line-height: 1.2; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .key-now { color: #7dd3fc; font-weight: 800; }
+  .key-ly { color: #a9bad6; font-weight: 800; }
+  .dr-note { margin-right: auto; max-width: 28rem; font-size: 0.875rem; line-height: 1.15; color: var(--text-dim); }
+  body.flat .tsa-body.flip-out, body.flat .tsa-body.flip-in, body.flat .tile .mins.flip { animation: none; }
+  body.flat .tick-item { animation: none !important; transition: none !important; }
+  body.flat .tick-item.in { opacity: 1; transform: none; }
+  body.flat .tick-item.out { opacity: 0; }
+  .tsa-panel { perspective: 900px; }
+  .tsa-body { position: relative; transform-origin: 50% 50%; backface-visibility: hidden; }
+  .tsa-body.flip-out { animation: cardOut 0.3s ease-in forwards; }
+  .tsa-body.flip-in { animation: cardIn 0.35s ease-out; }
+  @keyframes cardOut { from { transform: rotateY(0); opacity: 1; } to { transform: rotateY(88deg); opacity: 0.2; } }
+  @keyframes cardIn { from { transform: rotateY(-88deg); opacity: 0.2; } to { transform: rotateY(0); opacity: 1; } }
+  .tsa-body.holiday::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.2;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.55), rgba(30, 58, 138, 0.5)); }
+  .tsa-body.holiday > * { position: relative; z-index: 1; }
+  .hol-top { font-size: 0.875rem; font-weight: 700; color: #fff; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hol-top .dl { color: #fcd34d; }
+  .hol-days { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.15rem; height: 4.3rem; padding: 0 0.1rem; }
+  .hol-d { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; font-size: 0.875rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .hol-v { color: var(--text-dim); font-weight: 600; height: 1rem; white-space: nowrap; }
+  .hol-v.ty { color: #bae6fd; font-weight: 800; }
+  .hol-v.star { color: #fcd34d; font-weight: 800; }
+  .hol-pair { display: flex; align-items: flex-end; gap: 0.32rem; height: 2.3rem; padding-right: 0.2rem; }
+  .hol-b { position: relative; width: 0.62rem; min-height: 0.12rem; background: linear-gradient(90deg, var(--c1), var(--c2)); }
+  .hol-b::before { content: ""; position: absolute; left: 0; bottom: 100%; width: 100%; height: 0.2rem; background: var(--c3); transform-origin: left bottom; transform: skewX(-45deg); }
+  .hol-b::after { content: ""; position: absolute; left: 100%; top: 0; width: 0.2rem; height: 100%; background: var(--c4); transform-origin: left top; transform: skewY(-45deg); }
+  .hol-b.ly { --c1: #6a85b8; --c2: #4b6ea8; --c3: #93a9d1; --c4: #35527f; }
+  .hol-b.ty { --c1: #7dd3fc; --c2: #0ea5e9; --c3: #bae6fd; --c4: #0369a1; }
+  .hol-b.gold { --c1: #fcd34d; --c2: #f59e0b; --c3: #fde68a; --c4: #b45309; }
+  .hol-b.none { background: none; border-top: 2px dashed rgba(186, 230, 253, 0.6); height: 0 !important; }
+  .hol-b.none::before, .hol-b.none::after { display: none; }
+  .hol-dn { color: var(--text-muted); font-weight: 600; margin-top: 0.1rem; white-space: nowrap; }
+  .hol-d.tg .hol-dn { color: #fff; font-weight: 800; }
+  .hol-d.pk .hol-dn { color: #fcd34d; font-weight: 800; }
+  .hol-line { font-size: 0.875rem; line-height: 1.15; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hol-line b { color: #fcd34d; font-weight: 800; }
+  .hol-line .k-ty { color: #7dd3fc; font-weight: 800; }
+  .tsa-bars { display: flex; gap: 0.25rem; align-items: flex-end; height: 4.1rem; }
+  .tsa-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; height: 100%; text-align: center; font-size: 0.875rem; line-height: 1.05; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+  .tsa-bar .fill { background: #4b6ea8; border-radius: 2px 2px 0 0; margin-top: 0.1rem; }
+  .tsa-bar.max { color: #fcd34d; font-weight: 800; }
+  .tsa-bar.max .fill { background: #f59e0b; }
+  .tsa-bar .dn { color: var(--text-dim); font-weight: 600; margin-top: 0.1rem; }
+  .tsa-bar.max .dn { color: #fcd34d; }
+  .bts-air { font-variant-numeric: tabular-nums; }
+  .sat-row { display: flex; gap: 0.7rem; align-items: stretch; }
+  .sat-box { position: relative; flex: none; height: 8.7rem; width: 14.5rem; background: #000; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .sat-box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .sat-stamp { position: absolute; left: 0.25rem; bottom: 0.25rem; font-size: 0.875rem; font-weight: 800; line-height: 1.1; padding: 0.05rem 0.35rem; border-radius: 3px; background: rgba(7, 14, 28, 0.82); color: #fff; font-variant-numeric: tabular-nums; }
+  .sat-side { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; font-size: 0.875rem; line-height: 1.2; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .sat-side b { color: #fff; font-weight: 800; }
+  .tsa-side.wide { flex: 1.5; }
+  .hist-line { padding: 0.2rem 0.9rem; font-size: 0.875rem; color: var(--text-muted); border-bottom: 1px solid var(--border); background: rgba(15, 28, 53, 0.5); flex-shrink: 0; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .off { display: none !important; }
+  .board-wrap { height: calc(14.35rem + 18px); }
+  .airlines { padding: 0.4rem 0.7rem 0.45rem; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+  .al-row { display: grid; grid-template-columns: 1fr 4rem 5.2rem 4rem 5.2rem; align-items: center; height: 1.3rem; padding: 0 0.3rem; border-radius: 3px; white-space: nowrap; }
+  .al-row:nth-child(even) { background: rgba(255, 255, 255, 0.04); }
+  .al-row.head { color: var(--text-dim); font-weight: 700; border-bottom: 1px solid var(--border); border-radius: 0; background: none; }
+  .al-row > span:not(:first-child) { text-align: right; }
+  .al-row .nm { overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+  .al-row .dl { color: var(--text-muted); }
   .owed-body { flex: 1; display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.8rem; min-height: 0; }
-  .owed-qr { height: 100%; max-height: 8.6rem; aspect-ratio: 1; background: #fff; border-radius: 6px; flex-shrink: 0; display: block; }
+  .owed-qr { height: 100%; max-height: 6.2rem; aspect-ratio: 1; background: #fff; border-radius: 6px; flex-shrink: 0; display: block; }
   .owed-text { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
-  .owed-head { font-size: 1.3rem; font-weight: 800; line-height: 1.15; color: #fff; }
+  .owed-head { font-size: 1.15rem; font-weight: 800; line-height: 1.15; color: #fff; }
   .owed-url { font-size: 0.875rem; font-weight: 700; color: #93c5fd; }
 
   /* ---------- disruptions ---------- */
@@ -186,32 +311,70 @@
   .ev-count { color: #fca5a5; font-weight: 800; }
   .ev-count .sec { font-weight: 600; opacity: 0.8; }
   .ev-count.noend, .ev-count.expired { color: var(--text-muted); font-weight: 600; }
+  .event-wx, .event-hold { font-size: 0.875rem; color: #bfdbfe; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .event-hold { color: #fde68a; }
+  .k-ifr, .k-lifr { width: 0.7rem; height: 0.7rem; border-radius: 50%; display: inline-block; }
+  .k-storm { width: 1.2rem; height: 0.7rem; border: 2px dashed #ef4444; background: rgba(250, 204, 21, 0.25); display: inline-block; border-radius: 2px; }
+  .k-item.off { display: none; }
+  .cam-pip { position: absolute; left: 0.75rem; top: 3.1rem; width: 22%; z-index: 6; background: rgba(6, 14, 28, 0.92); border: 1px solid #3b5a92; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55); transition: opacity 0.6s ease; }
+  .cam-pip.off { opacity: 0; pointer-events: none; }
+  .cam-pip img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #0a1a33; }
+  .cam-pip .cam-cap { font-size: 0.875rem; font-weight: 600; color: #dbeafe; line-height: 1.25; padding: 0.2rem 0.45rem; }
   .event-sources { font-size: 0.875rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .event-sources .agree { color: #86efac; }
   .event-sources .warn { color: #fdba74; }
 
   /* ---------- board ---------- */
   .board-section { flex-shrink: 0; }
-  .board { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-flow: column; grid-template-rows: repeat(10, 1.35rem); gap: 2px; padding: 0.4rem 0.7rem 0.45rem; }
-  .tile { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.4rem; border-radius: 4px; font-size: 0.875rem; line-height: 1; white-space: nowrap; overflow: hidden; }
-  .tile b { font-weight: 800; letter-spacing: 0.03em; }
-  .tile span { overflow: hidden; text-overflow: ellipsis; }
-  .tile.green { background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.55); color: #d9fbe5; }
-  .tile.amber { background: #f59e0b; border: 1px solid #fbbf24; color: #1a1203; }
-  .tile.red { background: #dc2626; border: 1px solid #f87171; color: #fff; }
-  .board-key { font-size: 0.875rem; color: var(--text-muted); font-weight: 600; display: flex; gap: 0.6rem; align-items: center; }
-  .board-key i { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.25rem; vertical-align: -1px; }
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-flow: column; grid-template-rows: repeat(10, 1.35rem); gap: 2px 4px; padding: 0.4rem 0.7rem 0.45rem; perspective: 700px; }
+  .tile { position: relative; display: flex; align-items: center; gap: 0.3rem; padding: 0 0.3rem; border-radius: 4px; font-size: 0.875rem; line-height: 1; white-space: nowrap; overflow: hidden;
+    background: linear-gradient(180deg, #0a1428, #0d1a33); border: 1px solid var(--tc, #22c55e); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.05); }
+  .tile .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(180deg, var(--tc-hi) 0%, var(--tc) 40%, var(--tc-lo) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 2px rgba(0, 0, 0, 0.35), 2px 0 3px rgba(0, 0, 0, 0.45); border-radius: 3px 2px 2px 3px; transition: width 0.8s ease; }
+  .tile b, .tile .mins, .tile .tr { position: relative; z-index: 1; text-shadow: 0 0 2px #000, 0 1px 2px #000, 0 0 5px rgba(0, 0, 0, 0.85); color: #fff; }
+  .tile b { font-weight: 800; letter-spacing: 0.03em; width: 2.1rem; flex: none; }
+  .tile .mins { margin-left: auto; position: relative; font-variant-numeric: tabular-nums; font-weight: 700; transform-origin: 50% 50%; backface-visibility: hidden; }
+  .tile .mins::after { content: ""; position: absolute; left: -1px; right: -1px; top: 50%; height: 1px; background: rgba(0, 0, 0, 0.7); }
+  .tile .mins.flip { animation: flap 0.55s ease-out; }
+  @keyframes flap { 0% { transform: rotateX(-90deg); opacity: 0.2; } 55% { transform: rotateX(18deg); opacity: 1; } 100% { transform: rotateX(0); } }
+  .tile .tr { width: 0.9rem; flex: none; text-align: center; font-weight: 800; }
+  .tile .tr.up { color: #fca5a5; }
+  .tile .tr.down { color: #86efac; }
+  .tile .tr.flat { color: #cbd5e1; }
+  .tile.st-green { --tc: #22c55e; --tc-hi: #4ade80; --tc-lo: #15803d; }
+  .tile.st-green .mins { color: #86efac; text-shadow: none; font-weight: 600; }
+  .tile.st-green b { text-shadow: none; }
+  .tile.st-yellow { --tc: #eab308; --tc-hi: #fde047; --tc-lo: #a16207; }
+  .tile.st-orange { --tc: #f97316; --tc-hi: #fb923c; --tc-lo: #c2410c; }
+  .tile.st-red { --tc: #dc2626; --tc-hi: #f87171; --tc-lo: #991b1b; }
+  .board-key { font-size: 0.875rem; color: var(--text-muted); font-weight: 600; display: flex; gap: 0.5rem; align-items: center; }
+  .board-key i { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.2rem; vertical-align: -1px; }
+  .board-note { padding: 0.15rem 0.9rem 0.3rem; font-size: 0.875rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* ---------- bottom ---------- */
   .bottom-area { flex-shrink: 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); background: #091326; }
   .ticker-row { height: 2.2rem; display: flex; align-items: center; background: #0b172e; border-bottom: 1px solid var(--border); overflow: hidden; }
   .ticker-tag { height: 100%; padding: 0 0.9rem; display: flex; align-items: center; background: #1d4ed8; color: #fff; font-size: 0.875rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; z-index: 2; }
-  .ticker-track-wrap { flex: 1; overflow: hidden; position: relative; height: 100%; display: flex; align-items: center; }
-  .ticker-track { white-space: nowrap; will-change: transform; font-size: 1rem; font-weight: 500; color: #e6eefc; padding-left: 1.5rem; }
-  .notice-strip { height: 1.75rem; padding: 0 1rem; display: flex; align-items: center; justify-content: flex-end; background: #071020; font-size: 0.875rem; }
-  .credits { color: var(--text-muted); font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+  .ticker-track-wrap { flex: 1; overflow: hidden; position: relative; height: 100%; perspective: 500px; }
+  .tick-item { position: absolute; left: 0.9rem; right: 0.9rem; top: 50%; height: 1.6rem; margin-top: -0.8rem; display: flex; align-items: center; gap: 0.6rem; opacity: 0; transform-origin: 50% 50%; backface-visibility: hidden;
+    padding: 0 0.6rem 0 0.25rem; border-radius: 5px; background: linear-gradient(180deg, #1c3159 0%, #122443 55%, #0e1b36 100%); border: 1px solid #2f4b82;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -2px 3px rgba(0, 0, 0, 0.4), 0 2px 5px rgba(0, 0, 0, 0.55); white-space: nowrap; overflow: hidden; }
+  .tick-item.in { animation: tickIn 0.7s cubic-bezier(.2, .8, .25, 1) forwards; }
+  .tick-item.out { animation: tickOut 0.5s ease-in forwards; }
+  @keyframes tickIn { from { transform: rotateX(-85deg) translateY(55%); opacity: 0; } to { transform: rotateX(0) translateY(0); opacity: 1; } }
+  @keyframes tickOut { from { transform: rotateX(0); opacity: 1; } to { transform: rotateX(85deg) translateY(-55%); opacity: 0; } }
+  .tk-tag { flex: none; font-size: 0.875rem; font-weight: 800; letter-spacing: 0.06em; padding: 0.02rem 0.5rem; border-radius: 4px; color: #fff; background: linear-gradient(180deg, #3b82f6, #1d4ed8); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 2px rgba(0, 0, 0, 0.5); text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5); }
+  .tk-new .tk-tag, .tk-stop .tk-tag { background: linear-gradient(180deg, #f87171, #b91c1c); }
+  .tk-updated .tk-tag { background: linear-gradient(180deg, #fbbf24, #b45309); }
+  .tk-ended .tk-tag { background: linear-gradient(180deg, #4ade80, #15803d); }
+  .tk-wx .tk-tag { background: linear-gradient(180deg, #38bdf8, #0369a1); }
+  .tk-hold .tk-tag { background: linear-gradient(180deg, #fb923c, #c2410c); }
+  .tk-owed .tk-tag { background: linear-gradient(180deg, #2dd4bf, #0f766e); }
+  .tk-text { font-size: 1rem; font-weight: 600; color: #f1f5ff; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .tk-src { margin-left: auto; flex: none; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .notice-strip { height: 2.9rem; padding: 0 1rem; display: flex; align-items: center; justify-content: flex-end; text-align: right; background: #071020; font-size: 0.875rem; }
+  .credits { color: var(--text-muted); font-weight: 600; letter-spacing: 0.02em; line-height: 1.3; }
 </style>
-<meta name="robots" content="noindex, follow">
 </head>
 <body>
 <div class="screen">
@@ -224,10 +387,10 @@
     <div id="stale-banner" class="stale-banner"><span id="stale-detail"></span></div>
 
     <div class="clocks">
-      <div class="clock-box"><span class="clock-label">PT</span><span id="clock-PT" class="clock-value">--:--:--</span></div>
-      <div class="clock-box"><span class="clock-label">MT</span><span id="clock-MT" class="clock-value">--:--:--</span></div>
-      <div class="clock-box"><span class="clock-label">CT</span><span id="clock-CT" class="clock-value">--:--:--</span></div>
-      <div class="clock-box"><span class="clock-label">ET</span><span id="clock-ET" class="clock-value">--:--:--</span></div>
+      <div class="zclock"><div class="zhead"><i id="mark-PT" class="mark sun"></i><span class="clock-label">PT</span><span id="chip-PT" class="zchip">--</span></div><span id="clock-PT" class="plate">--:--:--</span></div>
+      <div class="zclock"><div class="zhead"><i id="mark-MT" class="mark sun"></i><span class="clock-label">MT</span><span id="chip-MT" class="zchip">--</span></div><span id="clock-MT" class="plate">--:--:--</span></div>
+      <div class="zclock"><div class="zhead"><i id="mark-CT" class="mark sun"></i><span class="clock-label">CT</span><span id="chip-CT" class="zchip">--</span></div><span id="clock-CT" class="plate">--:--:--</span></div>
+      <div class="zclock"><div class="zhead"><i id="mark-ET" class="mark sun"></i><span class="clock-label">ET</span><span id="chip-ET" class="zchip">--</span></div><span id="clock-ET" class="plate">--:--:--</span></div>
       <div class="clock-box utc"><span class="clock-label">UTC</span><span id="clock-UTC" class="clock-value">--:--:--</span></div>
     </div>
   </header>
@@ -237,17 +400,29 @@
       <section class="map-pane">
         <canvas id="us-map"></canvas>
         <div class="map-overlay-title">Lower 48 National Airspace Status</div>
-        <div class="map-legend">
-          <div class="legend-item"><span class="legend-dot" style="background: var(--red);"></span>Ground Stop</div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--amber);"></span>Ground Delay</div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--yellow);"></span>Delay</div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--grey);"></span>Closure</div>
+        <div id="lower-third" class="lower-third off"><div class="lt-bar"></div><div class="lt-text"><div id="lt-name" class="lt-name"></div><div id="lt-line" class="lt-line"></div><div id="lt-wx" class="lt-wx"></div><div id="lt-hold" class="lt-hold"></div></div></div>
+        <div id="map-key" class="map-key" aria-label="Map key">
+          <span class="k-item"><span class="k-grad"></span>altitude</span>
+          <span class="k-item"><span class="legend-dot" style="background:#f59e0b"></span>delay</span>
+          <span class="k-item"><span class="legend-dot" style="background:#ef4444"></span>stop / closed</span>
+          <span class="k-item"><span class="k-ring"></span>pulse = ground stop</span>
+          <span class="k-item">· aircraft: adsb.lol (ODbL)</span>
+          <span id="k-ifr" class="k-item off"><span class="k-ifr" style="background:#ef4444"></span>IFR</span>
+          <span id="k-lifr" class="k-item off"><span class="k-lifr" style="background:#d946ef"></span>LIFR</span>
+          <span id="k-storm" class="k-item off"><span class="k-storm"></span>storms</span>
+          <span id="k-hold" class="k-item off">&#10227; holding: adsb.lol</span>
+          <span id="k-hurr" class="k-item off">&#127744; hurricane: NHC</span>
+          <span id="k-wx" class="k-item off">· weather: aviationweather.gov</span>
+        </div>
+        <div id="inset" class="inset off">
+          <div class="inset-head"><span id="inset-title"></span><span id="inset-src" class="src"></span></div>
+          <canvas id="inset-map"></canvas>
         </div>
       </section>
 
       <div class="bottom-left">
         <section class="tsa-panel">
-          <div class="panel-header"><div class="panel-title">TSA screened</div><div id="tsa-date" class="panel-count">--</div></div>
+          <div class="panel-header"><div class="panel-title"><span id="tsa-title">TSA screened</span><span id="tsa-dots" class="dots"></span></div><div id="tsa-date" class="panel-count">--</div></div>
           <div class="tsa-body" id="tsa-body">
             <div class="tsa-sub">Waiting for TSA data</div>
           </div>
@@ -271,21 +446,31 @@
           <div class="panel-title">DISRUPTIONS</div>
           <div id="disruptions-count" class="panel-count">0 active</div>
         </div>
+        <div id="hist-line" class="hist-line off"></div>
         <div id="disruptions-list" class="disruptions-list">
           <div class="empty-state">No FAA delays right now</div>
         </div>
       </section>
 
       <section class="board-section">
-        <div class="panel-header">
+        <div id="board-head" class="panel-header">
           <div class="panel-title">30 busiest airports</div>
           <div class="board-key">
             <span><i style="background:#22c55e"></i>clear</span>
-            <span><i style="background:#f59e0b"></i>delay</span>
-            <span><i style="background:#dc2626"></i>stop or closed</span>
+            <span><i style="background:#eab308"></i>delay</span>
+            <span><i style="background:#f97316"></i>ground delay</span>
+            <span><i style="background:#dc2626"></i>stop</span>
           </div>
         </div>
-        <div id="board" class="board"></div>
+        <div id="air-head" class="panel-header off">
+          <div class="panel-title">Airlines, by flights</div>
+          <div id="air-src" class="panel-count">BTS</div>
+        </div>
+        <div class="board-wrap">
+          <div id="board" class="board"></div>
+          <div id="airlines" class="airlines off"></div>
+        </div>
+        <div id="board-note" class="board-note">FAA average delay, bar full at 2 h</div>
       </section>
     </aside>
   </main>
@@ -294,23 +479,28 @@
     <div class="ticker-row">
       <div class="ticker-tag">DESK LOG</div>
       <div id="ticker-wrap" class="ticker-track-wrap">
-        <div id="ticker-track" class="ticker-track">Air Travel Desk initializing...</div>
+        <div id="tick-a" class="tick-item"></div>
+        <div id="tick-b" class="tick-item"></div>
       </div>
     </div>
     <div class="notice-strip">
-      <div class="credits"><span class="update-note" id="update-note"></span>FAA · NWS · adsb.lol (ODbL) · TSA · Radar: NOAA MRMS · map: Natural Earth</div>
+      <div id="dr-note" class="dr-note"></div>
+      <div id="credits" class="credits">FAA · NWS · adsb.lol (ODbL) · TSA · BTS · Radar: NOAA MRMS · map: Natural Earth</div>
     </div>
   </footer>
 </div>
 
+<script src="cine.js"></script>
 <script>
 (function () {
   const params = new URLSearchParams(window.location.search);
-  const stateUrl = params.get("state") || "data/state.json";
+  // ?state= may only name a file on this site; any other origin is ignored.
+  function ownState(v) { try { const u = new URL(v || "data/state.json", window.location.href); return u.origin === window.location.origin ? u.href : "data/state.json"; } catch (_) { return "data/state.json"; } }
+  const stateUrl = ownState(params.get("state"));
   const baseDir = new URL(stateUrl, window.location.href).href.replace(/[^/]*$/, "");
   const PAGE_SEC = 10;
 
-  const COLORS = { ground_stop: "#ef4444", ground_delay: "#f59e0b", delay: "#eab308", closure: "#9ca3af", squawk7700: "#a855f7" };
+  const COLORS = { ground_stop: "#ef4444", ground_delay: "#f59e0b", delay: "#eab308", closure: "#ef4444", squawk7700: "#a855f7" };
   const KIND_PRIORITY = { delay: 1, closure: 2, ground_delay: 3, ground_stop: 4, squawk7700: 5 };
   const KIND_LABELS = { ground_stop: "Ground Stop", ground_delay: "Ground Delay", delay: "Delay", closure: "Closure", squawk7700: "Squawk 7700" };
 
@@ -326,6 +516,13 @@
   let pageIdx = 0;
   let pages = [[]];          // arrays of card indices per page
   let lastCardsKey = null;
+  let tracksData = null;     // tracks.json (aircraft near hubs)
+  let goesData = null;       // goes.json
+  let satFrames = [];        // [{src, time_utc}]
+  const satImgs = {};        // preloaded Image per frame file
+  let lastTsaKey = null;
+  let insetCode = null;
+  let holidayState = null;   // state.holiday
 
   const U = () => (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16;
 
@@ -374,7 +571,7 @@
   }
 
   function fitFor(width, height, u) {
-    const padX = 28 * u, padY = 40 * u;
+    const padX = 20 * u, padY = 26 * u;
     const drawW = Math.max(100, width - padX * 2), drawH = Math.max(100, height - padY * 2);
     const spanX = projectedBounds.maxX - projectedBounds.minX || 1;
     const spanY = projectedBounds.maxY - projectedBounds.minY || 1;
@@ -457,14 +654,841 @@
     return clipped;
   }
 
+
+  // ---------- aircraft near hubs (adsb.lol) ----------
+  const hhmmUtc = (iso) => (iso || "").slice(11, 16);
+  function tracksFresh() {
+    if (!tracksData || !Array.isArray(tracksData.airports) || !tracksData.airports.length) return false;
+    const ms = Date.parse(tracksData.fetched_utc || "");
+    return !Number.isNaN(ms) && (Date.now() - ms) < 10 * 60 * 1000;
+  }
+  function planeHeading(a, pts) {
+    if (typeof a.track === "number") return a.track * DEG;
+    const n = pts.length;
+    if (n >= 2) return Math.atan2(pts[n - 1][0] - pts[n - 2][0], -(pts[n - 1][1] - pts[n - 2][1]));
+    return 0;
+  }
+  function drawChevron(ctx, x, y, hdg, s, fill, alpha) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(hdg);
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(0, -s * 1.3); ctx.lineTo(s * 0.9, s); ctx.lineTo(0, s * 0.45); ctx.lineTo(-s * 0.9, s);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = "rgba(7, 14, 28, 0.9)";
+    ctx.stroke();
+    ctx.restore();
+  }
+  // pts: [[x, y], ...] oldest first. Fading trail: faint at the tail, strong at the head.
+  function drawTrail(ctx, pts, color, width) {
+    const n = pts.length;
+    if (n < 2) return;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    for (let i = 1; i < n; i++) {
+      ctx.globalAlpha = 0.12 + 0.7 * (i / (n - 1));
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(pts[i - 1][0], pts[i - 1][1]);
+      ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const isGround = (a) => a.alt_baro === "ground";
+  function updateAirNote() {
+    const el = document.getElementById("air-note");
+    if (!el) return;
+    if (!tracksFresh()) { el.classList.add("off"); return; }
+    const withAc = tracksData.airports.filter((a) => (a.aircraft || []).length);
+    if (!withAc.length) { el.classList.add("off"); return; }
+    const codes = withAc.map((a) => a.code).join(", ");
+    const key = codes + "|" + tracksData.fetched_utc;
+    if (el.dataset.k === key) return;
+    el.dataset.k = key;
+    el.innerHTML = "Aircraft near <b>" + escapeHtml(codes) + "</b> · adsb.lol (ODbL) · " + hhmmUtc(tracksData.fetched_utc) + " UTC";
+    el.classList.remove("off");
+  }
+
+  // Inset: airports with a ground stop that also have tracks; rotate every 15 s when there are several.
+  function insetAirport() {
+    if (!tracksFresh()) return null;
+    const stops = (currentState.events || []).filter((e) => e.kind === "ground_stop").map((e) => e.airport);
+    const list = tracksData.airports.filter((a) => stops.indexOf(a.code) >= 0);
+    if (!list.length) return null;
+    return list[Math.floor(Date.now() / 15000) % list.length];
+  }
+  function placeInset(mw, mh, u, fit, markers) {
+    const el = document.getElementById("inset");
+    const iw = Math.round(mw * 0.29), ih = Math.round(mh * 0.40), m = 8 * u;
+    const pane = document.querySelector(".map-pane").getBoundingClientRect();
+    const rectOf = (q) => {
+      const e = document.querySelector(q);
+      if (!e || e.classList.contains("off")) return null;
+      const r = e.getBoundingClientRect();
+      return { x0: r.left - pane.left, y0: r.top - pane.top, x1: r.right - pane.left, y1: r.bottom - pane.top };
+    };
+    const bottoms = ["#map-key"].map(rectOf).filter(Boolean);
+    const obstacles = [".map-overlay-title", ".cam-pip"].map(rectOf).filter(Boolean).concat(bottoms);
+    const legend = bottoms.length ? { y0: Math.min.apply(null, bottoms.map((o) => o.y0)) } : null;
+    const spanX = (projectedBounds.maxX - projectedBounds.minX) * fit.scale;
+    const spanY = (projectedBounds.maxY - projectedBounds.minY) * fit.scale;
+    const mapRect = { x0: fit.offsetX, y0: fit.offsetY, x1: fit.offsetX + spanX, y1: fit.offsetY + spanY };
+    const cands = [
+      { x: mw - iw - m, y: m },                           // top right
+      { x: mw - iw - m, y: mh - ih - m },                          // bottom right
+      { x: m, y: (legend ? legend.y0 : mh) - ih - m },             // bottom left, above the legend
+      { x: m, y: m + 28 * u },                                     // top left, under the title
+    ];
+    let best = null;
+    for (const c of cands) {
+      let hit = 0;
+      for (const mk of markers) if (mk.px > c.x - 14 * u && mk.px < c.x + iw + 14 * u && mk.py > c.y - 14 * u && mk.py < c.y + ih + 14 * u) hit += mk.kind === "ground_stop" ? 100 : (mk.kind === "squawk7700" || mk.kind === "closure" ? 20 : (mk.kind === "top" ? 8 : 5));
+      const ox = Math.max(0, Math.min(c.x + iw, mapRect.x1) - Math.max(c.x, mapRect.x0));
+      const oy = Math.max(0, Math.min(c.y + ih, mapRect.y1) - Math.max(c.y, mapRect.y0));
+      let score = hit * 1e5 + ox * oy;
+      for (const o of obstacles) {
+        const px = Math.max(0, Math.min(c.x + iw, o.x1) - Math.max(c.x, o.x0));
+        const py = Math.max(0, Math.min(c.y + ih, o.y1) - Math.max(c.y, o.y0));
+        score += px * py * 2000;
+      }
+      if (!best || score < best.score) best = { score, x: c.x, y: c.y };
+    }
+    el.style.left = Math.round(best.x) + "px";
+    el.style.top = Math.round(best.y) + "px";
+    el.style.width = iw + "px";
+    el.style.height = ih + "px";
+  }
+  function drawInset(u) {
+    const el = document.getElementById("inset");
+    const ap = insetAirport();
+    if (!ap || !geoStates) { el.classList.add("off"); insetCode = null; return; }
+    el.classList.remove("off");
+    if (insetCode !== ap.code) {
+      insetCode = ap.code;
+      document.getElementById("inset-title").textContent = ap.code + " · 40 nm";
+      document.getElementById("inset-src").textContent = "adsb.lol (ODbL)";
+    }
+    const canvas = document.getElementById("inset-map");
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2;
+    const pxNm = (h / 2 - 6 * u) / 40;
+    const k = Math.cos(ap.lat * DEG);
+    const proj = (lon, lat) => [cx + (lon - ap.lon) * 60 * k * pxNm, cy - (lat - ap.lat) * 60 * pxNm];
+    // outline: only rings that come near the airport
+    const dLat = 3, dLon = 3 / k;
+    ctx.fillStyle = "#112240"; ctx.strokeStyle = "#3a5c96"; ctx.lineWidth = 1.2;
+    for (const feat of geoStates.features || []) {
+      if (!isMainland(feat)) continue;
+      for (const poly of polysOf(feat)) for (const ring of poly) {
+        let near = false;
+        for (let i = 0; i < ring.length; i += 1) {
+          if (Math.abs(ring[i][1] - ap.lat) < dLat && Math.abs(ring[i][0] - ap.lon) < dLon) { near = true; break; }
+        }
+        if (!near) continue;
+        ctx.beginPath();
+        for (let i = 0; i < ring.length; i++) {
+          const q = proj(ring[i][0], ring[i][1]);
+          if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+    }
+    // range rings
+    ctx.setLineDash([4 * u, 4 * u]); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(147, 197, 253, 0.45)";
+    for (const nm of [20, 40]) { ctx.beginPath(); ctx.arc(cx, cy, nm * pxNm, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.setLineDash([]);
+    ctx.font = "700 " + (14 * u) + "px system-ui, sans-serif";
+    ctx.fillStyle = "rgba(191, 219, 254, 0.9)";
+    ctx.fillText("20 nm", cx + 20 * pxNm * 0.707 + 3 * u, cy - 20 * pxNm * 0.707 - 2 * u);
+    // aircraft: grounded ones as dim dots, airborne with trails and heading chevrons
+    for (const a of ap.aircraft || []) {
+      if (!a.trail || !a.trail.length) continue;
+      const pts = a.trail.map((p) => proj(p[0], p[1]));
+      const head = pts[pts.length - 1];
+      if (isGround(a)) {
+        ctx.globalAlpha = 0.7; ctx.fillStyle = "#94a3b8";
+        ctx.beginPath(); ctx.arc(head[0], head[1], 2.2 * u, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      drawTrail(ctx, pts, "#7dd3fc", 1.6 * u);
+      drawChevron(ctx, head[0], head[1], planeHeading(a, pts), 5.2 * u, "#e0f2fe", 1);
+    }
+    // airport dot
+    ctx.beginPath(); ctx.arc(cx, cy, 8 * u, 0, Math.PI * 2); ctx.fillStyle = "rgba(7, 14, 28, 0.85)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, 5.5 * u, 0, Math.PI * 2); ctx.fillStyle = COLORS.ground_stop; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke();
+    const air = (ap.aircraft || []).filter((a) => !isGround(a)).length;
+    const gnd = (ap.aircraft || []).length - air;
+    const lbl = air + " in the air · " + gnd + " on the ground";
+    const lw = ctx.measureText(lbl).width + 10 * u;
+    ctx.fillStyle = "rgba(7, 14, 28, 0.88)"; ctx.fillRect(4 * u, h - 22 * u, lw, 18 * u);
+    ctx.fillStyle = "#e2e8f0"; ctx.fillText(lbl, 9 * u, h - 8 * u);
+    ctx.restore();
+  }
+
+  // ---------- AN10 cinematic map ----------
+  // One canvas, one rAF loop. Static layers (land, state lines, radar) are cached in an offscreen canvas at 2x and only
+  // rebuilt when the size, the geometry or the radar changes. Each frame the cached layer is warped row by row into a
+  // perspective tilt; moving things (airport glow, aircraft, labels) are projected point by point with the same tilt.
+  // Aircraft positions between polls are interpolated from speed and heading (dead reckoning), never past the poll interval.
+  const Cine = window.Cine;
+  const SS = 2;                       // static layer resolution factor
+  // Flat 2D fallback: window narrower than 900 px, reduced-motion, or 4 or fewer CPU cores (or ?flat=1).
+  // No tilt, no camera drift or zoom, no aircraft trails, no 3D flips; markers, labels and radar stay.
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const LOW_CPU = (navigator.hardwareConcurrency || 8) <= 4;
+  const isFlat = () => REDUCED_MOTION || LOW_CPU || window.innerWidth < 900 || params.get("flat") === "1";
+  let flatShown = null;
+  function syncFlat() {
+    const f = isFlat();
+    if (f === flatShown) return;
+    flatShown = f;
+    document.body.classList.toggle("flat", f);
+    const n = document.getElementById("dr-note");
+    if (n) n.textContent = f ? "Flat map mode: no trails or tilt here" : "Positions refresh every 5 min; estimated between, then reset";
+  }
+  const TILT_A = 0.18, TILT_M = 1.0, TILT_TOP = 0.08;   // about 30 degrees of tilt, subtle
+  const SPOT_ZOOM = 2.5, SPOT_IN = 3, SPOT_HOLD_UNTIL = 20, SPOT_OUT = 3;
+  const SPOT_EVERY_MS = (parseFloat(params.get("spotEvery")) || 180) * 1000;
+  const MAX_DRAWN = 120;            // aircraft drawn on the national map
+  const NEAR_EVENT_MAX = 60;         // of those, at most this many from the 40 nm circles around airports with events
+  const TRAIL_MAX = 16;
+  const GLOW_RGB = { ground_stop: "239,68,68", ground_delay: "245,158,11", delay: "245,158,11", closure: "220,38,38" };
+
+  let nationalData = null;            // national.json
+  let wxData = null, stormsData = null, nhcData = null, camsData = null;   // AN11 layers
+  const camShownProv = {}; let camShownCode = null;
+  const CAM_NAMES = { LAX: "Los Angeles", SFO: "San Francisco", SAN: "San Diego", SEA: "Seattle-Tacoma" };
+  const keyFlags = { ifr: false, lifr: false, storm: false, hold: false, wx: false };
+  const fleet = new Map();            // hex -> aircraft record (see rebuildFleet)
+  let fleetKey = "";
+  let staticLayer = null;             // {key, canvas}
+  let bgLayer = null;                 // {key, bg, vignette}
+  let labelLayout = null;             // {key, items}
+  let spot = null;                    // active spotlight
+  let spotTimer = null;
+  let paneRect = { w: 0, h: 0, at: 0 };
+  let lastInsetAt = 0;
+  let lastDrawTs = 0;
+  const glowSprites = {};
+  const headSprites = {};
+  const segBuckets = {};              // band -> [level arrays]
+  const NAMES = {};                   // code -> short name, from the board
+
+  function sprite(size, stops) {
+    const c = document.createElement("canvas");
+    c.width = c.height = size;
+    const g = c.getContext("2d");
+    const r = size / 2;
+    const grad = g.createRadialGradient(r, r, 0, r, r, r);
+    for (const [o, col] of stops) grad.addColorStop(o, col);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    return c;
+  }
+  function glowSprite(kind) {
+    const rgb = GLOW_RGB[kind] || GLOW_RGB.delay;
+    return glowSprites[rgb] || (glowSprites[rgb] = sprite(128, [[0, "rgba(" + rgb + ",0.80)"], [0.35, "rgba(" + rgb + ",0.32)"], [1, "rgba(" + rgb + ",0)"]]));
+  }
+  function headSprite(band) {
+    if (headSprites[band]) return headSprites[band];
+    const col = Cine.BAND_COLORS[band];
+    return (headSprites[band] = sprite(48, [[0, "#ffffff"], [0.18, "#ffffff"], [0.35, col], [1, "rgba(0,0,0,0)"]]));
+  }
+
+  // fit space = CSS pixels of the flat, untilted map. Camera: zoom z about focus (fx, fy). Then the tilt.
+  function makeView(w, h, cam) {
+    const tilt = isFlat() ? Cine.makeTilt(w, h, 0, 1, 0) : Cine.makeTilt(w, h, TILT_A, TILT_M, TILT_TOP);
+    return {
+      tilt, cam,
+      pt(X, Y) { return tilt.project(w / 2 + (X - cam.fx) * cam.z, h / 2 + (Y - cam.fy) * cam.z); },
+    };
+  }
+
+  function buildBackground(w, h) {
+    const bg = document.createElement("canvas"); bg.width = w; bg.height = h;
+    const g = bg.getContext("2d");
+    const lin = g.createLinearGradient(0, 0, 0, h);
+    lin.addColorStop(0, "#040912"); lin.addColorStop(0.55, "#07101f"); lin.addColorStop(1, "#0a1630");
+    g.fillStyle = lin; g.fillRect(0, 0, w, h);
+    const v = document.createElement("canvas"); v.width = w; v.height = h;
+    const vg = v.getContext("2d");
+    const rad = vg.createRadialGradient(w / 2, h * 0.56, Math.min(w, h) * 0.28, w / 2, h * 0.56, Math.hypot(w, h) * 0.55);
+    rad.addColorStop(0, "rgba(2,6,14,0)"); rad.addColorStop(1, "rgba(2,6,14,0.62)");
+    vg.fillStyle = rad; vg.fillRect(0, 0, w, h);
+    const haze = vg.createLinearGradient(0, 0, 0, h * 0.28);
+    haze.addColorStop(0, "rgba(4,9,18,0.55)"); haze.addColorStop(1, "rgba(4,9,18,0)");
+    vg.fillStyle = haze; vg.fillRect(0, 0, w, h * 0.28);
+    return { bg, vignette: v };
+  }
+
+  function strokeStates(g, fit) {
+    for (const feat of geoStates.features || []) {
+      if (!isMainland(feat)) continue;
+      for (const poly of polysOf(feat)) {
+        g.beginPath();
+        for (const ring of poly) {
+          for (let i = 0; i < ring.length; i++) {
+            const [px, py] = projectWith(fit, ring[i][0], ring[i][1]);
+            if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+          }
+          g.closePath();
+        }
+        g.stroke();
+      }
+    }
+  }
+
+  function buildStatic(w, h, u, fit) {
+    const c = document.createElement("canvas");
+    c.width = Math.round(w * SS); c.height = Math.round(h * SS);
+    const g = c.getContext("2d");
+    g.save();
+    g.scale(SS, SS);
+    // faint graticule in map space
+    g.strokeStyle = "rgba(60, 100, 170, 0.10)"; g.lineWidth = 1;
+    const gstep = 60 * u;
+    for (let gx = 0; gx <= w; gx += gstep) { g.beginPath(); g.moveTo(gx, 0); g.lineTo(gx, h); g.stroke(); }
+    for (let gy = 0; gy <= h; gy += gstep) { g.beginPath(); g.moveTo(0, gy); g.lineTo(w, gy); g.stroke(); }
+    // national outline: every state stroked wide, then the land fill covers the inner half and the shared borders,
+    // so only the outer ~2 px along the coast and the national border stays bright
+    g.strokeStyle = "rgba(147, 197, 253, 0.95)"; g.lineWidth = 4; g.lineJoin = "round";
+    strokeStates(g, fit);
+    // land: lighter than the water so the US shape reads at a glance
+    g.fillStyle = "#1b3361";
+    for (const feat of geoStates.features || []) {
+      if (!isMainland(feat)) continue;
+      for (const poly of polysOf(feat)) {
+        g.beginPath();
+        for (const ring of poly) {
+          for (let i = 0; i < ring.length; i++) {
+            const [px, py] = projectWith(fit, ring[i][0], ring[i][1]);
+            if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+          }
+          g.closePath();
+        }
+        g.fill();
+      }
+    }
+    g.restore();
+    // radar under everything that moves (reprojected at the layer's own resolution)
+    if (radarImg && radarImg.naturalWidth) {
+      const fitSS = { scale: fit.scale * SS, offsetX: fit.offsetX * SS, offsetY: fit.offsetY * SS };
+      g.globalAlpha = 0.85;
+      g.drawImage(buildRadarCanvas(c.width, c.height, fitSS), 0, 0);
+      g.globalAlpha = 1;
+    }
+    drawStorms(g, fit);
+    g.save();
+    g.scale(SS, SS);
+    g.strokeStyle = "rgba(170, 205, 255, 0.50)"; g.lineWidth = 1;   // state lines, about 1 px
+    strokeStates(g, fit);
+    g.restore();
+    return c;
+  }
+
+  // ---------- aircraft ----------
+  function fleetFresh(data, maxAgeMs) {
+    const ms = Date.parse((data && data.fetched_utc) || "");
+    return !Number.isNaN(ms) && (Date.now() - ms) < maxAgeMs;
+  }
+  // Merge tracks.json (near hubs, every poll) and national.json (regional circles, every 2nd poll). Near-hub data wins on a clash.
+  function rebuildFleet(fit) {
+    const list = [];
+    const seen = new Set();
+    const nearEvent = new Set((currentState.events || []).map((e) => String(e.airport || "").toUpperCase()));
+    const add = (a, t, maxSec, near) => {
+      if (!a.trail || !a.trail.length || seen.has(a.hex) || a.alt_baro === "ground") return;
+      const alt = typeof a.alt_baro === "number" ? a.alt_baro : parseFloat(a.alt_baro);
+      seen.add(a.hex);
+      // score: airborne above 10,000 ft first, then the longest trails
+      const score = (alt >= 10000 ? 1000 : 0) + Math.min(TRAIL_MAX, a.trail.length) * 20 + (isFinite(alt) ? Math.min(alt, 40000) / 4000 : 0);
+      list.push({ hex: a.hex, alt: a.alt_baro, gs: a.gs, track: a.track, trail: a.trail, t: t, maxSec: maxSec, near: near, score: score });
+    };
+    if (tracksFresh()) {
+      const t0 = Date.parse(tracksData.fetched_utc) / 1000;
+      for (const ap of tracksData.airports) {
+        if (!nearEvent.has(String(ap.code || "").toUpperCase())) continue;
+        for (const a of ap.aircraft || []) add(a, t0, 60, true);
+      }
+    }
+    if (nationalData && fleetFresh(nationalData, 20 * 60 * 1000)) {
+      const interval = Math.max(10, nationalData.interval_s || 120);
+      for (const a of nationalData.aircraft || []) add(a, a.t, interval, false);
+    }
+    list.sort((x, y) => y.score - x.score);
+    const picked = list.filter((a) => a.near).slice(0, NEAR_EVENT_MAX);
+    for (const a of list) { if (picked.length >= MAX_DRAWN) break; if (!a.near) picked.push(a); }
+    const next = new Map();
+    for (const a of picked) {
+      const old = fleet.get(a.hex);
+      const trail = Cine.capTrail(a.trail, TRAIL_MAX);
+      const last = trail[trail.length - 1];
+      const rec = {
+        hex: a.hex, band: Cine.altBand(a.alt), gs: typeof a.gs === "number" ? a.gs : 0,
+        track: typeof a.track === "number" ? a.track : NaN, t: a.t, maxSec: a.maxSec,
+        lon: last[0], lat: last[1],
+        fitTrail: trail.map((p) => projectWith(fit, p[0], p[1])),
+        disp: null, off: [0, 0], sp: [],
+      };
+      if (old && old.disp) {            // keep the picture continuous: fade the jump to the new fix over ~0.7 s
+        const tgt = fleetTarget(rec, Date.now() / 1000, fit);
+        rec.off = [old.disp[0] - tgt[0], old.disp[1] - tgt[1]];
+        if (Math.hypot(rec.off[0], rec.off[1]) > 60) rec.off = [0, 0];
+      }
+      next.set(a.hex, rec);
+    }
+    fleet.clear();
+    for (const [k, v] of next) fleet.set(k, v);
+  }
+  function fleetTarget(rec, nowS, fit) {
+    if (rec.band === "ground") return projectWith(fit, rec.lon, rec.lat);
+    const p = Cine.deadReckon(rec.lat, rec.lon, rec.track, rec.gs, nowS - rec.t, rec.maxSec);
+    return projectWith(fit, p[1], p[0]);
+  }
+
+  const BANDS = ["low", "mid", "high"];
+  const LEVELS = 8;
+  // Trails are smooth curves: each fix is a control point, each piece runs from the midpoint before it to the midpoint after it.
+  // Pieces are grouped by band and fade level so a whole level is one stroke. Ground aircraft are not drawn on the national map.
+  function drawFleet(ctx, view, fit, u, dt, nowS) {
+    for (const b of BANDS) {
+      const arr = segBuckets[b] || (segBuckets[b] = []);
+      for (let l = 0; l < LEVELS; l++) { if (!arr[l]) arr[l] = []; arr[l].length = 0; }
+    }
+    const heads = [];
+    const decay = Math.exp(-dt / 0.7);
+    for (const rec of fleet.values()) {
+      const tgt = fleetTarget(rec, nowS, fit);
+      rec.off[0] *= decay; rec.off[1] *= decay;
+      const X = tgt[0] + rec.off[0], Y = tgt[1] + rec.off[1];
+      rec.disp = [X, Y];
+      const head = view.pt(X, Y);
+      if (head[0] < -20 || head[0] > paneRect.w + 20 || head[1] < -20 || head[1] > paneRect.h + 20) continue;
+      if (rec.band === "ground") continue;
+      const pts = rec.sp; pts.length = 0;
+      for (let i = 0; i < rec.fitTrail.length; i++) pts.push(view.pt(rec.fitTrail[i][0], rec.fitTrail[i][1]));
+      pts.push(head);
+      const m = pts.length;
+      const bucket = segBuckets[rec.band];
+      for (let i = 0; i < m - 1; i++) {
+        // piece i ends at the midpoint after pts[i]; the last piece ends at the head
+        const p = pts[i], n = pts[i + 1];
+        const x0 = i === 0 ? p[0] : (pts[i - 1][0] + p[0]) / 2, y0 = i === 0 ? p[1] : (pts[i - 1][1] + p[1]) / 2;
+        const x1 = (p[0] + n[0]) / 2, y1 = (p[1] + n[1]) / 2;
+        const lvl = Math.max(0, Math.min(LEVELS - 1, Math.floor(((i + 1) / (m - 1)) * LEVELS - 0.001)));
+        if (i === m - 2) bucket[lvl].push(x0, y0, p[0], p[1], n[0], n[1]);
+        else bucket[lvl].push(x0, y0, p[0], p[1], x1, y1);
+      }
+      heads.push([rec.band, head[0], head[1]]);
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 1.6 * u;
+    for (const b of BANDS) {
+      ctx.strokeStyle = Cine.BAND_COLORS[b];
+      for (let l = 0; l < LEVELS; l++) {
+        const q = segBuckets[b][l];
+        if (!q.length) continue;
+        ctx.globalAlpha = 0.07 + 0.5 * Math.pow(l / (LEVELS - 1), 1.3);
+        ctx.beginPath();
+        for (let i = 0; i < q.length; i += 6) { ctx.moveTo(q[i], q[i + 1]); ctx.quadraticCurveTo(q[i + 2], q[i + 3], q[i + 4], q[i + 5]); }
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 0.95;
+    const hs = 5 * u;
+    for (const h of heads) ctx.drawImage(headSprite(h[0]), h[1] - hs / 2, h[2] - hs / 2, hs, hs);
+    ctx.restore();
+  }
+
+  // ---------- AN11: times, weather, storms, holding ----------
+  const ZABBR = { "America/New_York": "ET", "America/Detroit": "ET", "America/Chicago": "CT", "America/Denver": "MT", "America/Boise": "MT", "America/Phoenix": "MT", "America/Los_Angeles": "PT", "America/Anchorage": "AKT", "Pacific/Honolulu": "HT" };
+  const MON3 = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  // 12-hour am/pm in the airport's own zone; a date only when it is not today there. Never UTC or Z.
+  function whenShort(ms, tz) {
+    tz = tz || "America/New_York";
+    try {
+      const d = new Date(ms), f = (o) => new Intl.DateTimeFormat("en-US", Object.assign({ timeZone: tz }, o));
+      const t = f({ hour: "numeric", minute: "2-digit", hour12: true }).format(d).toLowerCase().replace(/\s/g, " ");
+      const day = (x) => f({ year: "numeric", month: "numeric", day: "numeric" }).format(x);
+      return (day(d) !== day(new Date()) ? f({ month: "short", day: "numeric" }).format(d) + ", " : "") + t + " " + (ZABBR[tz] || "ET");
+    } catch (_) { return ""; }
+  }
+  // FAA closure text "Nov 14 at 14:15 UTC." -> ms (year nearest to now)
+  function faaWhen(text) {
+    const m = /([A-Za-z]{3})\s+(\d{1,2})\s+at\s+(\d{1,2}):(\d{2})\s*UTC/i.exec(text || "");
+    if (!m || MON3[m[1].toLowerCase()] === undefined) return null;
+    const now = Date.now(); let best = null;
+    for (const y of [new Date().getUTCFullYear() - 1, new Date().getUTCFullYear(), new Date().getUTCFullYear() + 1]) {
+      const c = Date.UTC(y, MON3[m[1].toLowerCase()], +m[2], +m[3], +m[4]);
+      if (best === null || Math.abs(c - now) < Math.abs(best - now)) best = c;
+    }
+    return best;
+  }
+  function endText(ev) {
+    const f = ev.fields || {};
+    if (ev.end_utc) return whenShort(Date.parse(ev.end_utc), ev.tz);
+    return tidyZones(f.end_time || "").replace(/\.$/, "");
+  }
+  function reopenText(ev) {
+    const f = ev.fields || {}, ms = faaWhen(f.reopen || f.reopens || "");
+    return ms ? whenShort(ms, ev.tz) : tidyZones(f.reopen || f.reopens || "").replace(/\.$/, "");
+  }
+  const ageMin = (iso) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+  const freshWithin = (d, ms) => !!(d && d.fetched_utc && Date.now() - Date.parse(d.fetched_utc) < ms && Date.now() - Date.parse(d.fetched_utc) > -60000);
+  const wxFresh = () => freshWithin(wxData, 60 * 60 * 1000);
+  const stormsFresh = () => freshWithin(stormsData, 90 * 60 * 1000);
+  const nhcFresh = () => freshWithin(nhcData, 2 * 3600 * 1000);
+  function wxFor(code) {
+    if (!wxFresh() || !wxData.hubs) return null;
+    const h = wxData.hubs[String(code || "").toUpperCase()];
+    return h && h.obs_utc && ageMin(h.obs_utc) <= 90 ? h : null;
+  }
+  function wxColor(h) {
+    if (h.cat === "LIFR") return "#d946ef";
+    if (h.cat === "IFR") return "#ef4444";
+    if (h.next3h_cat === "LIFR") return "#d946ef";
+    if (h.next3h_cat === "IFR") return "#ef4444";
+    return "#fbbf24";
+  }
+  function wxLine(code) {
+    const h = wxFor(code);
+    if (!h || !h.now_text) return "";
+    let t = "Weather: " + h.now_text + " now";
+    if (h.next3h_text) t += " · forecast: " + h.next3h_text;
+    return t + " · aviationweather.gov · " + ageMin(h.obs_utc) + " min ago";
+  }
+  function holdFor(code) {
+    const h = currentState.holding && currentState.holding[String(code || "").toUpperCase()];
+    return h && h.count >= 3 && h.as_of_utc && ageMin(h.as_of_utc) <= 25 ? h : null;
+  }
+  function holdLine(code, tz) {
+    const h = holdFor(code);
+    return h ? "Aircraft holding nearby: " + h.count + " (adsb.lol, as of " + whenShort(Date.parse(h.as_of_utc), tz) + ")" : "";
+  }
+  const SPC_STYLE = {
+    TSTM: ["rgba(110, 170, 130, 0.10)", "rgba(150, 205, 165, 0.30)"], MRGL: ["rgba(34, 197, 94, 0.15)", "rgba(74, 222, 128, 0.55)"],
+    SLGT: ["rgba(250, 204, 21, 0.17)", "rgba(250, 204, 21, 0.65)"], ENH: ["rgba(249, 115, 22, 0.21)", "rgba(251, 146, 60, 0.75)"],
+    MDT: ["rgba(239, 68, 68, 0.25)", "rgba(248, 113, 113, 0.80)"], HIGH: ["rgba(217, 70, 239, 0.28)", "rgba(232, 121, 249, 0.85)"],
+  };
+  function stormsAnyDrawn() {
+    if (!stormsFresh()) return false;
+    const spc = stormsData.spc && stormsData.spc.areas || [];
+    return spc.some((a) => a.label !== "TSTM") || !!(stormsData.spc && spc.length) || liveSigmets().length > 0;
+  }
+  function liveSigmets() {
+    return ((stormsData && stormsData.sigmets) || []).filter((x) => !x.valid_to_utc || Date.parse(x.valid_to_utc) > Date.now());
+  }
+  // Drawn into the cached static layer (so it shares the map's projection, tilt and camera): under the trails, over land and radar.
+  function drawStorms(g, fit) {
+    if (!stormsFresh()) return;
+    g.save(); g.scale(SS, SS); g.lineJoin = "round";
+    for (const area of (stormsData.spc && stormsData.spc.areas) || []) {
+      const st = SPC_STYLE[area.label]; if (!st) continue;
+      g.beginPath();
+      for (const ring of area.rings) {
+        for (let i = 0; i < ring.length; i++) { const q = projectWith(fit, ring[i][0], ring[i][1]); if (i === 0) g.moveTo(q[0], q[1]); else g.lineTo(q[0], q[1]); }
+        g.closePath();
+      }
+      g.fillStyle = st[0]; g.fill("evenodd");
+      g.strokeStyle = st[1]; g.lineWidth = 1; g.stroke();
+    }
+    g.setLineDash([7, 5]); g.strokeStyle = "rgba(239, 68, 68, 0.95)"; g.lineWidth = 2;
+    for (const sg of liveSigmets()) {
+      g.beginPath();
+      sg.coords.forEach((c, i) => { const q = projectWith(fit, c[0], c[1]); if (i === 0) g.moveTo(q[0], q[1]); else g.lineTo(q[0], q[1]); });
+      if (sg.coords.length >= 3) g.closePath();
+      g.stroke();
+    }
+    g.restore();
+  }
+  function drawRecycle(ctx, cx, cy, r, color) {   // small circular arrow
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI * 0.35, Math.PI * 1.45); ctx.stroke();
+    const a = Math.PI * 1.45, ex = cx + r * Math.cos(a), ey = cy + r * Math.sin(a);
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + r * 0.9, ey - r * 0.1); ctx.lineTo(ex + r * 0.1, ey - r * 0.95); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  function refreshKey(flags) {
+    for (const k of Object.keys(flags)) {
+      if (keyFlags[k] !== flags[k]) { keyFlags[k] = flags[k]; const el = document.getElementById("k-" + k); if (el) el.classList.toggle("off", !flags[k]); }
+    }
+  }
+  function refreshCredits() {
+    const el = document.getElementById("credits"); if (!el) return;
+    const parts = ["FAA · NWS · adsb.lol (ODbL) · TSA · BTS · Radar: NOAA MRMS · map: Natural Earth"];
+    if (wxFresh()) parts.push("Weather: aviationweather.gov");
+    if (stormsFresh() && stormsAnyDrawn()) parts.push("Storms: NOAA SPC, aviationweather.gov");
+    if (nhcFresh() && (nhcData.storms || []).length) parts.push("Hurricanes: NOAA NHC");
+    const t = parts.join(" · ");
+    if (el.textContent !== t) el.textContent = t;
+  }
+  // Highway camera still, only during that airport's spotlight, only when the desk wrote it under 15 min ago.
+  function camFor(code) {
+    const list = camsData && camsData[code];
+    if (!Array.isArray(list)) return null;
+    for (const c of list) { if (c.fetched_utc && ageMin(c.fetched_utc) <= 15 && Date.now() - Date.parse(c.fetched_utc) > -60000) return c; }
+    return null;
+  }
+  function updateCam() {
+    const el = document.getElementById("cam-pip"); if (!el) return;
+    const c = spot && spot.code ? camFor(spot.code) : null;
+    if (!c) { el.classList.add("off"); camShownCode = null; return; }
+    const img = document.getElementById("cam-img"), src = baseDir + c.file + "?v=" + encodeURIComponent(c.fetched_utc);
+    if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+    const name = CAM_NAMES[spot.code] || NAMES[spot.code] || spot.name || spot.code;
+    const prov = c.provider || "Caltrans";
+    document.getElementById("cam-cap").textContent = "Highway camera near " + name + " · " + prov + " · " + ageMin(c.fetched_utc) + " min ago";
+    el.classList.remove("off");
+    camShownProv[prov] = true; camShownCode = spot.code;
+  }
+  window.setInterval(refreshCredits, 2000);
+
+  // ---------- spotlight ----------
+  function stateNames() {
+    for (const t of currentState.board || []) NAMES[t.code] = t.name;
+    return NAMES;
+  }
+  function startSpotlight(target) {
+    if (!target) return false;
+    spot = { code: target.code, lat: target.lat, lon: target.lon, name: target.name, reason: target.reason, start: performance.now() };
+    showLowerThird(target);
+    return true;
+  }
+  // "2 hours and 18 minutes" -> "2 h 18 min"
+  function shortDur(t) {
+    const h = /(\d+)\s*hours?/i.exec(t || ""), m = /(\d+)\s*minutes?/i.exec(t || "");
+    if (!h && !m) return String(t || "").trim();
+    return (h ? h[1] + " h" : "") + (h && m ? " " : "") + (m ? m[1] + " min" : "");
+  }
+  function utcClock(text) {
+    const m = /(\d{1,2}):(\d{2})\s*UTC/i.exec(text || "");
+    return m ? m[1].padStart(2, "0") + ":" + m[2] + " UTC" : "";
+  }
+  function eventSources(ev) {
+    const out = [];
+    for (const src of ev.sources && ev.sources.length ? ev.sources : [ev.source || "FAA"]) {
+      const k = String(src).split(":")[0].trim();
+      if (k && out.indexOf(k) < 0) out.push(k);
+    }
+    return out.join(" + ");
+  }
+  // One plain line from the event's own fields; nothing is added that the feed did not say.
+  function eventLine(ev) {
+    const f = ev.fields || {};
+    const kind = String(ev.kind || "").toLowerCase();
+    const parts = [];
+    const reason = ev.reason ? String(ev.reason).toLowerCase() : "";
+    if (kind === "ground_stop") {
+      parts.push("Ground stop");
+      if (reason) parts.push(reason);
+      const until = endText(ev);
+      if (until) parts.push("until " + until);
+    } else if (kind === "ground_delay") {
+      parts.push("Ground delay");
+      if (reason) parts.push(reason);
+      if (f.avg) parts.push("avg " + shortDur(f.avg));
+    } else if (kind === "closure") {
+      parts.push("Closed");
+      const re = reopenText(ev);
+      if (re) parts.push("reopens " + re);
+    } else {
+      parts.push((f.direction ? f.direction + " delays" : "Delay"));
+      if (reason) parts.push(reason);
+      const rng = f.max ? "up to " + shortDur(f.max) : (f.min ? "from " + shortDur(f.min) : "");
+      if (rng) parts.push(rng);
+    }
+    const src = eventSources(ev);
+    if (src) parts.push(src);
+    return parts.join(" · ");
+  }
+  function showLowerThird(target) {
+    const el = document.getElementById("lower-third");
+    if (!el) return;
+    const ev = (currentState.events || []).find((e) => String(e.airport).toUpperCase() === target.code && String(e.kind).toLowerCase() === target.kind) || {};
+    const name = ev.display || target.name || target.code;
+    const color = COLORS[target.kind] || "#38bdf8";
+    el.style.setProperty("--lt", color);
+    document.getElementById("lt-name").innerHTML = '<span class="lt-code">' + escapeHtml(target.code) + "</span> · " + escapeHtml(name);
+    document.getElementById("lt-line").textContent = eventLine(ev) || target.reason;
+    const wl = wxLine(target.code), hl = holdLine(target.code, ev.tz);
+    document.getElementById("lt-wx").textContent = wl; document.getElementById("lt-wx").style.display = wl ? "" : "none";
+    document.getElementById("lt-hold").textContent = hl; document.getElementById("lt-hold").style.display = hl ? "" : "none";
+    el.classList.remove("off");
+    el.parentElement.classList.add("spot-on");
+  }
+  function hideLowerThird() { const b = document.getElementById("lower-third"); if (b) { b.classList.add("off"); b.parentElement.classList.remove("spot-on"); } }
+  // spotlight("JFK") eases to that airport if it has an active event; spotlight() picks the worst event.
+  function spotlight(code) {
+    const names = stateNames();
+    let events = currentState.events || [];
+    if (code) events = events.filter((e) => String(e.airport).toUpperCase() === String(code).toUpperCase());
+    return startSpotlight(Cine.pickSpotlight(events, names));
+  }
+  window.spotlight = spotlight;
+  // Map key: visible 20 s, then hidden until the next minute.
+  (function keyCycle() {
+    const k = document.getElementById("map-key"); if (!k) return;
+    k.classList.remove("dim"); window.setTimeout(() => k.classList.add("dim"), 20000);
+    window.setTimeout(keyCycle, 60000);
+  })();
+  // Phase B: use the director's pick when it is fresh and still an active airport; else the plain rule.
+  let lastDirector = "";
+  async function autoSpotlight() {
+    if (spot) return;
+    spotlight();
+  }
+
+  function cameraFor(w, h, nowMs) {
+    const t = nowMs / 1000;
+    // ken-burns: under 3% zoom and a few pixels of pan
+    const flat = isFlat();
+    const base = flat ? { z: 1, fx: w / 2, fy: h / 2 } : { z: 1.015 + 0.012 * Math.sin(t * 2 * Math.PI / 70), fx: w / 2 + 7 * Math.sin(t * 2 * Math.PI / 95), fy: h / 2 + 4 * Math.cos(t * 2 * Math.PI / 83) };
+    let cam = base;
+    if (spot && spot.fit) {
+      const el = (performance.now() - spot.start) / 1000;
+      if (Cine.spotlightOver(el, SPOT_HOLD_UNTIL, SPOT_OUT)) {
+        spot = null;
+        hideLowerThird();
+      } else {
+        if (el >= SPOT_HOLD_UNTIL - 0.3) hideLowerThird();
+        const k = Cine.spotlightK(el, SPOT_IN, SPOT_HOLD_UNTIL, SPOT_OUT);
+        if (!flat) cam = { z: base.z + (SPOT_ZOOM - base.z) * k, fx: base.fx + (spot.fit[0] - base.fx) * k, fy: base.fy + (spot.fit[1] - base.fy) * k };
+      }
+    }
+    // keep the view inside the cached map layer
+    const hw = w / (2 * cam.z), hh = h / (2 * cam.z);
+    cam.fx = Math.max(hw, Math.min(w - hw, cam.fx));
+    cam.fy = Math.max(hh, Math.min(h - hh, cam.fy));
+    return cam;
+  }
+
+  function computeMarkers(fit) {
+    const events = currentState.events || [];
+    const markers = [];
+    for (const ev of events) {
+      if (typeof ev.lat !== "number" || typeof ev.lon !== "number") continue;
+      if (ev.lat < 20 || ev.lat > 55 || ev.lon < -130 || ev.lon > -60) continue;
+      const pos = projectWith(fit, ev.lon, ev.lat);
+      const kind = String(ev.kind || "delay").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      const label = ev.airport || ((ev.fields && ev.fields.callsign) ? ev.fields.callsign : "7700");
+      markers.push({ ev, X: pos[0], Y: pos[1], px: 0, py: 0, kind, color: COLORS[kind] || "#eab308", label, prio: KIND_PRIORITY[kind] || 0 });
+    }
+    markers.sort((a, b) => a.prio - b.prio);
+    return markers;
+  }
+
+  // Label entries: every airport with an active event (status colour), the 12 busiest always, and the rest of the
+  // 30 busiest only when they fit without touching another label or marker.
+  const TOP12 = ["ATL", "DFW", "DEN", "ORD", "LAX", "JFK", "LAS", "MCO", "MIA", "CLT", "SEA", "PHX"];
+  function computeEntries(fit, markers) {
+    const entries = markers.map((m) => ({ code: m.label, X: m.X, Y: m.Y, color: m.color, tier: "event", m }));
+    const have = new Set(markers.map((m) => m.label));
+    const tiles = (currentState.board || []).filter((t) => typeof t.lat === "number" && typeof t.lon === "number" && !have.has(t.code));
+    const rank = (t) => { const k = TOP12.indexOf(t.code); return k < 0 ? 100 : k; };
+    tiles.sort((a, b) => rank(a) - rank(b));
+    for (const t of tiles) {
+      const q = projectWith(fit, t.lon, t.lat);
+      entries.push({ code: t.code, X: q[0], Y: q[1], color: "#e2e8f0", tier: TOP12.indexOf(t.code) >= 0 ? "top" : "rest", m: null });
+    }
+    return entries;
+  }
+  const LABEL_PX = { event: 20, top: 20, rest: 14 };
+
+  // Labels are placed once against the home view; each label then keeps its offset from its marker while the camera moves.
+  // Events and the top 12 always get a spot (with a leader line if they must move); the others are dropped when they would overlap.
+  function layoutLabels(ctx, entries, w, h, u, view, key) {
+    if (labelLayout && labelLayout.key === key) return labelLayout.items;
+    for (const e of entries) { const q = view.pt(e.X, e.Y); e.px = q[0]; e.py = q[1]; }
+    const placed = [];
+    const keyEl = document.getElementById("map-key");
+    if (keyEl) {      // labels keep out of the legend panel
+      const pr = document.querySelector(".map-pane").getBoundingClientRect(), kr = keyEl.getBoundingClientRect();
+      placed.push({ x: kr.left - pr.left, y: kr.top - pr.top, w: kr.width, h: kr.height });
+    }
+    const items = new Array(entries.length).fill(null);
+    const hitMarker = (bx, by, bw, bhh, skip) => {
+      for (let j = 0; j < entries.length; j++) {
+        const om = entries[j];
+        const r = (j === skip ? 7 : (om.tier === "event" ? 13 : 6)) * u;
+        const cx = Math.max(bx, Math.min(om.px, bx + bw));
+        const cy = Math.max(by, Math.min(om.py, by + bhh));
+        if (Math.hypot(cx - om.px, cy - om.py) < r) return true;
+      }
+      return false;
+    };
+    const hitLabel = (bx, by, bw, bhh) => {
+      const pad = 3 * u;
+      for (const o of placed) {
+        if (!(bx + bw + pad <= o.x || o.x + o.w + pad <= bx || by + bhh + pad <= o.y || o.y + o.h + pad <= by)) return true;
+      }
+      return false;
+    };
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      const px = LABEL_PX[e.tier] * u;
+      ctx.font = "800 " + px + "px system-ui, sans-serif";
+      const bw = Math.ceil(ctx.measureText(e.code).width) + 6 * u, bh = Math.ceil(px * 1.15);
+      const gap = (e.tier === "event" ? 12 : 8) * u;
+      // near candidates first (no leader), then farther ones with a leader line
+      const cands = [
+        [e.px + gap, e.py - bh / 2, false], [e.px - gap - bw, e.py - bh / 2, false],
+        [e.px - bw / 2, e.py - gap - bh, false], [e.px - bw / 2, e.py + gap, false],
+        [e.px + gap, e.py - gap - bh, false], [e.px - gap - bw, e.py - gap - bh, false],
+        [e.px + gap, e.py + gap, false], [e.px - gap - bw, e.py + gap, false],
+      ];
+      if (e.tier !== "rest") {
+        for (let step = 1; step <= 6; step++) {
+          const d = (gap + step * 17 * u);
+          cands.push([e.px + d, e.py - d, true], [e.px - d - bw, e.py - d, true], [e.px + d, e.py + d * 0.6, true], [e.px - d - bw, e.py + d * 0.6, true],
+                     [e.px + d, e.py - bh / 2, true], [e.px - d - bw, e.py - bh / 2, true]);
+        }
+      }
+      let chosen = null;
+      for (const [rx, ry, leader] of cands) {
+        const bx = Math.max(4, Math.min(w - bw - 4, rx));
+        const by = Math.max(4, Math.min(h - bh - 4, ry));
+        if (!hitLabel(bx, by, bw, bh) && !hitMarker(bx, by, bw, bh, i)) { chosen = { x: bx, y: by, w: bw, h: bh, leader }; break; }
+      }
+      if (!chosen && e.tier !== "rest") chosen = { x: Math.max(4, Math.min(w - bw - 4, e.px + gap)), y: Math.max(4, Math.min(h - bh - 4, e.py - bh / 2)), w: bw, h: bh, leader: false };
+      if (!chosen) continue;
+      placed.push(chosen);
+      items[i] = { ox: chosen.x - e.px, oy: chosen.y - e.py, w: chosen.w, h: chosen.h, leader: chosen.leader, px: px };
+    }
+    labelLayout = { key, items };
+    return items;
+  }
+
   function drawMap(nowMs) {
     const canvas = document.getElementById("us-map");
     if (!canvas) return;
+    const dtFrame = lastDrawTs ? Math.min(0.25, (nowMs - lastDrawTs) / 1000) : 0.016;
+    lastDrawTs = nowMs;
     const u = U();
-    const rect = canvas.getBoundingClientRect();
+    if (nowMs - paneRect.at > 500 || !paneRect.w) {
+      const rect = canvas.getBoundingClientRect();
+      paneRect = { w: Math.max(1, Math.round(rect.width)), h: Math.max(1, Math.round(rect.height)), at: nowMs };
+    }
+    const w = paneRect.w, h = paneRect.h;
     const dpr = window.devicePixelRatio || 1;
-    const w = Math.max(1, Math.round(rect.width));
-    const h = Math.max(1, Math.round(rect.height));
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
@@ -474,141 +1498,99 @@
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
-    ctx.strokeStyle = "rgba(38, 63, 108, 0.25)";
-    ctx.lineWidth = 1;
-    const gstep = 80 * u;
-    for (let gx = 0; gx < w; gx += gstep) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
-    for (let gy = 0; gy < h; gy += gstep) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
-
+    const bgKey = w + "x" + h;
+    if (!bgLayer || bgLayer.key !== bgKey) bgLayer = Object.assign({ key: bgKey }, buildBackground(w, h));
+    ctx.drawImage(bgLayer.bg, 0, 0);
     if (!(geoStates && projectedBounds)) { ctx.restore(); return; }
+    updateAirNote();
     const fit = fitFor(w, h, u);
 
-    ctx.fillStyle = "#112240";
-    ctx.strokeStyle = "#2b4778";
-    ctx.lineWidth = 1.25;
-    for (const feat of geoStates.features || []) {
-      if (!isMainland(feat)) continue;
-      for (const poly of polysOf(feat)) {
-        ctx.beginPath();
-        for (const ring of poly) {
-          for (let i = 0; i < ring.length; i++) {
-            const [px, py] = projectWith(fit, ring[i][0], ring[i][1]);
-            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-        }
-        ctx.fill();
-        ctx.stroke();
-      }
+    // 1. cached static layer (land, state lines, radar), warped into the tilt row by row
+    const stKey = [w, h, u, radarImg && radarImg.naturalWidth ? (radarMeta && radarMeta.fetched_utc) : "none", stormsFresh() ? stormsData.fetched_utc + liveSigmets().length : "none"].join("|");
+    if (!staticLayer || staticLayer.key !== stKey) staticLayer = { key: stKey, canvas: buildStatic(w, h, u, fit) };
+    const cam = cameraFor(w, h, nowMs);
+    if (spot && !spot.fit) { const p = projectWith(fit, spot.lon, spot.lat); spot.fit = p; }
+    const view = makeView(w, h, cam);
+    const tilt = view.tilt;
+    const src = staticLayer.canvas;
+    const sw = (w / cam.z) * SS, sx = (cam.fx - w / (2 * cam.z)) * SS;
+    ctx.imageSmoothingEnabled = true;
+    let prevDy = 1;
+    if (isFlat()) ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, w, h);
+    else for (let ys = 0; ys < h; ys++) {
+      const t = tilt.rowToT(ys + 0.5);
+      if (t === null) continue;
+      const t2 = tilt.rowToT(ys + 1.5);
+      const yv = h * (1 - t);
+      const dyv = t2 === null ? prevDy : Math.max(0.5, Math.abs(h * (1 - t2) - yv));
+      prevDy = dyv;
+      const Y = cam.fy + (yv - h / 2) / cam.z;
+      const sh = (dyv / cam.z) * SS;
+      const sy = (Y - dyv / cam.z / 2) * SS;
+      if (sy + sh < 0 || sy > src.height) continue;
+      const s = tilt.scale(t);
+      ctx.drawImage(src, sx, sy, sw, sh, (w / 2) * (1 - s), ys, w * s, 1);
+    }
+    ctx.drawImage(bgLayer.vignette, 0, 0);
+
+    // 2. airport glow by delay level; clear airports get a tiny dot
+    const markers = computeMarkers(fit);
+    const lit = new Set(markers.map((m) => m.label));
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const m of markers) {
+      const q = view.pt(m.X, m.Y);
+      m.px = q[0]; m.py = q[1];
+      const gk = GLOW_RGB[m.kind] ? m.kind : null;
+      if (!gk) continue;
+      let r = 40 * u, a = 0.8;
+      if (m.kind === "ground_stop") { const k = 0.5 + 0.5 * Math.sin(nowMs / 1000 * Math.PI); r = (40 + 22 * k) * u; a = 0.55 + 0.45 * k; }  // 2 s period
+      ctx.globalAlpha = a;
+      ctx.drawImage(glowSprite(gk), m.px - r, m.py - r, 2 * r, 2 * r);
+    }
+    ctx.restore();
+    // 3. aircraft: glowing heads, fading tails
+    const fk = (tracksData && tracksData.fetched_utc) + "|" + (nationalData && nationalData.fetched_utc) + "|" + w + "x" + h + "|" + (currentState.events || []).map((e) => e.airport).join(",");
+    if (!isFlat()) {
+      if (fk !== fleetKey) { fleetKey = fk; rebuildFleet(fit); }
+      drawFleet(ctx, view, fit, u, dtFrame, Date.now() / 1000);
+    } else fleetKey = "";
+
+    // 4. spotlight ring
+    if (spot && spot.fit) {
+      const q = view.pt(spot.fit[0], spot.fit[1]);
+      const ph = (nowMs % 1500) / 1500;
+      ctx.beginPath(); ctx.arc(q[0], q[1], (16 + ph * 24) * u, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(125, 211, 252, " + ((1 - ph) * 0.8).toFixed(3) + ")"; ctx.lineWidth = 2 * u; ctx.stroke();
     }
 
-    // radar under markers
-    if (radarImg && radarImg.naturalWidth) {
-      const key = [w, h, radarMeta && radarMeta.fetched_utc].join("|");
-      if (!radarCache || radarCache.key !== key) {
-        radarCache = { key, canvas: buildRadarCanvas(w, h, fit) };
-      }
-      ctx.globalAlpha = 0.85;
-      ctx.drawImage(radarCache.canvas, 0, 0, w, h);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = "rgba(43, 71, 120, 0.9)";
-      ctx.lineWidth = 0.8;
-      for (const feat of geoStates.features || []) {
-        if (!isMainland(feat)) continue;
-        for (const poly of polysOf(feat)) {
-          ctx.beginPath();
-          for (const ring of poly) {
-            for (let i = 0; i < ring.length; i++) {
-              const [px, py] = projectWith(fit, ring[i][0], ring[i][1]);
-              if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-          }
-          ctx.stroke();
-        }
-      }
+    // 5. markers and labels (upright, constant size)
+    const entries = computeEntries(fit, markers);
+    const lkey = w + "x" + h + "|" + Object.keys(keyFlags).map((k) => +keyFlags[k]).join("") + "|" + entries.map((e) => e.code + e.tier + Math.round(e.X) + "," + Math.round(e.Y)).join(";");
+    let items = null;
+    if (!labelLayout || labelLayout.key !== lkey) {
+      const home = makeView(w, h, { z: 1, fx: w / 2, fy: h / 2 });
+      items = layoutLabels(ctx, entries, w, h, u, home, lkey);
+    } else items = labelLayout.items;
+    for (const e of entries) { const q = view.pt(e.X, e.Y); e.px = q[0]; e.py = q[1]; }
+
+    // small dots for clear airports; the 12 busiest a little larger
+    for (const e of entries) {
+      if (e.tier === "event") continue;
+      ctx.beginPath(); ctx.arc(e.px, e.py, (e.tier === "top" ? 3.6 : 2.6) * u, 0, Math.PI * 2);
+      ctx.fillStyle = e.tier === "top" ? "rgba(226, 232, 240, 0.95)" : "rgba(148, 163, 184, 0.8)"; ctx.fill();
     }
-
-    const events = currentState.events || [];
-    const markers = [];
-    for (const ev of events) {
-      if (typeof ev.lat !== "number" || typeof ev.lon !== "number") continue;
-      if (ev.lat < 20 || ev.lat > 55 || ev.lon < -130 || ev.lon > -60) continue;
-      const pos = projectWith(fit, ev.lon, ev.lat);
-      const kind = String(ev.kind || "delay").trim().toLowerCase().replace(/[\s-]+/g, "_");
-      const label = ev.airport || ((ev.fields && ev.fields.callsign) ? ev.fields.callsign : "7700");
-      markers.push({ ev, px: pos[0], py: pos[1], kind, color: COLORS[kind] || "#eab308", label, prio: KIND_PRIORITY[kind] || 0 });
-    }
-    markers.sort((a, b) => a.prio - b.prio);
-
-    ctx.font = "700 " + (14 * u) + "px system-ui, sans-serif";
-    const placed = [];
-    const bh = 18 * u;
-    const hitMarker = (bx, by, bw, bhh, skip) => {
-      for (let j = 0; j < markers.length; j++) {
-        const om = markers[j];
-        const r = (j === skip ? 9 : 13) * u;
-        const cx = Math.max(bx, Math.min(om.px, bx + bw));
-        const cy = Math.max(by, Math.min(om.py, by + bhh));
-        if (Math.hypot(cx - om.px, cy - om.py) < r) return true;
-      }
-      return false;
-    };
-    const hitLabel = (bx, by, bw, bhh) => {
-      const pad = 4 * u;
-      for (const o of placed) {
-        if (!(bx + bw + pad <= o.x || o.x + o.w + pad <= bx || by + bhh + pad <= o.y || o.y + o.h + pad <= by)) return true;
-      }
-      return false;
-    };
-
-    for (let i = 0; i < markers.length; i++) {
-      const m = markers[i];
-      const bw = Math.ceil(ctx.measureText(m.label).width) + 8 * u;
-      let close = false;
-      for (let j = 0; j < markers.length; j++) {
-        if (i !== j && Math.hypot(m.px - markers[j].px, m.py - markers[j].py) < 30 * u) { close = true; break; }
-      }
-      const cands = [];
-      if (!close) cands.push([m.px + 12 * u, m.py - 9 * u, false]);
-      cands.push(
-        [m.px + 20 * u, m.py - 28 * u, true], [m.px - 20 * u - bw, m.py - 9 * u, true],
-        [m.px + 20 * u, m.py + 10 * u, true], [m.px - 20 * u - bw, m.py - 28 * u, true],
-        [m.px - 20 * u - bw, m.py + 10 * u, true], [m.px + 20 * u, m.py - 9 * u, true]
-      );
-      for (let step = 1; step <= 8; step++) {
-        const dy = step * 23 * u;
-        cands.push(
-          [m.px + 24 * u, m.py - 9 * u - dy, true], [m.px + 24 * u, m.py - 9 * u + dy, true],
-          [m.px - 24 * u - bw, m.py - 9 * u - dy, true], [m.px - 24 * u - bw, m.py - 9 * u + dy, true]
-        );
-      }
-      let chosen = null;
-      for (const [rx, ry, leader] of cands) {
-        const bx = Math.max(4, Math.min(w - bw - 4, rx));
-        const by = Math.max(4, Math.min(h - bh - 4, ry));
-        if (!hitLabel(bx, by, bw, bh) && !hitMarker(bx, by, bw, bh, i)) {
-          chosen = { x: bx, y: by, w: bw, h: bh, leader: leader || close, marker: m };
-          break;
-        }
-      }
-      if (!chosen) {
-        chosen = { x: Math.max(4, Math.min(w - bw - 4, m.px + 20 * u)), y: Math.max(4, Math.min(h - bh - 4, m.py - 9 * u + placed.length * 20 * u)), w: bw, h: bh, leader: true, marker: m };
-      }
-      placed.push(chosen);
-    }
-
-    for (const item of placed) {
-      if (!item.leader) continue;
-      const m = item.marker;
+    entries.forEach((e, i) => {
+      const it = items[i];
+      if (!it || !it.leader) return;
+      const x = e.px + it.ox, y = e.py + it.oy;
       ctx.beginPath();
-      ctx.moveTo(m.px, m.py);
-      ctx.lineTo(Math.max(item.x, Math.min(m.px, item.x + item.w)), Math.max(item.y, Math.min(m.py, item.y + item.h)));
+      ctx.moveTo(e.px, e.py);
+      ctx.lineTo(Math.max(x, Math.min(e.px, x + it.w)), Math.max(y, Math.min(e.py, y + it.h)));
       ctx.strokeStyle = "rgba(226, 232, 240, 0.78)";
       ctx.lineWidth = 1.25;
       ctx.stroke();
-    }
-
+    });
     for (const m of markers) {
       if (m.kind === "squawk7700") {
         const phase = (nowMs % 1800) / 1800;
@@ -622,20 +1604,73 @@
       ctx.beginPath(); ctx.arc(m.px, m.py, 6.5 * u, 0, Math.PI * 2); ctx.fillStyle = m.color; ctx.fill();
       ctx.lineWidth = 2; ctx.strokeStyle = "#ffffff"; ctx.stroke();
     }
-
-    ctx.font = "700 " + (14 * u) + "px system-ui, sans-serif";
-    for (const item of placed) {
-      const m = item.marker;
-      ctx.fillStyle = "rgba(7, 14, 28, 0.90)";
-      ctx.fillRect(item.x, item.y, item.w, item.h);
-      if (item.leader) {
-        ctx.strokeStyle = m.color; ctx.lineWidth = 1;
-        ctx.strokeRect(item.x + 0.5, item.y + 0.5, item.w - 1, item.h - 1);
+    ctx.lineJoin = "round";
+    const flags = { ifr: false, lifr: false, storm: false, hold: false, wx: false, hurr: false };
+    entries.forEach((e, i) => {
+      const it = items[i];
+      if (!it) return;
+      const x = e.px + it.ox, y = e.py + it.oy;
+      if (x + it.w < 0 || x > w || y + it.h < 0 || y > h) return;
+      ctx.font = "800 " + it.px + "px system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      const tx = x + 3 * u, ty = y + it.h / 2 + 1;
+      ctx.lineWidth = Math.max(3, it.px * 0.28);
+      ctx.strokeStyle = "rgba(3, 8, 18, 0.96)";
+      ctx.strokeText(e.code, tx, ty);
+      ctx.fillStyle = e.color;
+      ctx.fillText(e.code, tx, ty);
+      const wh = wxFor(e.code);
+      if (wh && wh.alert) {            // only hubs that are IFR/LIFR now or forecast IFR/LIFR/storms within 3 h
+        const cx = x + it.w + 5 * u, cy = y + it.h / 2, col = wxColor(wh), now = wh.cat === "IFR" || wh.cat === "LIFR";
+        ctx.beginPath(); ctx.arc(cx, cy, 4.5 * u, 0, Math.PI * 2);
+        if (now) { ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "#ffffff"; ctx.stroke(); }
+        else { ctx.fillStyle = "rgba(3, 8, 18, 0.9)"; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = col; ctx.stroke(); }
+        if (wh.cat === "LIFR" || wh.next3h_cat === "LIFR") flags.lifr = true;
+        if (wh.cat === "IFR" || wh.next3h_cat === "IFR") flags.ifr = true;
+        flags.wx = true;
       }
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillText(m.label, item.x + 4 * u, item.y + 14 * u);
+      const hd = holdFor(e.code);
+      if (hd) {
+        const hy = y + it.h + 8 * u;
+        drawRecycle(ctx, x + 6 * u, hy, 5.5 * u, "#fde68a");
+        ctx.font = "800 14px system-ui, sans-serif";
+        ctx.lineWidth = 4; ctx.strokeStyle = "rgba(3, 8, 18, 0.96)";
+        ctx.strokeText("holding " + hd.count, x + 15 * u, hy + 1);
+        ctx.fillStyle = "#fde68a"; ctx.fillText("holding " + hd.count, x + 15 * u, hy + 1);
+        flags.hold = true;
+      }
+    });
+    if (nhcFresh()) {
+      for (const st of nhcData.storms || []) {
+        const q = view.pt(...projectWith(fit, st.lon, st.lat));
+        if (q[0] < 0 || q[0] > w || q[1] < 0 || q[1] > h) continue;
+        ctx.save(); ctx.translate(q[0], q[1]);
+        ctx.beginPath(); ctx.arc(0, 0, 9 * u, 0, Math.PI * 2); ctx.fillStyle = "rgba(7, 14, 28, 0.85)"; ctx.fill();
+        ctx.strokeStyle = "#f0abfc"; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath(); for (let a = 0; a < 9; a += 0.2) { const rr = 1.2 + a * 0.75; ctx.lineTo(rr * Math.cos(a) * u, rr * Math.sin(a) * u); } ctx.stroke();
+        ctx.restore();
+        ctx.font = "800 15px system-ui, sans-serif"; ctx.textBaseline = "middle";
+        const t1 = st.name || "Storm", t2 = "NHC · advisory " + (st.advisory || "n/a");
+        const bx = Math.min(w - 150, q[0] + 14 * u);
+        ctx.lineWidth = 4; ctx.strokeStyle = "rgba(3, 8, 18, 0.96)";
+        ctx.strokeText(t1, bx, q[1] - 8); ctx.fillStyle = "#f5d0fe"; ctx.fillText(t1, bx, q[1] - 8);
+        ctx.font = "700 14px system-ui, sans-serif";
+        ctx.strokeText(t2, bx, q[1] + 9); ctx.fillStyle = "#fae8ff"; ctx.fillText(t2, bx, q[1] + 9);
+        flags.hurr = true;
+      }
     }
+    flags.storm = stormsAnyDrawn();
+    refreshKey(flags);
+    ctx.textBaseline = "alphabetic";
     ctx.restore();
+
+    // the inset reads layout and redraws a second canvas: 4 times a second is enough
+    if (nowMs - lastInsetAt > 250) {
+      lastInsetAt = nowMs;
+      const hm = entries.filter((e) => e.tier !== "rest").map((e) => ({ px: e.px, py: e.py, kind: e.m ? e.m.kind : "top" }));
+      placeInset(w, h, u, fit, hm);
+      drawInset(u);
+    }
   }
 
   // ---------- text helpers ----------
@@ -663,7 +1698,7 @@
     const f = ev.fields || {};
     const parts = [];
     if (ev.kind === "ground_stop") {
-      if (f.end_time) parts.push("until " + tidyZones(f.end_time).replace(/\.$/, ""));
+      if (f.end_time || ev.end_utc) parts.push("until " + endText(ev));
       if (ev.reason) parts.push(ev.reason);
     } else if (ev.kind === "ground_delay") {
       if (f.avg) parts.push("avg " + f.avg);
@@ -676,7 +1711,7 @@
       if (f.trend) parts.push(f.trend);
       if (ev.reason && !ev.reason.toUpperCase().startsWith("OTHER:")) parts.push(ev.reason);
     } else if (ev.kind === "closure") {
-      if (f.reopen) parts.push("reopen " + tidyZones(f.reopen));
+      if (f.reopen) parts.push("reopens " + reopenText(ev));
     } else if (ev.kind === "squawk7700") {
       if (f.callsign) parts.push("callsign " + f.callsign);
       if (f.alt !== null && f.alt !== undefined && f.alt !== "") parts.push(f.alt + " ft");
@@ -706,7 +1741,7 @@
 
   function renderDisruptions(events) {
     const listEl = document.getElementById("disruptions-list");
-    const key = JSON.stringify(events);
+    const key = JSON.stringify(events) + "|" + events.map((e) => wxLine(e.airport) + holdLine(e.airport, e.tz)).join("|");
     if (key === lastCardsKey) return;
     lastCardsKey = key;
     if (events.length === 0) {
@@ -737,6 +1772,8 @@
               countdownHtml(ev) +
             '</div>' +
           '</div>' +
+          (wxLine(code) ? '<div class="event-wx">' + escapeHtml(wxLine(code)) + '</div>' : '') +
+          (holdLine(code, ev.tz) ? '<div class="event-hold">' + escapeHtml(holdLine(code, ev.tz)) + '</div>' : '') +
           '<div class="event-sources">' + sourcesHtml(ev) + '</div>' +
         '</div>';
     }
@@ -784,60 +1821,342 @@
   }
 
   // ---------- board ----------
+  const TREND_MARK = { up: "↑", down: "↓", flat: "→" };
+  const TREND_WORD = { up: "worse than an hour ago", down: "better than an hour ago", flat: "about the same as an hour ago" };
   function renderBoard(board) {
     const el = document.getElementById("board");
-    const html = (board || []).map((t) =>
-      '<div class="tile ' + escapeHtml(t.level) + '" title="' + escapeHtml(t.kind || "no FAA event") + '"><b>' + escapeHtml(t.code) + '</b><span>' + escapeHtml(t.name) + '</span></div>'
-    ).join("");
-    if (el.dataset.k !== html) { el.dataset.k = html; el.innerHTML = html; }
+    const tiles = board || [];
+    if (el.dataset.n !== String(tiles.length) || tiles.some((t, i) => !el.children[i] || el.children[i].dataset.code !== t.code)) {
+      el.dataset.n = String(tiles.length);
+      el.innerHTML = tiles.map((t) => '<div class="tile" data-code="' + escapeHtml(t.code) + '"><i class="bar"></i><b>' + escapeHtml(t.code) +
+        '</b><span class="mins"></span><span class="tr"></span></div>').join("");
+    }
+    tiles.forEach((t, i) => {
+      const d = el.children[i];
+      const st = t.status || (t.level === "red" ? "red" : t.level === "amber" ? "orange" : "green");
+      const fill = typeof t.fill === "number" ? t.fill : (st === "green" ? 0 : st === "red" ? 1 : 0.3);
+      const cls = "tile st-" + st;
+      if (d.className !== cls) d.className = cls;
+      d.title = t.code + " · " + (t.text || "clear") + (t.trend ? " · " + TREND_WORD[t.trend] : "") + " · FAA";
+      d.firstChild.style.width = (fill * 100).toFixed(1) + "%";
+      const m = d.querySelector(".mins");
+      const txt = t.text || (st === "green" ? "clear" : "");
+      if (m.textContent !== txt) {
+        const had = m.textContent !== "";
+        m.textContent = txt;
+        if (had) { m.classList.remove("flip"); void m.offsetWidth; m.classList.add("flip"); }
+      }
+      const tr = d.querySelector(".tr");
+      const mark = t.trend && !(st === "green" && t.trend === "flat") ? TREND_MARK[t.trend] : "";
+      if (tr.textContent !== mark) tr.textContent = mark;
+      tr.className = "tr" + (mark ? " " + t.trend : "");
+    });
+  }
+  function updateBoardNote() {
+    const el = document.getElementById("board-note");
+    if (!el) return;
+    let age = "";
+    if (currentState.updated_utc) {
+      const mins = Math.max(0, Math.round((Date.now() - Date.parse(currentState.updated_utc)) / 60000));
+      age = " · FAA, " + (mins < 1 ? "just now" : mins + " min ago");
+    }
+    const hasTrend = (currentState.board || []).some((t) => t.trend);
+    const txt = "Bar = FAA average delay, full at 2 h" + (hasTrend ? " · arrow vs 1 h ago" : "") + age;
+    if (el.textContent !== txt) el.textContent = txt;
   }
 
   // ---------- TSA ----------
   function fmtDate(iso) {
     return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric", year: "numeric" }).format(new Date(iso + "T00:00:00Z"));
   }
-  function renderTsa(t) {
-    const body = document.getElementById("tsa-body");
-    if (!t || !t.latest_count) return;
-    document.getElementById("tsa-date").textContent = fmtDate(t.latest_date);
+  const CARD_SEC = 25;
+  const AIR_PERIOD = 120, AIR_SHOW = 20;
+  const forcedCard = parseInt(params.get("card") || "", 10) || 0;   // review: ?card=1..5
+  const forcedBoard = params.get("board") || "";                    // review: ?board=airlines|tiles
+  let tsaData = null, btsData = null, tsaPtr = 0, tsaCards = [];
+
+  const fmtN = (n) => n.toLocaleString("en-US");
+  const MINUS = "−";
+  const sgn = (v) => (v >= 0 ? "+" : MINUS) + Math.abs(v).toFixed(1);
+  const fmtMD = (iso) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric" }).format(new Date(iso + "T00:00:00Z"));
+  const fmtWMD = (iso) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }).format(new Date(iso + "T00:00:00Z"));
+  const fmtDay2 = (iso) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short" }).format(new Date(iso + "T00:00:00Z")).slice(0, 2);
+  const fmtDayN = (iso) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "narrow" }).format(new Date(iso + "T00:00:00Z"));
+  const yearOf = (iso) => iso.slice(0, 4);
+
+  function lineChart(rows) {
+    const W = 220, H = 72, pad = 5;
+    const vals = rows.flatMap((r) => [r.count, r.ly_count]);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const x = (i) => pad + i * (W - 2 * pad) / (rows.length - 1);
+    const y = (v) => H - pad - (v - lo) / ((hi - lo) || 1) * (H - 2 * pad);
+    const pts = (k) => rows.map((r, i) => x(i).toFixed(1) + "," + y(r[k]).toFixed(1)).join(" ");
+    const last = rows.length - 1;
+    return '<svg class="tsa-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="7-day TSA counts, this year and last year">' +
+      '<polyline class="l-ly" points="' + pts("ly_count") + '"/><polyline class="l-now" points="' + pts("count") + '"/>' +
+      '<circle class="d-now" r="3" cx="' + x(last).toFixed(1) + '" cy="' + y(rows[last].count).toFixed(1) + '"/></svg>';
+  }
+
+  function etToday() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());  // YYYY-MM-DD
+  }
+  function daysBetween(aIso, bIso) { return Math.round((Date.parse(bIso + "T00:00:00Z") - Date.parse(aIso + "T00:00:00Z")) / 86400000); }
+
+  // each card: {head: header-right source text, html}
+  function card1(t) {
     let ly = '<div class="tsa-sub">Same weekday last year: no data</div>';
     if (t.ly_count) {
       const pct = (t.latest_count - t.ly_count) / t.ly_count * 100;
-      const sign = pct >= 0 ? "+" : "−";
-      ly = '<div class="tsa-ly"><div><div class="tsa-label">Same weekday last year · ' + escapeHtml(fmtDate(t.ly_date)) + '</div>' +
-        '<div class="tsa-ly-num">' + t.ly_count.toLocaleString("en-US") + '</div></div>' +
-        '<div class="tsa-pct' + (pct < 0 ? " neg" : "") + '">' + sign + Math.abs(pct).toFixed(1) + '%</div></div>';
+      ly = '<div class="tsa-ly"><div><div class="tsa-label">Last year · TSA · ' + escapeHtml(fmtDate(t.ly_date)) + '</div>' +
+        '<div class="tsa-ly-num">' + fmtN(t.ly_count) + '</div></div>' +
+        '<div class="tsa-pct' + (pct < 0 ? " neg" : "") + '">' + (pct >= 0 ? "+" : MINUS) + Math.abs(pct).toFixed(1) + '%</div></div>';
     }
-    body.innerHTML = '<div class="tsa-big">' + t.latest_count.toLocaleString("en-US") + '</div><div class="tsa-sub">people screened at checkpoints</div>' + ly;
+    return { head: "TSA · " + fmtMD(t.latest_date) + ", " + yearOf(t.latest_date),
+      html: '<div class="tsa-big">' + fmtN(t.latest_count) + '</div><div class="tsa-sub">people screened at checkpoints</div>' + ly };
+  }
+  function card2(t) {
+    if (!t.last7 || t.total7 == null) return null;
+    const a = t.last7[0].date, b = t.last7[t.last7.length - 1].date;
+    const pct = t.pct7;
+    return { head: "TSA · " + fmtMD(a) + " to " + fmtMD(b) + ", " + yearOf(b),
+      html: '<div class="tsa-row"><div class="tsa-chart-box">' + lineChart(t.last7) +
+        '<div class="tsa-days">' + t.last7.map((r) => "<span>" + escapeHtml(fmtDayN(r.date)) + "</span>").join("") + '</div></div>' +
+        '<div class="tsa-side"><div class="tsa-line">7-day total</div><div class="tsa-mid">' + fmtN(t.total7) + '</div>' +
+        '<div class="tsa-line">last year ' + fmtN(t.ly_total7) + '</div>' +
+        '<div class="tsa-pct' + (pct < 0 ? " neg" : "") + '">' + sgn(pct) + '%</div>' +
+        '<div class="tsa-line"><span class="key-now">&#9472; ' + yearOf(b) + '</span> <span class="key-ly">&#9548; ' + (parseInt(yearOf(b), 10) - 1) + '</span></div></div></div>' };
+  }
+  function card3(t) {
+    if (!t.record || !t.latest_pct_of_record) return null;
+    const ys = t.record.years_scanned || [];
+    return { head: "TSA · " + (ys.length ? ys[0] + " to " + ys[ys.length - 1] : "record"),
+      html: '<div class="tsa-big">' + t.latest_pct_of_record.toFixed(1) + '%</div>' +
+        '<div class="tsa-sub">of the record (' + fmtN(t.record.count) + ' on ' + escapeHtml(fmtDate(t.record.date)) + ')</div>' +
+        '<div class="tsa-ly"><div><div class="tsa-label">Latest day · TSA · ' + escapeHtml(fmtDate(t.latest_date)) + '</div>' +
+        '<div class="tsa-ly-num">' + fmtN(t.latest_count) + '</div></div></div>' };
+  }
+  function card4(t) {
+    const h = holidayState;
+    if (!h || !h.days || !h.days.length) return null;
+    const left = daysBetween(etToday(), h.thanksgiving);
+    const when = left > 1 ? left + " days left" : left === 1 ? "tomorrow" : left === 0 ? "today" : Math.abs(left) + " days ago";
+    const maxv = Math.max(...h.days.map((d) => Math.max(d.ly_count || 0, d.count || 0)));
+    const ht = (v) => ((v / maxv) * 100).toFixed(1) + "%";
+    const cols = h.days.map((d) => {
+      const gold = d.is_busiest || d.is_record;
+      const tyBar = d.count == null ? '<div class="hol-b none"></div>' : '<div class="hol-b ty" style="height:' + ht(d.count) + '"></div>';
+      const lyBar = '<div class="hol-b ly' + (gold ? " gold" : "") + '" style="height:' + ht(d.ly_count) + '"></div>';
+      const val = d.count != null ? '<span class="hol-v ty">' + (d.count / 1e6).toFixed(2) + '</span>'
+        : '<span class="hol-v' + (gold ? " star" : "") + '">' + (gold ? "★" : "") + (d.ly_count / 1e6).toFixed(2) + '</span>';
+      return '<div class="hol-d' + (d.is_thanksgiving ? " tg" : "") + (gold ? " pk" : "") + '">' + val + '<div class="hol-pair">' + lyBar + tyBar + '</div>' +
+        '<span class="hol-dn">' + escapeHtml(d.dow.slice(0, 2)) + d.day + '</span></div>';
+    }).join("");
+    const busy = h.days.find((d) => d.is_busiest);
+    const lyYear = yearOf(h.days[0].ly_date), tyYear = yearOf(h.days[0].date);
+    const recDay = h.days.find((d) => d.is_record);
+    const peak = busy
+      ? '<div class="hol-line"><b>★ ' + lyYear + ' busiest ' + escapeHtml(fmtWMD(busy.ly_date)) + ': ' + fmtN(busy.ly_count) + '</b>' + (recDay ? " · TSA record" : "") + '</div>'
+      : "";
+    const l = h.latest;
+    const sofar = l
+      ? '<div class="hol-line"><span class="k-ty">■ ' + tyYear + '</span> ' + escapeHtml(fmtMD(l.date)) + ': ' + fmtN(l.count) + (l.pct == null ? "" : ' · ' + (l.pct >= 0 ? "+" : MINUS) + Math.abs(l.pct).toFixed(1) + '% vs <span class="key-ly">■ ' + lyYear + '</span>') + ' · TSA</div>'
+      : "";
+    return { head: "TSA · " + fmtMD(h.days[0].date) + " to " + fmtMD(h.days[h.days.length - 1].date), cls: "holiday",
+      html: '<div class="hol-top">Thanksgiving ' + escapeHtml(fmtWMD(h.thanksgiving)) + ' · <span class="dl">' + when + '</span> · millions</div>' +
+        '<div class="hol-days">' + cols + '</div>' + peak + sofar };
+  }
+  function card5(t) {
+    const b = btsData;
+    if (!b || !b.nation || b.nation.ontime == null) return null;
+    const codes = (currentState.board || []).map((x) => x.code);
+    const rows = codes.filter((c) => b.airports && b.airports[c] && b.airports[c].ontime != null && b.airports[c].ly_ontime != null)
+      .map((c) => ({ c, now: b.airports[c].ontime, ly: b.airports[c].ly_ontime, d: b.airports[c].ontime - b.airports[c].ly_ontime }))
+      .sort((x, y) => Math.abs(y.d) - Math.abs(x.d)).slice(0, 3);
+    const n = b.nation;
+    return { head: "BTS · " + b.month_label,
+      html: '<div class="tsa-row"><div class="tsa-side"><div class="tsa-line">On-time arrivals, US</div><div class="tsa-big">' + n.ontime.toFixed(1) + '%</div>' +
+        '<div class="tsa-line">' + escapeHtml(b.ly_month_label) + ': ' + (n.ly_ontime == null ? "no data" : n.ly_ontime.toFixed(1) + '%') + '</div></div>' +
+        '<div class="tsa-side bts-air wide"><div class="tsa-line">Largest change, busiest 30</div>' +
+        rows.map((r) => '<div class="tsa-line"><b style="color:#fff">' + escapeHtml(r.c) + '</b> ' + r.now.toFixed(1) + '% (was ' + r.ly.toFixed(1) + '%)</div>').join("") + '</div></div>' };
   }
 
-  // ---------- ticker ----------
-  function updateTickerText(lines) {
-    const key = JSON.stringify(lines || []);
-    if (key === lastTickerKey) return;
-    lastTickerKey = key;
-    const track = document.getElementById("ticker-track");
-    const wrap = document.getElementById("ticker-wrap");
-    let baseText;
-    if (!lines || lines.length === 0) {
-      baseText = "Air Travel Desk · Monitoring FAA NAS status, National Weather Service alerts, and adsb.lol squawks";
+  function card6() {
+    const g = goesData;
+    if (!g || !g.frames || !g.frames.length) return null;
+    const first = g.frames[0], last = g.frames[g.frames.length - 1];
+    const span = Math.round((Date.parse(last.time_utc) - Date.parse(first.time_utc)) / 60000);
+    return { title: "Satellite", head: "NOAA GOES-19 · " + hhmmUtc(last.time_utc) + " UTC",
+      html: '<div class="sat-row"><div class="sat-box"><img id="sat-img" alt="GOES-19 GeoColor satellite loop" src="' + escapeHtml(baseDir + last.file) + '">' +
+        '<div id="sat-stamp" class="sat-stamp">' + hhmmUtc(last.time_utc) + ' UTC</div></div>' +
+        '<div class="sat-side"><b>NOAA GOES-19</b><span>GeoColor · US</span><span>Last ' + span + ' min</span><span id="sat-n">Frame ' + g.frames.length + ' of ' + g.frames.length + '</span></div></div>' };
+  }
+  function buildCards() {
+    const base = tsaData
+      ? [card1, card2, card3, card4, card5].map((f) => { try { return f(tsaData); } catch (_) { return null; } })
+      : [null, null, null, null, null];
+    let c6 = null;
+    try { c6 = card6(); } catch (_) {}
+    base.push(c6);
+    return base;
+  }
+  // Satellite loop: about 4 frames per second, then 1.5 s on the newest frame.
+  const SAT_STEP_MS = 250, SAT_HOLD_MS = 1500;
+  function tickSat() {
+    const img = document.getElementById("sat-img");
+    if (!img || !satFrames.length) return;
+    const n = satFrames.length;
+    const t = Date.now() % (n * SAT_STEP_MS + SAT_HOLD_MS);
+    const i = Math.min(n - 1, Math.floor(t / SAT_STEP_MS));
+    if (img.dataset.i === String(i)) return;
+    img.dataset.i = String(i);
+    img.src = satFrames[i].src;
+    const st = document.getElementById("sat-stamp");
+    if (st) st.textContent = hhmmUtc(satFrames[i].time_utc) + " UTC";
+    const nn = document.getElementById("sat-n");
+    if (nn) nn.textContent = "Frame " + (i + 1) + " of " + n;
+  }
+  let tsaIdx = -1, tsaFlipping = false;
+  function renderTsa() {
+    if (tsaFlipping) return;
+    const all = buildCards();
+    const body = document.getElementById("tsa-body");
+    if (!all.some((c) => c)) return;
+    let idx;
+    if (forcedCard) idx = forcedCard - 1;
+    else {
+      tsaCards = all.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+      idx = tsaCards.length ? tsaCards[tsaPtr % tsaCards.length] : 0;
+    }
+    const c = all[idx];
+    document.getElementById("tsa-dots").innerHTML = all.map((_, i) => '<i class="' + (i === idx ? "on" : "") + '"></i>').join("");
+    document.getElementById("tsa-title").textContent = (c && c.title) || "TSA screened";
+    const key = idx + "|" + (c ? c.head + c.html : "");
+    if (key === lastTsaKey) return;
+    lastTsaKey = key;
+    const apply = () => {
+      body.className = "tsa-body" + (c && c.cls ? " " + c.cls : "");
+      if (!c) { document.getElementById("tsa-date").textContent = "--"; body.innerHTML = '<div class="tsa-sub">No data for this card yet</div>'; return; }
+      document.getElementById("tsa-date").textContent = c.head;
+      body.innerHTML = c.html;
+      tickSat();
+    };
+    const changed = idx !== tsaIdx;
+    const first = tsaIdx < 0;
+    tsaIdx = idx;
+    if (!changed || first || forcedCard || isFlat()) { apply(); return; }
+    // card flips in 3D: the old card turns away on its Y axis, the new one turns in
+    tsaFlipping = true;
+    body.classList.add("flip-out");
+    window.setTimeout(() => {
+      apply();
+      body.classList.add("flip-in");
+      window.setTimeout(() => { body.classList.remove("flip-in"); tsaFlipping = false; lastTsaKey = null; renderTsa(); }, 360);
+    }, 300);
+  }
+
+  // ---------- BTS airline table (replaces the board 20 s in every 2 min) ----------
+  function renderAirlines() {
+    const el = document.getElementById("airlines");
+    const b = btsData;
+    if (!b || !b.carriers || !b.carriers.length) { el.innerHTML = ""; return; }
+    const f = (v) => (v == null ? "n/a" : v.toFixed(1) + "%");
+    const d = (a, c) => (a == null || c == null ? "n/a" : sgn(a - c) + " pts");
+    const rows = b.carriers.slice(0, 10).map((c) =>
+      '<div class="al-row"><span class="nm">' + escapeHtml(c.name) + '</span><span>' + f(c.ontime) + '</span><span class="dl">' + d(c.ontime, c.ly_ontime) +
+      '</span><span>' + f(c.cancel) + '</span><span class="dl">' + d(c.cancel, c.ly_cancel) + '</span></div>').join("");
+    el.innerHTML = '<div class="al-row head"><span>Carrier</span><span>On-time</span><span>vs last yr</span><span>Cancel</span><span>vs last yr</span></div>' + rows;
+    document.getElementById("air-src").textContent = "BTS · " + b.month_label + " vs " + b.ly_month_label;
+  }
+  let boardMode = "tiles";
+  function updateBoardMode() {
+    const has = btsData && btsData.carriers && btsData.carriers.length;
+    let mode = "tiles";
+    if (forcedBoard === "airlines" && has) mode = "airlines";
+    else if (!forcedBoard && has && (Math.floor(Date.now() / 1000) % AIR_PERIOD) < AIR_SHOW) mode = "airlines";
+    if (mode === boardMode) return;
+    boardMode = mode;
+    const air = mode === "airlines";
+    document.getElementById("board").classList.toggle("off", air);
+    document.getElementById("board-note").classList.toggle("off", air);
+    document.getElementById("board-head").classList.toggle("off", air);
+    document.getElementById("airlines").classList.toggle("off", !air);
+    document.getElementById("air-head").classList.toggle("off", !air);
+  }
+
+  // ---------- history line under the disruptions header ----------
+  function renderHistory(h) {
+    const el = document.getElementById("hist-line");
+    let txt = "";
+    if (h && typeof h.now_count === "number" && typeof h.week_ago_count === "number") {
+      const hr = (h.hour_utc || "").replace("T", " ").replace("Z", " UTC");
+      txt = "FAA delays now " + h.now_count + " · this hour last week " + h.week_ago_count + " · FAA log, " + hr;
+    }
+    const was = el.classList.contains("off");
+    el.textContent = txt;
+    el.classList.toggle("off", !txt);
+    if (was !== !txt && lastCardsKey) paginate();
+  }
+
+  // ---------- ticker (DESK LOG): one item at a time, each rolls in on the X axis; none shows twice in 10 minutes ----------
+  const TICK_HOLD_MS = 9000, TICK_REPEAT_MS = 600000, TICK_MAX_AGE_MS = 3600000;
+  const tickQueue = [], tickShown = {}, tickText = {};
+  let tickCur = "a", tickUntil = 0, tickStandby = true, tickLastId = null;
+  function ageText(iso) {
+    const t = Date.parse(iso || "");
+    if (Number.isNaN(t)) return "";
+    const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    return m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago";
+  }
+  function ingestTicker(items) {
+    const now = Date.now();
+    for (const it of items || []) {
+      if (!it || !it.id || tickShown[it.id] || tickQueue.some((q) => q.id === it.id)) continue;
+      const t = Date.parse(it.t_utc || "");
+      if (!Number.isNaN(t) && now - t > TICK_MAX_AGE_MS) { tickShown[it.id] = now; continue; }
+      if (tickText[it.text] && now - tickText[it.text] < TICK_REPEAT_MS) { tickShown[it.id] = now; continue; }
+      tickQueue.push(it);
+    }
+    if (tickQueue.length > 12) tickQueue.splice(0, tickQueue.length - 12);
+  }
+  function tickHtml(it) {
+    const src = it.src ? it.src + (it.as_of_utc ? " · " + ageText(it.as_of_utc) : "") : "";
+    return '<span class="tk-tag">' + escapeHtml(it.tag || "") + '</span><span class="tk-text">' + escapeHtml(it.text) + '</span>' + (src ? '<span class="tk-src">' + escapeHtml(src) + '</span>' : "");
+  }
+  function standbyItem() {
+    let age = "";
+    if (currentState.updated_utc) age = " · FAA checked " + ageText(currentState.updated_utc);
+    return { id: "standby", kind: "wx", tag: "DESK", text: "Watching FAA, NWS, TSA and adsb.lol" + age, src: "" };
+  }
+  function tickShow(it, standby) {
+    const next = tickCur === "a" ? "b" : "a";
+    const inEl = document.getElementById("tick-" + next), outEl = document.getElementById("tick-" + tickCur);
+    inEl.className = "tick-item in tk-" + (it.kind || "");
+    inEl.innerHTML = tickHtml(it);
+    outEl.classList.remove("in"); outEl.classList.add("out");
+    tickCur = next;
+    tickStandby = standby;
+  }
+  function tickStep() {
+    const now = Date.now();
+    if (now < tickUntil) return;
+    const nx = tickQueue.shift();
+    if (nx) {
+      tickShown[nx.id] = now; tickText[nx.text] = now; tickLastId = nx.id;
+      tickShow(nx, false);
+      tickUntil = now + TICK_HOLD_MS;
+    } else if (tickLastId !== "standby") {
+      tickLastId = "standby";
+      tickShow(standbyItem(), true);
+      tickUntil = now + 1500;
     } else {
-      baseText = lines.map((item) => {
-        const t = item.time_utc ? item.time_utc.slice(11, 19) + " UTC" : ("T+" + Math.round(item.t || 0) + "s");
-        return "[" + t + "] " + (item.text || "");
-      }).join("   ●   ");
+      // standby stays up; refresh its age text without a roll
+      const cur = document.getElementById("tick-" + tickCur);
+      const h = tickHtml(standbyItem());
+      if (cur.innerHTML !== h) cur.innerHTML = h;
     }
-    const unit = baseText + "     ●     ";
-    track.textContent = unit;
-    const minWidth = (wrap ? wrap.clientWidth : 1700) + 400;
-    let count = 1;
-    while (track.scrollWidth < minWidth && count < 12) { count += 1; track.textContent = unit.repeat(count); }
-    track.dataset.unitCount = String(count);
-    track.textContent = unit.repeat(count * 2);
   }
+  function updateTickerText(lines) { /* the voice lines no longer scroll here; see ingestTicker */ }
 
-  // The web build updates about every 5 minutes and GitHub's scheduler can run late; the Mac desk polls every minute.
-  const STALE_MIN = Number(params.get("stale_min")) || (/^data\//.test(stateUrl) ? 20 : 3);
   function updateStaleBanner() {
     const banner = document.getElementById("stale-banner");
     const detail = document.getElementById("stale-detail");
@@ -845,12 +2164,12 @@
     let isOld = false;
     if (currentState.updated_utc) {
       const ms = Date.parse(currentState.updated_utc);
-      if (!Number.isNaN(ms) && (Date.now() - ms) > STALE_MIN * 60 * 1000) isOld = true;
+      if (!Number.isNaN(ms) && (Date.now() - ms) > 20 * 60 * 1000) isOld = true;
     }
     if (isOld || staleFeeds.length > 0) {
       banner.classList.add("visible");
       const parts = [];
-      if (isOld) parts.push("no update in " + Math.round((Date.now() - Date.parse(currentState.updated_utc)) / 60000) + " min");
+      if (isOld) parts.push("no update in 20 min");
       if (staleFeeds.length > 0) parts.push("feeds: " + staleFeeds.join(", "));
       detail.textContent = "Data stale: " + parts.join("; ");
     } else {
@@ -876,10 +2195,29 @@
       el.innerHTML = "ends in " + hh + ":" + String(mm).padStart(2, "0") + '<span class="sec">:' + String(ss).padStart(2, "0") + "</span>";
     });
   }
+  const hourFmt = {};
+  function isDay(tz, now) {
+    if (!hourFmt[tz]) hourFmt[tz] = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" });
+    const h = parseInt(hourFmt[tz].format(now), 10) % 24;
+    return h >= 6 && h < 18;
+  }
   function updateClocks() {
     const now = new Date();
-    const zones = { ET: "America/New_York", CT: "America/Chicago", MT: "America/Denver", PT: "America/Los_Angeles" };
-    for (const k in zones) document.getElementById("clock-" + k).textContent = fmtClock(zones[k], true).format(now);
+    const zones = { PT: "America/Los_Angeles", MT: "America/Denver", CT: "America/Chicago", ET: "America/New_York" };
+    const zc = currentState.zones || {};
+    for (const k in zones) {
+      const el = document.getElementById("clock-" + k);
+      const txt = fmtClock(zones[k], true).format(now);
+      if (el.textContent !== txt) el.textContent = txt;
+      const mk = document.getElementById("mark-" + k);
+      const day = isDay(zones[k], now);
+      const mc = "mark " + (day ? "sun" : "moon");
+      if (mk.className !== mc) { mk.className = mc; mk.title = day ? "daytime" : "night"; }
+      const chip = document.getElementById("chip-" + k);
+      const n = zc[k] ? zc[k].affected : null;
+      const ct = n == null ? "--" : n === 0 ? "clear" : n + (n === 1 ? " delay" : " delays");
+      if (chip.textContent !== ct) { chip.textContent = ct; chip.className = "zchip" + (n ? " hit" : ""); chip.title = n == null ? "" : n + " of " + (zc[k].hubs) + " busiest-30 airports in this zone have an FAA program"; }
+    }
     document.getElementById("clock-UTC").textContent = fmtClock("UTC", false).format(now);
     document.querySelectorAll(".event-card").forEach((c) => {
       const lt = c.querySelector(".lt");
@@ -887,6 +2225,8 @@
     });
     tickCountdowns();
     updateStaleBanner();
+    updateBoardMode();
+    updateBoardNote();
   }
 
   // ---------- loading ----------
@@ -907,10 +2247,19 @@
       const events = Array.isArray(currentState.events) ? currentState.events : [];
       renderDisruptions(events);
       renderBoard(currentState.board);
-      updateTickerText(Array.isArray(currentState.last_lines) ? currentState.last_lines : []);
+      renderHistory(currentState.history);
+      ingestTicker(Array.isArray(currentState.ticker) ? currentState.ticker : []);
+      const hs = currentState.holiday || null;
+      if (JSON.stringify(hs) !== JSON.stringify(holidayState)) { holidayState = hs; renderTsa(); }
+      updateClocks();
       updateStaleBanner();
-      const un = document.getElementById("update-note");
-      if (un) un.textContent = currentState.update_note ? currentState.update_note + " · " : "";
+    } catch (_) {}
+  }
+
+  async function pollAir() {
+    try {
+      const r = await fetch(baseDir + "national.json", { cache: "no-store" });
+      if (r.ok) nationalData = await r.json();
     } catch (_) {}
   }
 
@@ -928,41 +2277,45 @@
     } catch (_) {}
     try {
       const r = await fetch(baseDir + "tsa.json", { cache: "no-store" });
-      if (r.ok) renderTsa(await r.json());
+      if (r.ok) { tsaData = await r.json(); renderTsa(); }
+    } catch (_) {}
+    for (const [name, set] of [["wx", (d) => { wxData = d; }], ["storms", (d) => { stormsData = d; }], ["nhc", (d) => { nhcData = d; }]]) {
+      try {
+        const r = await fetch(baseDir + name + ".json", { cache: "no-store" });
+        if (r.ok) set(await r.json());
+      } catch (_) {}
+    }
+    try {
+      const r = await fetch(baseDir + "bts.json", { cache: "no-store" });
+      if (r.ok) { btsData = await r.json(); renderAirlines(); renderTsa(); }
     } catch (_) {}
   }
 
   function animate(ts) {
+    syncFlat();
     if (lastFrameTs === null) lastFrameTs = ts;
     const dt = (ts - lastFrameTs) / 1000;
     lastFrameTs = ts;
     drawMap(ts);
-    const track = document.getElementById("ticker-track");
-    const wrap = document.getElementById("ticker-wrap");
-    if (track && wrap) {
-      const halfWidth = track.scrollWidth / 2;
-      if (halfWidth > wrap.clientWidth) {
-        tickerOffset += dt * 75 * U();
-        if (tickerOffset >= halfWidth) tickerOffset -= halfWidth;
-        track.style.transform = "translateX(" + (-tickerOffset).toFixed(1) + "px)";
-      } else {
-        tickerOffset = 0;
-        track.style.transform = "translateX(0px)";
-      }
-    }
     window.requestAnimationFrame(animate);
   }
 
   updateClocks();
-  updateTickerText([]);
   window.setInterval(updateClocks, 1000);
+  window.setInterval(tickStep, 500);
+  window.setInterval(tickSat, 100);
   window.setInterval(() => { if (pages.length > 1) { pageIdx = (pageIdx + 1) % pages.length; showPage(); } }, PAGE_SEC * 1000);
   window.addEventListener("resize", () => { if (lastCardsKey) paginate(); });
   loadGeoJson();
   pollState();
   pollExtras();
-  window.setInterval(pollState, 5000);
-  window.setInterval(pollExtras, 30000);
+  pollAir();
+  window.setInterval(pollAir, 60000);
+  spotTimer = window.setInterval(autoSpotlight, Math.min(SPOT_EVERY_MS, 60000));
+  if (params.get("spotlight")) { const want = params.get("spotlight"); const iv = window.setInterval(() => { if (currentState.events && currentState.events.length && spotlight(want === "1" ? "" : want)) window.clearInterval(iv); }, 300); }
+  window.setInterval(pollState, 60000);
+  window.setInterval(pollExtras, 120000);
+  window.setInterval(() => { if (!forcedCard) { tsaPtr += 1; renderTsa(); } }, CARD_SEC * 1000);
   window.requestAnimationFrame(animate);
 })();
 </script>
@@ -983,6 +2336,7 @@
    Voice is off until the viewer turns it on. It reads only the desk's templated lines. */
 (function () {
   const params = new URLSearchParams(location.search);
+  const stateUrl = (function () { try { const u = new URL(params.get("state") || "data/state.json", location.href); return u.origin === location.origin ? u.href : "data/state.json"; } catch (_) { return "data/state.json"; } })();
   const controls = document.getElementById("viewer-controls");
   if (params.get("controls") === "0") { controls.classList.add("hide"); return; }
   const scr = document.querySelector(".screen"); if (scr) scr.appendChild(controls);
@@ -1004,7 +2358,7 @@
   async function check() {
     if (!voiceOn) return;
     try {
-      const r = await fetch(params.get("state") || "data/state.json", { cache: "no-store" });
+      const r = await fetch(stateUrl, { cache: "no-store" });
       const st = await r.json();
       const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
       for (const l of lines) {
@@ -1024,7 +2378,7 @@
     if (!voiceOn) { synth.cancel(); return; }
     // Start with the latest lines only, so turning voice on does not replay the whole log.
     try {
-      const r = await fetch(params.get("state") || "data/state.json", { cache: "no-store" });
+      const r = await fetch(stateUrl, { cache: "no-store" });
       const st = await r.json(); const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
       lines.forEach(l => seen.add(key(l)));
       const recap = [...lines].reverse().find(l => /^Right now/.test(l.text));

@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
-      - name: Restore radar, TSA, BTS and places cache
+      - name: Restore radar, TSA, BTS, places and weather cache
         uses: actions/cache@v4
         with:
           path: |
@@ -45,6 +45,11 @@ jobs:
             data/radar.json
             data/bts.json
             data/places.json
+            data/wx.json
+            data/storms.json
+            data/nhc.json
+            data/national.json
+            data/board-history.json
           key: desk-cache-${{ github.run_id }}
           restore-keys: desk-cache-
 
@@ -62,7 +67,7 @@ jobs:
       - name: Build airport status data
         run: python tools/build_status.py
 
-      - name: Build desk screen data (FAA, NWS, adsb.lol, radar, TSA, BTS)
+      - name: Build desk screen data (FAA, NWS, adsb.lol, aviationweather.gov, NOAA SPC and NHC, radar, TSA, BTS)
         run: python tools/build_web.py --out data
 
       - name: Build places list (OpenStreetMap, refreshed at most weekly)
@@ -76,14 +81,14 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html tv.html us-states.geojson qr-owed.svg privacy.html app.js lib.js style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html tv.html us-states.geojson qr-owed.svg privacy.html app.js lib.js cine.js style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
           done
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
-          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json; do [ -f "data/$f" ] && cp "data/$f" _site/data/; done
+          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json wx.json storms.json nhc.json national.json board-history.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/brand
           cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
 

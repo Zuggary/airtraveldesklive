@@ -61,6 +61,11 @@
         <p id="updated-line" class="updated-text">&nbsp;</p>
         <p id="stale-notice" class="stale-notice" role="status" hidden></p>
         <div id="events" class="events-list"></div>
+        <div id="latest-box" class="latest" hidden>
+          <h3 class="sub-heading">Latest</h3>
+          <ul id="latest-list" class="latest-list"></ul>
+          <p class="latest-note">Changes, ground stop end times, weather in the next 3 hours and aircraft that look to be holding. Each line names its source and age.</p>
+        </div>
       </section>
 
       <section id="airports" aria-labelledby="airports-heading">
@@ -76,6 +81,7 @@
 
         <h3 class="sub-heading">The 30 busiest airports</h3>
         <div id="board" class="board-grid"></div>
+        <p id="board-note" class="board-note"></p>
       </section>
 
       <section id="map-section" aria-labelledby="map-heading">
@@ -109,7 +115,7 @@
 
     <footer class="site-footer">
       <p>An automated desk, not a person at a keyboard. Not affiliated with any airline or government agency.</p>
-      <p>Data: FAA, National Weather Service, NOAA MRMS radar, TSA, Bureau of Transportation Statistics (BTS), adsb.lol (ODbL), &copy; OpenStreetMap contributors. Map outlines: Natural Earth.</p>
+      <p>Data: FAA, National Weather Service, NOAA (MRMS radar, SPC storm outlooks, NHC hurricanes), aviationweather.gov (airport weather), TSA, Bureau of Transportation Statistics (BTS), adsb.lol (ODbL), &copy; OpenStreetMap contributors. Map outlines: Natural Earth.</p>
       <p><a class="tap" href="privacy.html">Privacy</a></p>
     </footer>
   </div>

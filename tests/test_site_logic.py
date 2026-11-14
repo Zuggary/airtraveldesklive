@@ -182,3 +182,29 @@ class TestAirportCards(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestAn12Helpers(unittest.TestCase):
+    def test_clear_tile_is_an_empty_bar_and_flat_clear_has_no_arrow(self):
+        v = js("ATD.tileView(DATA.t)", t={"status": "green", "fill": 0.4, "trend": "flat", "text": "clear"})
+        self.assertEqual((v["fillPct"], v["trendMark"], v["word"]), (0, "", "Clear"))
+
+    def test_fill_percent_and_colour_status(self):
+        v = js("ATD.tileView(DATA.t)", t={"status": "orange", "fill": 0.75, "trend": "up", "text": "avg 1 h 30 m"})
+        self.assertEqual((v["fillPct"], v["status"], v["trendMark"], v["detail"]), (75, "orange", "↑", "avg 1 h 30 m"))
+        self.assertEqual(js("ATD.tileView(DATA.t)", t={"status": "red", "fill": 1, "text": "ground stop"})["word"], "Ground stop")
+        self.assertEqual(js("ATD.tileView(DATA.t)", t={"status": "yellow", "fill": 5})["fillPct"], 100)
+
+    def test_latest_leaves_out_owed_and_repeats(self):
+        items = [{"text": "a", "kind": "new", "t_utc": "2026-11-14T10:00:00Z"}, {"text": "a", "kind": "new", "t_utc": "2026-11-14T09:00:00Z"},
+                 {"text": "o", "kind": "owed", "t_utc": "2026-11-14T11:00:00Z"}, {"text": "b", "kind": "wx", "t_utc": "2026-11-14T10:30:00Z"}]
+        out = js("ATD.latestItems(DATA.i, 6)", i=items)
+        self.assertEqual([x["text"] for x in out], ["b", "a"])
+
+    def test_holiday_view_keeps_missing_days_empty(self):
+        h = {"days": [{"date": "2026-11-22", "dow": "Sun", "day": 22, "count": 100, "ly_count": 200}, {"date": "2026-11-23", "dow": "Mon", "day": 23, "count": None, "ly_count": 100, "is_record": True}], "days_to": 12}
+        v = js("ATD.holidayView(DATA.h)", h=h)
+        self.assertEqual(v["rows"][0]["nowPct"], 50.0)
+        self.assertIsNone(v["rows"][1]["nowPct"])
+        self.assertTrue(v["rows"][1]["isRecord"])

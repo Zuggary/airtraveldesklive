@@ -5,3 +5,8 @@ data/tsa.json
 data/bts-cache/
 data/bts.json
 __pycache__/
+data/wx.json
+data/storms.json
+data/nhc.json
+data/national.json
+data/board-history.json

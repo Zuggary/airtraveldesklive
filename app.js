@@ -182,6 +182,22 @@
     return card;
   }
 
+  // Latest: the desk's actionable ticker items (newest first). A line shows its source and age.
+  function renderLatest() {
+    var box = $("latest-box"), list = $("latest-list");
+    list.textContent = "";
+    var items = D.state ? A.latestItems(D.state.ticker, 6) : [];
+    box.hidden = !items.length;
+    items.forEach(function (it) {
+      var li = el("li", "latest-item");
+      li.appendChild(el("span", "latest-tag", it.tag || ""));
+      li.appendChild(el("span", "latest-text", it.text));
+      var when = it.as_of_utc || it.t_utc;
+      li.appendChild(el("span", "latest-src", (it.src ? it.src + ", " : "") + ageText(when)));
+      list.appendChild(li);
+    });
+  }
+
   function renderEvents() {
     var box = $("events");
     box.textContent = "";
@@ -198,21 +214,39 @@
   function renderBoard() {
     var box = $("board");
     box.textContent = "";
+    var tiles = {};
+    ((D.state && D.state.board) || []).forEach(function (t) { tiles[t.code] = t; });
     airports.forEach(function (a) {
       var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
-      var b = el("button", "tile tile--" + lvl);
+      var tv = tiles[a.code] ? A.tileView(tiles[a.code]) : null;
+      var b = el("button", "tile tile--" + lvl + (tv ? " tile--" + tv.status : ""));
       b.type = "button";
       b.setAttribute("data-code", a.code);
-      b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + LEVEL_WORD[lvl] + ". Open airport card.");
+      var word = tv ? tv.word : LEVEL_WORD[lvl];
+      b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + word + (tv && tv.detail ? ", " + tv.detail : "") + (tv && tv.trendWord ? ", " + tv.trendWord : "") + ". Open airport card.");
       if (a.code === currentCode) { b.setAttribute("aria-current", "true"); }
       var top = el("span", "tile-top");
       top.appendChild(el("span", "tile-code", a.code));
-      top.appendChild(el("span", "tile-level", LEVEL_WORD[lvl]));
+      var right = el("span", "tile-level", word);
+      if (tv && tv.trendMark) { right.appendChild(el("span", "tile-trend", " " + tv.trendMark)); }
+      top.appendChild(right);
       b.appendChild(top);
       b.appendChild(el("span", "tile-name", a.short || a.name || a.code));
+      if (tv) {
+        // Delay bar: full width = 2 h of FAA average delay. Clear is an empty green outline.
+        var bar = el("span", "bar bar--" + tv.status);
+        bar.setAttribute("aria-hidden", "true");
+        var fillEl = el("span", "bar-fill");
+        fillEl.style.width = tv.fillPct + "%";
+        bar.appendChild(fillEl);
+        b.appendChild(bar);
+        if (tv.detail) { b.appendChild(el("span", "tile-detail", tv.detail)); }
+      }
       b.addEventListener("click", function () { openAirport(a.code, true); });
       box.appendChild(b);
     });
+    var note = $("board-note");
+    if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. Arrow compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }
   }
 
   function initSearch() {
@@ -288,6 +322,7 @@
     if (t) { facts.appendChild(el("li", null, "Local time: " + t)); }
     facts.appendChild(el("li", null, (a.alerts && a.alerts.length) ? "NWS alert: " + a.alerts.join(", ") : "NWS alert: none listed. Alerts are checked only when the FAA reason is weather."));
     facts.appendChild(el("li", null, a.aircraft_near == null ? "Aircraft nearby: counted only while the airport has an active delay (adsb.lol)." : "Aircraft within 20 nm: " + a.aircraft_near + " (adsb.lol, ODbL)"));
+    wxFacts(facts, a);
     var b = D.bts && D.bts.airports && D.bts.airports[a.code];
     if (b && b.ontime != null) {
       facts.appendChild(el("li", null, "On-time arrivals, " + D.bts.month_label + ": " + A.pct(b.ontime) + (b.ly_ontime != null ? " (" + D.bts.ly_month_label + ": " + A.pct(b.ly_ontime) + ")" : "") + " (BTS)"));
@@ -295,6 +330,27 @@
     var upd = D.cards && D.cards.updated_utc || (D.state && D.state.updated_utc);
     facts.appendChild(el("li", null, "Status checked " + ageText(upd)));
     box.appendChild(facts);
+  }
+
+  // Weather, storm area and holding notes: each line names its source and age. Old readings are left out, not shown as current.
+  function wxFacts(facts, a) {
+    var w = a.wx;
+    if (w && w.now_text && ageMin(w.obs_utc) != null && ageMin(w.obs_utc) <= 90) {
+      var line = "Weather at " + fmtTime(new Date(Date.parse(w.obs_utc)), a.tz) + ": " + w.now_text;
+      if (w.wind_kt != null) { line += ", wind " + Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) : ""); }
+      facts.appendChild(el("li", null, line + " (aviationweather.gov, " + ageText(w.obs_utc) + ")"));
+      if (w.next3h_text) {
+        facts.appendChild(el("li", null, "Forecast, next 3 hours: " + w.next3h_text + " (aviationweather.gov TAF" + (w.taf_issue_utc ? ", issued " + ageText(w.taf_issue_utc) : "") + ")"));
+      }
+    }
+    var s = a.storm;
+    if (s && s.text && ageMin(s.as_of_utc) != null && ageMin(s.as_of_utc) <= 90) {
+      facts.appendChild(el("li", "fact-note", "Storm area: " + s.text + " (NOAA SPC and aviationweather.gov, " + ageText(s.as_of_utc) + ")"));
+    }
+    var hd = a.holding;
+    if (hd && hd.count >= 3 && ageMin(hd.as_of_utc) != null && ageMin(hd.as_of_utc) <= 25) {
+      facts.appendChild(el("li", "fact-note", hd.count + " aircraft look to be holding near " + a.code + " (adsb.lol sampled, " + ageText(hd.as_of_utc) + "). A pattern in positions, not a reason."));
+    }
   }
 
   function placeList(items, emptyText) {
@@ -485,6 +541,69 @@
     return c;
   }
 
+  function holidayCard(hv) {
+    var c = el("article", "compare-card compare-card--wide holiday");
+    c.appendChild(el("h3", "compare-title", "Thanksgiving week, this year and last"));
+    var dl = hv.daysTo > 0 ? hv.daysTo + (hv.daysTo === 1 ? " day" : " days") + " left" : hv.daysTo === 0 ? "Thanksgiving is today" : "Thanksgiving was " + (-hv.daysTo) + " days ago";
+    c.appendChild(el("p", "compare-big", dl));
+    c.appendChild(el("p", "compare-line", "Thanksgiving is " + fmtDay(hv.thanksgiving) + ". Bars show people screened by TSA, in millions."));
+    var grid = el("div", "hol-grid");
+    grid.setAttribute("role", "img");
+    var done = hv.rows.filter(function (r) { return r.count != null; }).length;
+    grid.setAttribute("aria-label", "Bar chart of TSA people screened, " + fmtDay(hv.rows[0].date) + " to " + fmtDay(hv.rows[hv.rows.length - 1].date) + ", this year against last year. This year has " + done + " days counted so far. The table below has the numbers.");
+    hv.rows.forEach(function (r) {
+      var col = el("div", "hol-col" + (r.isThanksgiving ? " hol-col--day" : ""));
+      var bars = el("div", "hol-bars");
+      var ly = el("span", "hol-bar hol-bar--ly" + (r.isBusiest ? " hol-bar--busiest" : ""));
+      ly.style.height = r.lyPct + "%";
+      var now = el("span", "hol-bar hol-bar--now" + (r.nowPct == null ? " hol-bar--none" : ""));
+      now.style.height = (r.nowPct == null ? 100 : r.nowPct) + "%";
+      bars.appendChild(ly); bars.appendChild(now);
+      col.appendChild(el("span", "hol-mark", r.isRecord ? "\u2605" : r.isBusiest ? "\u25B2" : "\u00A0"));
+      col.appendChild(bars);
+      col.appendChild(el("span", "hol-dow", r.dow.slice(0, 2)));
+      col.appendChild(el("span", "hol-num", String(r.day)));
+      grid.appendChild(col);
+    });
+    c.appendChild(grid);
+    var key = el("p", "hol-key");
+    key.appendChild(el("span", "hol-sw hol-sw--now"));
+    key.appendChild(document.createTextNode(" This year  "));
+    key.appendChild(el("span", "hol-sw hol-sw--ly"));
+    key.appendChild(document.createTextNode(" Last year  "));
+    key.appendChild(el("span", "hol-sw hol-sw--none"));
+    key.appendChild(document.createTextNode(" Not counted yet  \u2605 TSA record day  \u25B2 Last year's busiest day"));
+    c.appendChild(key);
+    if (hv.busiest && hv.busiestCount) {
+      var rec = hv.record && hv.record.date === hv.busiest;
+      c.appendChild(el("p", "compare-line", "Last year's busiest day that week: " + fmtDayYear(hv.busiest) + ", " + million(hv.busiestCount) + (rec ? ". It is also the TSA record day." : ".")));
+    }
+    if (hv.record && !(hv.busiest && hv.record.date === hv.busiest)) {
+      c.appendChild(el("p", "compare-line", "TSA record day: " + fmtDayYear(hv.record.date) + ", " + million(hv.record.count) + "."));
+    }
+    var l = hv.latest;
+    if (l && l.count) {
+      c.appendChild(el("p", "compare-line", "Latest count: " + fmtDay(l.date) + ", " + million(l.count) + (l.pct != null ? " (" + signed(l.pct) + " against " + fmtDay(l.ly_date) + " last year)" : "") + "."));
+    }
+    var table = el("table", "sr-only");
+    table.appendChild(el("caption", null, "TSA people screened, Thanksgiving week"));
+    var hr = el("tr");
+    ["Day", "This year", "Last year"].forEach(function (h) { var th2 = el("th", null, h); th2.setAttribute("scope", "col"); hr.appendChild(th2); });
+    var thead = el("thead"); thead.appendChild(hr); table.appendChild(thead);
+    var tb = el("tbody");
+    hv.rows.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("th", null, r.dow + " " + fmtDay(r.date))).setAttribute("scope", "row");
+      tr.appendChild(el("td", null, r.count == null ? "not counted yet" : million(r.count)));
+      tr.appendChild(el("td", null, r.lyCount == null ? "n/a" : million(r.lyCount)));
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    c.appendChild(table);
+    c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtDay((hv.fetched || "").slice(0, 10)) + ". Last year's days are lined up by distance from Thanksgiving."));
+    return c;
+  }
+
   function signed(p) { return (p > 0 ? "+" : "") + p.toFixed(1) + "%"; }
 
   function renderCompare() {
@@ -506,7 +625,10 @@
           "Source: TSA checkpoint numbers since 2019, updated " + fmtDay((t.fetched_utc || "").slice(0, 10))));
       }
       var th = t.thanksgiving;
-      if (th && th.days_to != null) {
+      var hv = A.holidayView(D.state && D.state.holiday);
+      if (hv) {
+        box.appendChild(holidayCard(hv));
+      } else if (th && th.days_to != null) {
         var l1 = th.days_to > 0 ? "Thanksgiving is " + fmtDay(th.date_this_year) + "." : "Thanksgiving was " + fmtDay(th.date_this_year) + ".";
         var l2 = th.busiest_date ? "Last year the busiest day of that week was " + fmtDay(th.busiest_date) + "." : "";
         box.appendChild(compareCard("Thanksgiving countdown", th.days_to > 0 ? th.days_to + (th.days_to === 1 ? " day" : " days") : "Now",
@@ -735,9 +857,11 @@
     renderFreshness();
     renderSummary();
     renderEvents();
+    renderLatest();
     renderBoard();
     renderCardLive();
     renderMap();
+    if (D.tsa || D.bts) { renderCompare(); }
   }
 
   function loadLive() {
@@ -776,6 +900,7 @@
   function tick() {
     renderFreshness();
     renderEvents();
+    renderLatest();
     renderCardLive();
   }
 

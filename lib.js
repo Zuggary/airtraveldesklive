@@ -186,6 +186,61 @@
 
   function kmToMi(km) { return Math.round(km * 0.621371 * 10) / 10; }
 
+  // ---------- AN12: board bars, trend, Thanksgiving card ----------
+  var STATUS_WORD = { green: "Clear", yellow: "Delay", orange: "Ground delay", red: "Stop" };
+  var TREND = {
+    up: { mark: "\u2191", word: "worse than an hour ago" },
+    down: { mark: "\u2193", word: "better than an hour ago" },
+    flat: { mark: "\u2192", word: "about the same as an hour ago" }
+  };
+
+  // One board tile from state.json board[]: bar fill is the FAA average delay over 120 min (capped); clear is an empty bar.
+  function tileView(t) {
+    var status = STATUS_WORD.hasOwnProperty(t && t.status) ? t.status : "green";
+    var fill = status === "green" ? 0 : Math.max(0, Math.min(1, Number(t && t.fill) || 0));
+    var tr = (t && TREND[t.trend]) || null;
+    if (tr && status === "green" && t.trend === "flat") { tr = null; }       // a flat clear airport needs no arrow
+    var word = STATUS_WORD[status];
+    if (status === "red" && t && t.text) { word = String(t.text).charAt(0).toUpperCase() + String(t.text).slice(1); }
+    return {
+      status: status, word: word, fillPct: Math.round(fill * 1000) / 10,
+      detail: (status === "green" || status === "red") ? "" : String((t && t.text) || ""),
+      trendMark: tr ? tr.mark : "", trendWord: tr ? tr.word : ""
+    };
+  }
+
+  function millions(n) { return n == null || !isFinite(n) ? "" : (n / 1e6).toFixed(2); }
+
+  // Thanksgiving card rows from state.holiday. A day with no count yet keeps count null (drawn as an empty outline, never zero).
+  function holidayView(h) {
+    if (!h || !h.days || !h.days.length) { return null; }
+    var max = 0, rows = h.days.map(function (d) {
+      if (d.count != null && d.count > max) { max = d.count; }
+      if (d.ly_count != null && d.ly_count > max) { max = d.ly_count; }
+      return d;
+    }).map(function (d) {
+      return {
+        date: d.date, dow: d.dow, day: d.day, count: d.count, lyCount: d.ly_count, lyDate: d.ly_date,
+        nowPct: d.count == null || !max ? null : Math.round(d.count / max * 1000) / 10,
+        lyPct: d.ly_count == null || !max ? 0 : Math.round(d.ly_count / max * 1000) / 10,
+        isBusiest: !!d.is_busiest, isRecord: !!d.is_record, isThanksgiving: !!d.is_thanksgiving
+      };
+    });
+    return { rows: rows, max: max, daysTo: h.days_to, thanksgiving: h.thanksgiving, busiest: h.busiest_date, busiestCount: h.busiest_count,
+             record: h.record || null, latest: h.latest || null, counted: h.counted_days || 0, fetched: h.fetched_utc };
+  }
+
+  // Latest list: newest first, the owed reminder left out (it has its own panel), the same words once.
+  function latestItems(items, limit) {
+    var seen = {}, out = [];
+    (items || []).slice().sort(function (a, b) { return String(b.t_utc || "").localeCompare(String(a.t_utc || "")); }).forEach(function (it) {
+      if (!it || !it.text || it.kind === "owed" || seen[it.text]) { return; }
+      seen[it.text] = true;
+      out.push(it);
+    });
+    return out.slice(0, limit || 6);
+  }
+
   function pct(n, digits) { return (n == null || !isFinite(n)) ? "" : Number(n).toFixed(digits == null ? 1 : digits) + "%"; }
 
   return {
@@ -193,6 +248,7 @@
     fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary,
     kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
-    LEVEL_RANK: LEVEL_RANK, DOT_URL: DOT_URL, REFUND_LINE: REFUND_LINE
+    tileView: tileView, holidayView: holidayView, latestItems: latestItems, millions: millions,
+    STATUS_WORD: STATUS_WORD, LEVEL_RANK: LEVEL_RANK, DOT_URL: DOT_URL, REFUND_LINE: REFUND_LINE
   };
 });

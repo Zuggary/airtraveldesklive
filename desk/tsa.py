@@ -123,7 +123,13 @@ def build_full(all_days: dict[date, int], today: date, fetched_utc: str) -> dict
         if d in all_days:
             week.append({"date": d.isoformat(), "count": all_days[d]})
     busiest = max(week, key=lambda r: (r["count"], r["date"]))["date"] if week else None
+    this_week = []
+    for k in range(-4, 5):  # same days this year, only those TSA has published
+        d = tg + timedelta(days=k)
+        if d in all_days:
+            this_week.append({"date": d.isoformat(), "count": all_days[d]})
     out["thanksgiving"] = {
+        "this_year_week": this_week,
         "date_this_year": tg.isoformat(),
         "days_to": (tg - today).days,
         "last_year_date": ref.isoformat(),

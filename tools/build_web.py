@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from desk import bts, feeds, lines, radar, screen, state, tracks, tsa  # noqa: E402
+from desk import board_history, bts, feeds, holding, holiday, lines, nhc, radar, screen, state, storms, ticker, tracks, tsa, wx  # noqa: E402
 from desk.airports import AIRPORTS, BUSIEST_30, SHORT, TZ, display, nearest_airport, spoken  # noqa: E402
 
 MAX_LINES = 8
@@ -93,8 +94,72 @@ def enrich(events: list[dict]) -> list[dict]:
     return out
 
 
+PUBLISHED = "https://www.airtraveldesklive.com/data/"
+TICKER_KEEP_SEC = 3600.0       # the "Latest" list holds one hour
+EXTRA_PAUSE = 1.0              # seconds between adsb.lol GETs
+
+
+def _read_json(path: Path) -> dict:
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def build_extras(out_dir: Path, prev: dict, prev_national: dict, prev_history: dict, events: list[dict], changes: list,
+                 now_ts: float, fetcher=None, pause: float | None = None) -> dict:
+    """AN12 data for the site. Each layer keeps to its own cache cadence (wx 10 min, storms 15, NHC 30). A failed layer
+    keeps its last file and is reported in `notes`; none of them stops the run. Returns the pieces state.json needs."""
+    notes: list[str] = []
+    event_codes = [str(e.get("airport") or "").upper() for e in events if e.get("source") == "FAA"]
+    for name, call in (
+        ("weather", lambda: wx.maybe_fetch(out_dir, now_ts=now_ts, fetcher=fetcher, event_airports=event_codes)),
+        ("storms", lambda: storms.maybe_fetch(out_dir, now_ts=now_ts, fetcher=fetcher)),
+        ("hurricanes", lambda: nhc.maybe_fetch(out_dir, now_ts=now_ts, fetcher=fetcher)),
+    ):
+        try:
+            call()
+        except Exception as exc:
+            notes.append(name)
+            print(f"{name}: skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
+    wx_json, storms_json = _read_json(out_dir / "wx.json"), _read_json(out_dir / "storms.json")
+    hold: dict = {}
+    nt = None
+    try:
+        nt, ok, errs = tracks.web_national(out_dir, prev_national, fetcher=fetcher, now_ts=now_ts, pause=EXTRA_PAUSE if pause is None else pause)
+        for code, exc in errs:
+            print(f"national {code}: {type(exc).__name__}: {exc}", file=sys.stderr)
+        if ok == 0:
+            notes.append("trails")
+        else:
+            hubs = holding.hub_positions(event_codes)
+            ac = holding.from_trackers(None, nt)
+            hold = holding.holding_map(holding.count_by_hub(ac, hubs, now_ts, holding.WEB), now_ts)
+    except Exception as exc:
+        notes.append("trails")
+        print(f"trails: skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
+    now_dt = datetime.fromtimestamp(now_ts, timezone.utc)
+    board = screen.board_from_events(events, board_history.hour_ago(prev_history, now_dt))
+    history = board_history.add_hour(prev_history, board, now_dt)
+    tick = ticker.Ticker(keep_sec=TICKER_KEEP_SEC, max_items=24)
+    tick.same_text_sec = TICKER_KEEP_SEC
+    tick.restore(prev.get("ticker"))
+    items = tick.update(now_ts, changes, events, wx_json, hold, first_poll=prev.get("events") is None)
+    tsa_json = _read_json(out_dir / "tsa.json")
+    try:
+        hol = holiday.assemble(tsa_json, tsa._today_et(now_ts)) if tsa_json else None
+    except Exception as exc:
+        hol = None
+        print(f"holiday: skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
+    return {"board": board, "zones": screen.zone_counts(board), "ticker": items, "holiday": hol, "holding": hold,
+            "history": history, "wx": wx_json, "storms": storms_json, "notes": notes}
+
+
 def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str | None = None,
-          nws_map: dict | None = None, skip_slow: bool = False, near_fetch=None) -> dict:
+          nws_map: dict | None = None, skip_slow: bool = False, near_fetch=None,
+          extras: bool | None = None, extra_fetch=None, prev_national: dict | None = None,
+          prev_history: dict | None = None, now_ts: float | None = None) -> dict:
     stale: list[str] = []
     try:
         faa_events = feeds.parse_faa(faa_text if faa_text is not None else feeds.fetch(feeds.FAA_URL))
@@ -160,8 +225,16 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
         "last_lines": last_lines,
         "update_note": "Updates about every 5 minutes. GitHub's scheduler can run late.",
     }
+    ex: dict = {}
+    if (not skip_slow) if extras is None else extras:
+        changes = [] if prev_events is None else state.diff(prev_events, events)
+        ex = build_extras(out_dir, prev, prev_national or {}, prev_history or {}, events, changes,
+                          time.time() if now_ts is None else now_ts, fetcher=extra_fetch)
+        payload.update({k: ex[k] for k in ("board", "zones", "ticker", "holiday", "holding")})
+        payload["layer_notes"] = ex["notes"]
+        write_json(out_dir / "board-history.json", ex["history"])
     write_json(out_dir / "state.json", payload)
-    cards = build_airport_cards(events, payload["board"], nws_by_airport, stamp, near_fetch=near_fetch, skip_near=skip_slow or nws_map is not None and near_fetch is None)
+    cards = build_airport_cards(events, payload["board"], nws_by_airport, stamp, near_fetch=near_fetch, skip_near=skip_slow or nws_map is not None and near_fetch is None, extras=ex)
     write_json(out_dir / "airports.json", cards)
     if not skip_slow:
         build_bts(out_dir)
@@ -193,7 +266,7 @@ def count_near(json_text: str) -> int:
 
 
 def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: dict, stamp: str,
-                        near_fetch=None, skip_near: bool = False) -> dict:
+                        near_fetch=None, skip_near: bool = False, extras: dict | None = None) -> dict:
     """One card per busiest-30 airport: status, reason, events, NWS alert names, aircraft nearby, local tz."""
     level_by = {b["code"]: _LEVEL_WORD.get(b["level"], "clear") for b in board}
     near: dict[str, int] = {}
@@ -205,6 +278,12 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
                 near[code] = count_near(get(NEAR_URL.format(lat=lat, lon=lon)))
             except Exception:
                 pass
+    ex = extras or {}
+    hubs = holding.hub_positions()
+    notes = storms.hub_notes(ex.get("storms"), hubs) if ex.get("storms") else {}
+    wx_hubs = (ex.get("wx") or {}).get("hubs") or {}
+    wx_src = (ex.get("wx") or {}).get("source")
+    hold = ex.get("holding") or {}
     cards = {}
     for code in BUSIEST_30:
         evs = [e for e in events if e.get("source") == "FAA" and str(e.get("airport") or "").upper() == code]
@@ -230,6 +309,14 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
             "events": out_ev, "alerts": list(nws_by_airport.get(code) or []),
             "aircraft_near": near.get(code),
         }
+        w = wx_hubs.get(code)
+        if w:
+            cards[code]["wx"] = {k: w.get(k) for k in ("cat", "now_text", "obs_utc", "wind_kt", "gust_kt", "next3h_text", "next3h_cat", "next3h_storms", "taf_issue_utc", "alert")}
+            cards[code]["wx"]["source"] = wx_src
+        if code in notes:
+            cards[code]["storm"] = notes[code]
+        if code in hold:
+            cards[code]["holding"] = {"count": hold[code]["count"], "as_of_utc": hold[code]["as_of_utc"], "source": "adsb.lol (ODbL), sampled"}
     return {"version": DATA_VERSION, "updated_utc": stamp, "aircraft_source": "adsb.lol (ODbL), within 20 nm", "airports": cards}
 
 
@@ -245,14 +332,22 @@ def build_bts(out_dir: Path) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT / "data"))
-    ap.add_argument("--prev", default="https://www.airtraveldesklive.com/data/state.json")
+    ap.add_argument("--prev", default=PUBLISHED + "state.json", help="the previously published state.json (URL or file)")
+    ap.add_argument("--prev-base", default=PUBLISHED, help="where national.json and board-history.json were last published (URL ending in /, or a folder)")
     ap.add_argument("--fixture-faa")
     ap.add_argument("--fixture-adsb")
     ap.add_argument("--skip-slow", action="store_true", help="skip radar and TSA (tests)")
     a = ap.parse_args()
     faa = Path(a.fixture_faa).read_text() if a.fixture_faa else None
     adsb = Path(a.fixture_adsb).read_text() if a.fixture_adsb else None
-    p = build(Path(a.out), load_prev(a.prev), faa, adsb, {} if a.fixture_faa else None, a.skip_slow)
+    out = Path(a.out)
+    base = a.prev_base if a.prev_base.endswith("/") else a.prev_base + "/"
+
+    def prev_of(name: str) -> dict:
+        got = load_prev(base + name)
+        return got or load_prev(str(out / name))      # a cache hit fills in when the site has no copy yet
+    p = build(out, load_prev(a.prev), faa, adsb, {} if a.fixture_faa else None, a.skip_slow,
+              prev_national=prev_of("national.json"), prev_history=prev_of("board-history.json"))
     print(f"state.json: {len(p['events'])} events, stale={p['stale_feeds']}, lines={len(p['last_lines'])}")
     return 0
 

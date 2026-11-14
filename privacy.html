@@ -36,7 +36,7 @@
         <p>This site is hosted on GitHub Pages, which keeps standard server logs that may include your IP address and request metadata. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's Privacy Statement</a> for details.</p>
 
         <h2>Flight and weather data</h2>
-        <p>The data comes from FAA NAS status, National Weather Service alerts, the NOAA MRMS radar image, TSA checkpoint numbers, Bureau of Transportation Statistics (BTS) on-time numbers and adsb.lol (aircraft transponder codes and a count of aircraft near airports with a delay, ODbL licence). An automated job fetches those public feeds about every 5 minutes and writes static files to this site, so loading this page sends no viewer data to any of them.</p>
+        <p>The data comes from FAA NAS status, National Weather Service alerts, the NOAA MRMS radar image, TSA checkpoint numbers, Bureau of Transportation Statistics (BTS) on-time numbers and adsb.lol (aircraft positions for map trails, a count of aircraft near airports and a note when several aircraft look to be holding, ODbL licence), aviationweather.gov (airport weather reports and forecasts, and convective SIGMETs), the NOAA Storm Prediction Center (storm outlooks) and the NOAA National Hurricane Center (active storms). An automated job fetches those public feeds about every 5 minutes and writes static files to this site, so loading this page sends no viewer data to any of them.</p>
         <p>Hotels and car rental places near each airport come from OpenStreetMap (&copy; OpenStreetMap contributors) through the Overpass API. The automated job asks for them about once a week and saves the result as a static file on this site. Your browser never contacts OpenStreetMap or Overpass. Place websites and airport wait-time pages are plain links; they go to other sites only if you open them. The airline commitments table is a copy of the U.S. Department of Transportation's airline dashboard.</p>
         <p>Live video: the home page has a "Load live video" button. Nothing is loaded from Twitch until you press it. When you press it, your browser loads Twitch's player from player.twitch.tv. Twitch is a separate company; it receives your IP address and can set cookies under its own <a href="https://www.twitch.tv/p/legal/privacy-notice/">privacy notice</a>. This site never sees what Twitch collects.</p>
 
@@ -49,7 +49,7 @@
     </main>
 
     <footer class="site-footer">
-      <p>An automated desk. Data: FAA, National Weather Service, NOAA MRMS radar, TSA, BTS, adsb.lol (ODbL), &copy; OpenStreetMap contributors; map: Natural Earth. Not affiliated with any airline or government agency.</p>
+      <p>An automated desk. Data: FAA, National Weather Service, NOAA (MRMS radar, SPC, NHC), aviationweather.gov, TSA, BTS, adsb.lol (ODbL), &copy; OpenStreetMap contributors; map: Natural Earth. Not affiliated with any airline or government agency.</p>
       <p><a class="tap" href="index.html">Live board</a></p>
     </footer>
   </div>
