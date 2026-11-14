@@ -277,3 +277,16 @@ class TestHoliday(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNationalLicence(unittest.TestCase):
+    def test_national_file_carries_odbl_notice(self):
+        import tempfile, json
+        from pathlib import Path
+        from desk import tracks
+        with tempfile.TemporaryDirectory() as d:
+            raw = json.dumps({"ac": [{"hex": "abc123", "lat": 40.0, "lon": -100.0, "alt_baro": 30000, "gs": 450, "track": 90}]})
+            tracks.web_national(Path(d), None, fetcher=lambda url: raw, now_ts=1_800_000_000.0, pause=0)
+            out = json.loads((Path(d) / "national.json").read_text())
+            self.assertEqual(out["license"], "ODbL 1.0")
+            self.assertIn("adsb.lol", out["attribution"])

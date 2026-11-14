@@ -394,6 +394,8 @@ def web_national(out_dir: Path | str, prev: Optional[dict[str, Any]], fetcher: O
         distance_nm(AIRPORTS[c][1], AIRPORTS[c][2], r["trail"][-1][1], r["trail"][-1][0]) <= WEB_HUB_NM for c in BUSIEST_30)}
     payload = {
         "aircraft": nt.snapshot(WEB_CAP, meta=True, keep=near_hub), "source": SOURCE, "fetched_utc": _iso(now), "n": nt.n,
+        "license": "ODbL 1.0", "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+        "attribution": "Aircraft data: adsb.lol (https://www.adsb.lol/), ODbL 1.0",
         "interval_s": WEB_EVERY_SEC, "circles": [c for c, _, _ in todo], "tracked": len(nt.ac),
     }
     _atomic_write(Path(out_dir) / "national.json", json.dumps(payload, separators=(",", ":")).encode("utf-8"))
