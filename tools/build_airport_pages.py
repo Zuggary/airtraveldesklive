@@ -81,6 +81,7 @@ def _render_head(
         '  <meta name="theme-color" content="#0d1722">',
         '  <link rel="icon" href="../favicon.svg" type="image/svg+xml">',
         '  <link rel="icon" href="../favicon.png" type="image/png">',
+        '  <link rel="stylesheet" href="../tokens.css">',
         '  <link rel="stylesheet" href="../style.css">',
         _json_ld_script(breadcrumb),
         "</head>",
@@ -94,6 +95,7 @@ def _render_header() -> str:
         '    <header class="site-header">',
         '      <div class="brand-row">',
         '        <a class="brand" href="../index.html">',
+        '          <img class="brand-logo" src="../brand/logo.svg" width="36" height="36" alt="Air Travel Desk logo">',
         '          <span class="live-dot" aria-hidden="true"></span>',
         '          <span class="brand-title">Air Travel Desk</span>',
         "        </a>",
@@ -116,6 +118,7 @@ def _render_footer() -> str:
             '      <p><a class="tap" href="../index.html">Live board</a> &middot; '
             '<a class="tap" href="index.html">Airports</a> &middot; '
             '<a class="tap" href="../about.html">About</a> &middot; '
+            '<a class="tap" href="../sources.html">Data and sources</a> &middot; '
             '<a class="tap" href="../privacy.html">Privacy</a> &middot; '
             f'Contact: <a class="tap" href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>'
         ),

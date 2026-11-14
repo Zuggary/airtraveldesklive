@@ -18,6 +18,7 @@
   <meta name="theme-color" content="#0d1722">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,6 +27,7 @@
     <header class="site-header">
       <div class="brand-row">
         <a class="brand" href="index.html">
+          <img class="brand-logo" src="brand/logo.svg" width="36" height="36" alt="Air Travel Desk logo">
           <span class="live-dot" aria-hidden="true"></span>
           <span class="brand-title">Air Travel Desk</span>
         </a>
@@ -41,6 +43,17 @@
         <p>Air Travel Desk is an independent project that shows US airport delays and ground stops from public data, with a <a class="tap" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">live stream on Twitch</a> and this website.</p>
         <p>We are not affiliated with any airline, airport or government agency.</p>
 
+        <h2>Our rules</h2>
+        <ul>
+          <li>Facts only. We say what the source reports, where, and when. We give no opinion, no blame and no prediction.</li>
+          <li>Official sources come first. Each item names its source and the time the source reported it.</li>
+          <li>Plain words. Numbers appear as the source gives them.</li>
+          <li>The same rules apply to every airport and every airline.</li>
+          <li>The order of items follows size, severity, flights affected and how recent the report is. Nothing else changes the order.</li>
+          <li>We say "reported" or "estimated" when a figure is not final, and we correct errors fast and say what changed.</li>
+          <li>The stream host may choose what to show and in what order. It does not add a fact that is not in the data.</li>
+        </ul>
+
         <h2>How pages are made</h2>
         <p>The live status board, weather notes, radar image, aircraft map and travel numbers are updated automatically from public data every 5 minutes by a script.</p>
         <p>The wording in the <a class="tap" href="stuck.html">I'm-stuck guide</a> and the airport guide link lists are written and checked by hand; both were checked on 2026-11-14.</p>
@@ -48,6 +61,7 @@
         <p>Where this site uses "what you may be owed" or "possibly owed" wording, it is plain-language help based on public U.S. Department of Transportation rules and airline customer service plans, not legal advice. Your airline decides every claim, voucher or reimbursement.</p>
 
         <h2>Where the data comes from</h2>
+        <p>This is a short list. The full list, with terms links and the last time we checked each feed, is on the <a class="tap" href="sources.html">Data and sources</a> page.</p>
         <div class="table-wrap" tabindex="0" role="region" aria-label="Public data sources">
           <table class="data-table">
             <caption>Public data sources used on Air Travel Desk</caption>
@@ -166,7 +180,7 @@
 
     <footer class="site-footer">
       <p>Updated automatically from public data. Not affiliated with any airline or government agency.</p>
-      <p><a class="tap" href="index.html">Live board</a> &middot; <a class="tap" href="airports/index.html">Airports</a> &middot; <a class="tap" href="about.html">About</a> &middot; <a class="tap" href="privacy.html">Privacy</a> &middot; Contact: <a class="tap" href="mailto:hello@airtraveldesklive.com">hello@airtraveldesklive.com</a></p>
+      <p><a class="tap" href="index.html">Live board</a> &middot; <a class="tap" href="airports/index.html">Airports</a> &middot; <a class="tap" href="about.html">About</a> &middot; <a class="tap" href="sources.html">Data and sources</a> &middot; <a class="tap" href="privacy.html">Privacy</a> &middot; Contact: <a class="tap" href="mailto:hello@airtraveldesklive.com">hello@airtraveldesklive.com</a></p>
     </footer>
   </div>
 </body>

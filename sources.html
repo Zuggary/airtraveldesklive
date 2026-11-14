@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data and sources: Air Travel Desk</title>
+  <meta name="description" content="Every public feed Air Travel Desk reads, with its licence, terms link, update rhythm and the time we last checked it. Also what we do not use.">
+  <link rel="canonical" href="https://www.airtraveldesklive.com/sources.html">
+  <meta property="og:title" content="Data and sources: Air Travel Desk">
+  <meta property="og:description" content="Every public feed Air Travel Desk reads, with its licence, terms link, update rhythm and the time we last checked it. Also what we do not use.">
+  <meta property="og:image" content="https://www.airtraveldesklive.com/og.png">
+  <meta property="og:url" content="https://www.airtraveldesklive.com/sources.html">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Data and sources: Air Travel Desk">
+  <meta name="twitter:description" content="Every public feed Air Travel Desk reads, with its licence, terms link, update rhythm and the time we last checked it. Also what we do not use.">
+  <meta name="twitter:image" content="https://www.airtraveldesklive.com/og.png">
+  <meta name="theme-color" content="#0d1722">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="container">
+    <header class="site-header">
+      <div class="brand-row">
+        <a class="brand" href="index.html">
+          <img class="brand-logo" src="brand/logo.svg" width="36" height="36" alt="Air Travel Desk logo">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="brand-title">Air Travel Desk</span>
+        </a>
+      </div>
+      <a class="btn btn-secondary" href="index.html">Back to live board</a>
+    </header>
+
+    <main id="main-content">
+      <article class="prose-card prose-card--wide">
+        <h1>Data and sources</h1>
+        <p>This page lists every feed the site reads. The site job reads each feed about every 5 minutes and keeps the last good data if a feed fails. The last-checked time comes from the data file the feed fills, so it shows when the job last had good data from that source.</p>
+        <p>This site is automated and may be wrong or late. Check the official source or your airline before you travel.</p>
+        <p id="src-status" class="updated-text" role="status">Loading the check times&hellip;</p>
+
+        <h2>Feeds the site reads</h2>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Feeds the site reads">
+          <table class="data-table" id="src-site">
+            <caption>Feeds the site reads</caption>
+            <thead>
+              <tr>
+                <th scope="col">Source</th>
+                <th scope="col">What we use it for</th>
+                <th scope="col">Licence and terms</th>
+                <th scope="col">How often it updates</th>
+                <th scope="col">Last checked</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-src="faa-nas">
+                <th scope="row"><a href="https://nasstatus.faa.gov/" target="_blank" rel="noopener noreferrer">FAA NAS status</a></th>
+                <td data-label="What we use it for">Airport delays, ground delays, ground stops and closures</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">About every minute; the site reads it every 5 minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="nws">
+                <th scope="row"><a href="https://www.weather.gov/" target="_blank" rel="noopener noreferrer">National Weather Service alerts</a></th>
+                <td data-label="What we use it for">Active weather alerts near airports (api.weather.gov)</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.weather.gov/disclaimer" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every 10 minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="aviationweather">
+                <th scope="row"><a href="https://aviationweather.gov/" target="_blank" rel="noopener noreferrer">aviationweather.gov METAR and TAF</a></th>
+                <td data-label="What we use it for">Airport weather reports, 3-hour forecasts and convective SIGMETs</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every 10 minutes (SIGMETs every 15 minutes)</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="spc">
+                <th scope="row"><a href="https://www.spc.noaa.gov/" target="_blank" rel="noopener noreferrer">NOAA Storm Prediction Center outlooks</a></th>
+                <td data-label="What we use it for">Day-1 convective storm outlook areas</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every 15 minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="nhc">
+                <th scope="row"><a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener noreferrer">NOAA National Hurricane Center</a></th>
+                <td data-label="What we use it for">Active tropical storms and hurricanes</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every 30 minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="mrms">
+                <th scope="row"><a href="https://opengeo.ncep.noaa.gov/" target="_blank" rel="noopener noreferrer">NOAA radar (MRMS base reflectivity)</a></th>
+                <td data-label="What we use it for">Radar image over the lower 48 states</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every 5 minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="tsa">
+                <th scope="row"><a href="https://www.tsa.gov/travel/passenger-volumes" target="_blank" rel="noopener noreferrer">TSA checkpoint numbers</a></th>
+                <td data-label="What we use it for">Daily passenger screening counts and holiday comparisons</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Daily</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="bts">
+                <th scope="row"><a href="https://www.bts.gov/" target="_blank" rel="noopener noreferrer">Bureau of Transportation Statistics on-time data</a></th>
+                <td data-label="What we use it for">Monthly airline and airport on-time and cancellation rates</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Monthly</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="adsb-lol">
+                <th scope="row"><a href="https://www.adsb.lol/" target="_blank" rel="noopener noreferrer">adsb.lol</a></th>
+                <td data-label="What we use it for">Aircraft positions for map trails, traffic counts and holding notes</td>
+                <td data-label="Licence and terms">ODbL 1.0; credit required. <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every 5 minutes (full sweep about every 15 minutes)</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="osm">
+                <th scope="row"><a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap via Overpass</a></th>
+                <td data-label="What we use it for">Hotels and car rental places near each airport</td>
+                <td data-label="Licence and terms">ODbL (© OpenStreetMap contributors). <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Weekly</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="dot-dashboard">
+                <th scope="row"><a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT Airline Cancellation and Delay Dashboard</a></th>
+                <td data-label="What we use it for">Airline customer service commitments table</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Changed by hand when DOT changes the page; page last updated 2025-09-11</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="airport-sites">
+                <th scope="row"><a href="airports/index.html">Airport operators&#x27; own websites</a></th>
+                <td data-label="What we use it for">Official airport guide links and security wait page links</td>
+                <td data-label="Licence and terms">Links only; no text copied. <a href="airports/index.html">Terms</a></td>
+                <td data-label="How often it updates">Links checked by hand</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="natural-earth">
+                <th scope="row"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth map outlines</a></th>
+                <td data-label="What we use it for">U.S. state borders on the map</td>
+                <td data-label="Licence and terms">Public domain. <a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Static map file</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Used only in TV mode on the stream</h2>
+        <p>These feeds are not read by this website or its 5-minute job. The live stream's TV mode can show them when its own computer has fetched them, so no check time is kept here.</p>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Feeds used only in TV mode on the stream">
+          <table class="data-table" id="src-stream">
+            <caption>Feeds used only in TV mode on the stream</caption>
+            <thead>
+              <tr>
+                <th scope="col">Source</th>
+                <th scope="col">What we use it for</th>
+                <th scope="col">Licence and terms</th>
+                <th scope="col">How often it updates</th>
+                <th scope="col">Last checked</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-src="goes">
+                <th scope="row"><a href="https://www.star.nesdis.noaa.gov/GOES/" target="_blank" rel="noopener noreferrer">NOAA GOES-19 satellite images</a></th>
+                <td data-label="What we use it for">Satellite loop in TV mode on the stream</td>
+                <td data-label="Licence and terms">U.S. government work. <a href="https://www.usa.gov/government-works" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">About every 10 minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="caltrans">
+                <th scope="row"><a href="https://cwwp2.dot.ca.gov/" target="_blank" rel="noopener noreferrer">Caltrans highway camera images</a></th>
+                <td data-label="What we use it for">Highway camera views near LAX, SFO and SAN in TV mode on the stream</td>
+                <td data-label="Licence and terms">Public feed; check terms on the page. <a href="https://cwwp2.dot.ca.gov/" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every few minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+              <tr data-src="wsdot">
+                <th scope="row"><a href="https://wsdot.wa.gov/traffic/api/" target="_blank" rel="noopener noreferrer">WSDOT highway camera images</a></th>
+                <td data-label="What we use it for">Highway camera view near SEA in TV mode on the stream</td>
+                <td data-label="Licence and terms">Public feed; access code required; check terms on the page. <a href="https://wsdot.wa.gov/traffic/api/" target="_blank" rel="noopener noreferrer">Terms</a></td>
+                <td data-label="How often it updates">Every few minutes</td>
+                <td data-label="Last checked" class="src-checked">Needs JavaScript</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Not used</h2>
+        <ul id="not-used">
+          <li>Airline websites and apps: not read. Airline status pages are linked, never copied.</li>
+          <li>Paid flight-tracking sites (FlightAware, Flightradar24): their terms do not allow this use.</li>
+          <li>FAA SWIM and other login-only aviation feeds: not used.</li>
+          <li>Reader reports, social posts and news articles: never copied or used for a status.</li>
+          <li>Ad scripts, analytics and tracking pixels: none on this site.</li>
+        </ul>
+
+        <h2>Limits of the data</h2>
+        <ul>
+          <li>Delays shown here are what the FAA NAS status feed lists, not every individual flight delay.</li>
+          <li>Aircraft positions are a sample with a delay, not a real-time radar feed.</li>
+          <li>A time in this table is when the site job last had good data, not when the agency last updated it.</li>
+          <li>This site is not for flight dispatch or navigation.</li>
+        </ul>
+
+        <h2>Report an error</h2>
+        <p>Email <a class="tap" href="mailto:hello@airtraveldesklive.com">hello@airtraveldesklive.com</a> with the page address and what looks wrong. Read <a class="tap" href="about.html">About Air Travel Desk</a> for how pages are made.</p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>Updated automatically from public data. Not affiliated with any airline or government agency.</p>
+      <p><a class="tap" href="index.html">Live board</a> &middot; <a class="tap" href="airports/index.html">Airports</a> &middot; <a class="tap" href="about.html">About</a> &middot; <a class="tap" href="sources.html">Data and sources</a> &middot; <a class="tap" href="privacy.html">Privacy</a> &middot; Contact: <a class="tap" href="mailto:hello@airtraveldesklive.com">hello@airtraveldesklive.com</a></p>
+    </footer>
+  </div>
+  <script src="lib.js" defer></script>
+  <script src="sources.js" defer></script>
+</body>
+</html>

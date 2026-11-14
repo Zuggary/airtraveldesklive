@@ -74,6 +74,9 @@ jobs:
         continue-on-error: true
         run: python tools/build_places.py --out data
 
+      - name: Build data and sources list (reads the data files above; no network)
+        run: python tools/build_sources.py --out data
+
       - name: Build static airport pages
         run: python tools/build_airport_pages.py
 
@@ -84,7 +87,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html stuck.html about.html tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js cine.js style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html stuck.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js cine.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
@@ -93,7 +96,7 @@ jobs:
           cp airports/*.html _site/airports/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
-          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
+          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/brand
           cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
 

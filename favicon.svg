@@ -1,7 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Air Travel Desk">
-  <rect width="64" height="64" rx="14" fill="#0d1722"/>
-  <circle cx="32" cy="18" r="6" fill="#f2b33d"/>
-  <path d="M12 46h40v5H12z" fill="#eef3f7" opacity="0.22"/>
-  <path d="M29 31h6l9 15H20z" fill="#f2b33d"/>
-  <path d="M31 35h2v4h-2zm0 6h2v4h-2z" fill="#0d1722"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Air Travel Desk"><rect width="200" height="200" rx="44" fill="#0B1730"/>
+  <circle cx="100" cy="100" r="74" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+  <circle cx="100" cy="100" r="42" fill="none" stroke="#4CC3FF" stroke-width="16"/>
+  <g transform="translate(147 46) rotate(130) scale(1.1)"><path d="M0-24 L5-7 L24 8 L24 15 L5 9 L4 19 L11 24 L11 28 L0 25 L-11 28 L-11 24 L-4 19 L-5 9 L-24 15 L-24 8 L-5-7Z" fill="#4CC3FF" stroke="#0B1730" stroke-width="8" stroke-linejoin="round" paint-order="stroke"/></g>
 </svg>

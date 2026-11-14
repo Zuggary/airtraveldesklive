@@ -241,6 +241,76 @@
     return out.slice(0, limit || 6);
   }
 
+  // ---------- FA20: changed in the last hour, and the 24 h history chart ----------
+  var RANK = { green: 0, yellow: 1, orange: 2, red: 3 };
+  function rankOf(level) { return RANK.hasOwnProperty(level) ? RANK[level] : 0; }
+  function levelOf(v) { return v && (v.level || v.status) || "green"; }
+
+  // Airports whose level differs from the history reading nearest to 60 minutes before the board time.
+  // History readings are hourly, so a usable reading is 20 to 120 minutes old. board: state.board[] ({code, status}).
+  function changedLastHour(history, board, nowIso) {
+    var now = Date.parse(nowIso || "");
+    var points = (history && Array.isArray(history.points)) ? history.points : [];
+    if (!isFinite(now) || !Array.isArray(board) || !board.length) { return { ok: false, reason: "no board" }; }
+    var best = null, bestGap = Infinity;
+    points.forEach(function (p) {
+      var t = Date.parse(p && p.t_utc || "");
+      if (!isFinite(t) || !p.board) { return; }
+      var age = (now - t) / 60000;
+      if (age < 20 || age > 120) { return; }
+      var gap = Math.abs(age - 60);
+      if (gap < bestGap) { best = p; bestGap = gap; }
+    });
+    if (!best) { return { ok: false, reason: "no reading about an hour old" }; }
+    var changes = [];
+    board.forEach(function (b) {
+      var before = best.board[b.code];
+      if (!before) { return; }
+      var from = levelOf(before), to = levelOf(b);
+      if (rankOf(from) === rankOf(to)) { return; }
+      changes.push({ code: b.code, name: b.name || b.code, from: from, to: to, dir: rankOf(to) > rankOf(from) ? "worse" : "better" });
+    });
+    changes.sort(function (a, b) {
+      if (a.dir !== b.dir) { return a.dir === "worse" ? -1 : 1; }
+      return rankOf(b.to) - rankOf(a.to) || (a.code < b.code ? -1 : 1);
+    });
+    return { ok: true, changes: changes, baseT: best.t_utc, baseAgeMin: Math.round((now - Date.parse(best.t_utc)) / 60000), compared: board.length };
+  }
+
+  // One entry per hourly reading in the last 24 h before the newest reading: how many airports are not green.
+  function historySeries(history) {
+    var points = (history && Array.isArray(history.points)) ? history.points : [];
+    var rows = [];
+    points.forEach(function (p) {
+      var t = Date.parse(p && p.t_utc || "");
+      if (!isFinite(t) || !p.board) { return; }
+      var codes = Object.keys(p.board), bad = 0, stops = 0;
+      codes.forEach(function (c) {
+        var r = rankOf(levelOf(p.board[c]));
+        if (r > 0) { bad++; }
+        if (r === 3) { stops++; }
+      });
+      rows.push({ t: p.t_utc, ms: t, hour: p.hour_utc || "", total: codes.length, notGreen: bad, stops: stops });
+    });
+    rows.sort(function (a, b) { return a.ms - b.ms; });
+    if (!rows.length) { return []; }
+    var last = rows[rows.length - 1].ms;
+    return rows.filter(function (r) { return last - r.ms < 24 * 3600 * 1000; });
+  }
+
+  // Source line for any "checked" time in sources.json: a UTC time, a day, or nothing.
+  function checkedView(kind, checked, nowMs) {
+    if (kind === "stream") { return { text: "Not read by the site job", age: null }; }
+    if (kind === "static") { return { text: "Static file", age: null }; }
+    if (!checked) { return { text: "No time on file", age: null }; }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(checked)) { return { text: checked + " (checked by hand)", age: null }; }
+    var ms = Date.parse(checked);
+    if (!isFinite(ms)) { return { text: "No time on file", age: null }; }
+    var m = Math.max(0, Math.floor(((nowMs == null ? Date.now() : nowMs) - ms) / 60000));
+    var age = m < 90 ? m + " min ago" : m < 2880 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " days ago";
+    return { text: checked.replace("T", " ").replace("Z", " UTC"), age: age, minutes: m };
+  }
+
   function pct(n, digits) { return (n == null || !isFinite(n)) ? "" : Number(n).toFixed(digits == null ? 1 : digits) + "%"; }
 
   return {
@@ -249,6 +319,7 @@
     kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, latestItems: latestItems, millions: millions,
+    changedLastHour: changedLastHour, historySeries: historySeries, checkedView: checkedView,
     STATUS_WORD: STATUS_WORD, LEVEL_RANK: LEVEL_RANK, DOT_URL: DOT_URL, REFUND_LINE: REFUND_LINE
   };
 });

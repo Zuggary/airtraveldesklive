@@ -1,0 +1,95 @@
+{
+ "source": "FAA NAS status",
+ "points": [
+  {
+   "hour_utc": "2026-11-14T07:00Z",
+   "t_utc": "2026-11-14T07:10:00Z",
+   "board": {
+    "ATL": {
+     "level": "green",
+     "avg_min": null
+    },
+    "DFW": {
+     "level": "green",
+     "avg_min": null
+    },
+    "DEN": {
+     "level": "green",
+     "avg_min": null
+    },
+    "ORD": {
+     "level": "green",
+     "avg_min": null
+    },
+    "LAX": {
+     "level": "green",
+     "avg_min": null
+    },
+    "JFK": {
+     "level": "green",
+     "avg_min": null
+    }
+   }
+  },
+  {
+   "hour_utc": "2026-11-14T08:00Z",
+   "t_utc": "2026-11-14T08:12:00Z",
+   "board": {
+    "ATL": {
+     "level": "green",
+     "avg_min": null
+    },
+    "DFW": {
+     "level": "green",
+     "avg_min": null
+    },
+    "DEN": {
+     "level": "green",
+     "avg_min": null
+    },
+    "ORD": {
+     "level": "orange",
+     "avg_min": null
+    },
+    "LAX": {
+     "level": "green",
+     "avg_min": null
+    },
+    "JFK": {
+     "level": "yellow",
+     "avg_min": null
+    }
+   }
+  },
+  {
+   "hour_utc": "2026-11-14T09:00Z",
+   "t_utc": "2026-11-14T09:11:00Z",
+   "board": {
+    "ATL": {
+     "level": "green",
+     "avg_min": null
+    },
+    "DFW": {
+     "level": "green",
+     "avg_min": null
+    },
+    "DEN": {
+     "level": "green",
+     "avg_min": null
+    },
+    "ORD": {
+     "level": "red",
+     "avg_min": null
+    },
+    "LAX": {
+     "level": "yellow",
+     "avg_min": null
+    },
+    "JFK": {
+     "level": "yellow",
+     "avg_min": null
+    }
+   }
+  }
+ ]
+}

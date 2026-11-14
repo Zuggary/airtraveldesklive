@@ -12,7 +12,7 @@
   var LEVEL_WORD = { clear: "Clear", delay: "Delay", stop: "Ground stop" };
   var FALLBACK_LEVEL = { green: "clear", amber: "delay", red: "stop" };
 
-  var D = { state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
+  var D = { history: null, state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
   var airports = [];       // [{code, name, short, city, level, ...}] in board order
   var byCode = {};
   var currentCode = "";
@@ -946,6 +946,115 @@
     });
   }
 
+  // ---------- FA20: changed in the last hour ----------
+  function levelName(l) { return l === "red" ? "ground stop" : A.STATUS_WORD.hasOwnProperty(l) ? A.STATUS_WORD[l].toLowerCase() : "clear"; }
+
+  function renderChanged() {
+    var sum = $("changed-summary"), list = $("changed-list"), note = $("changed-note");
+    if (!sum) { return; }
+    list.textContent = "";
+    if (!D.state || !Array.isArray(D.state.board)) { return; }
+    var r = A.changedLastHour(D.history, D.state.board, D.state.updated_utc);
+    if (!r.ok) {
+      sum.textContent = "Not enough readings yet to compare with an hour ago.";
+      note.textContent = "The site keeps one FAA reading per hour. This fills in after the next hourly reading. Source: FAA NAS status, " + ageText(D.state.updated_utc) + ".";
+      return;
+    }
+    if (!r.changes.length) {
+      sum.textContent = "No change. All " + r.compared + " airports are at the same level as an hour ago.";
+    } else {
+      sum.textContent = r.changes.length + (r.changes.length === 1 ? " airport has" : " airports have") + " changed level since the earlier reading.";
+      r.changes.slice(0, 12).forEach(function (c) {
+        var li = el("li", "change-item change-item--" + c.dir + (c.to === "red" ? " change-item--stop" : ""));
+        li.appendChild(el("span", "change-code", c.code));
+        li.appendChild(el("span", "change-text", levelName(c.from) + " to " + levelName(c.to) + " (" + c.dir + ")"));
+        list.appendChild(li);
+      });
+      if (r.changes.length > 12) { list.appendChild(el("li", "change-item", "and " + (r.changes.length - 12) + " more")); }
+    }
+    note.textContent = "Compared with the FAA reading from " + fmtTime(new Date(Date.parse(r.baseT))) + " (" + r.baseAgeMin + " min before the latest check). Source: FAA NAS status, " + ageText(D.state.updated_utc) + ".";
+  }
+
+  // ---------- FA20: 24 hour history chart ----------
+  var SVGNS = (function () { var d = document.createElement("div"); d.innerHTML = "<svg></svg>"; return d.firstChild.namespaceURI; })();
+  function svgEl(name, attrs, text) {
+    var n = document.createElementNS(SVGNS, name);
+    Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    if (text != null) { n.textContent = text; }
+    return n;
+  }
+  function hourLabel(ms) {
+    try { return new Intl.DateTimeFormat(undefined, { hour: "numeric" }).format(new Date(ms)); } catch (e) { return ""; }
+  }
+
+  function renderHistory() {
+    var box = $("hist-box");
+    if (!box) { return; }
+    var rows = A.historySeries(D.history);
+    box.textContent = "";
+    if (!rows.length) {
+      box.appendChild(el("p", "empty-state", D.history ? "No hourly readings yet. The chart fills in as the hours pass." : "The hourly readings could not be loaded."));
+      return;
+    }
+    var HOUR = 3600000, SLOTS = 24, W = 360, H = 190, L = 28, R = 352, T = 12, B = 152;
+    var lastSlot = Math.floor(rows[rows.length - 1].ms / HOUR);
+    var max = 0, peak = rows[0];
+    rows.forEach(function (r) { if (r.notGreen > max) { max = r.notGreen; } if (r.notGreen > peak.notGreen) { peak = r; } });
+    var ymax = Math.max(4, max), slotW = (R - L) / SLOTS, bw = Math.max(4, slotW - 4);
+    function y(v) { return B - (B - T) * v / ymax; }
+    var newest = rows[rows.length - 1];
+    var summary = "Now " + newest.notGreen + " of " + newest.total + " airports are not clear. The most in the last 24 hours was " + peak.notGreen + ", around " + hourLabel(peak.ms) + ". Source: FAA NAS status, hourly readings, latest " + ageText(newest.t) + ".";
+
+    var svg = svgEl("svg", { "class": "hist-svg", viewBox: "0 0 " + W + " " + H, role: "img", "aria-labelledby": "hist-title hist-desc", focusable: "false" });
+    svg.appendChild(svgEl("title", { id: "hist-title" }, "Airports not clear, by hour, last 24 hours"));
+    svg.appendChild(svgEl("desc", { id: "hist-desc" }, summary + " The table below the chart lists every reading."));
+    var ticks = [0, Math.round(ymax / 2), ymax].filter(function (v, i, a) { return a.indexOf(v) === i; });
+    ticks.forEach(function (v) {
+      svg.appendChild(svgEl("line", { "class": "hist-grid", x1: L, x2: R, y1: y(v), y2: y(v) }));
+      svg.appendChild(svgEl("text", { x: L - 4, y: y(v) + 4, "text-anchor": "end" }, String(v)));
+    });
+    rows.forEach(function (r) {
+      var k = SLOTS - 1 - (lastSlot - Math.floor(r.ms / HOUR));
+      if (k < 0 || k >= SLOTS) { return; }
+      var x = L + k * slotW + (slotW - bw) / 2;
+      if (r.notGreen === 0) {
+        svg.appendChild(svgEl("line", { "class": "hist-zero", x1: x, x2: x + bw, y1: B - 1, y2: B - 1 }));
+        return;
+      }
+      var hAll = B - y(r.notGreen), hStop = B - y(r.stops);
+      svg.appendChild(svgEl("rect", { "class": "hist-bar--delay", x: x, y: B - hAll, width: bw, height: hAll, rx: 1 }));
+      if (r.stops) { svg.appendChild(svgEl("rect", { "class": "hist-bar--stop", x: x, y: B - hStop, width: bw, height: hStop, rx: 1 })); }
+    });
+    [0, 6, 12, 18, 23].forEach(function (k) {
+      var ms = (lastSlot - (SLOTS - 1 - k)) * HOUR;
+      svg.appendChild(svgEl("text", { x: L + k * slotW + slotW / 2, y: B + 16, "text-anchor": k === 0 ? "start" : k === 23 ? "end" : "middle" }, hourLabel(ms)));
+    });
+    svg.appendChild(svgEl("text", { x: R, y: H - 6, "text-anchor": "end" }, "Hours in your local time"));
+    box.appendChild(svg);
+    box.appendChild(el("p", "hist-note", summary));
+    box.appendChild(el("p", "hist-note", "Red part of a bar: ground stops and closures. Amber part: delays. A green line: all clear. A missing bar: no reading for that hour."));
+
+    var det = el("details", "hist-details");
+    det.appendChild(el("summary", null, "Show the numbers as a table"));
+    var wrap = el("div", "hist-table-wrap");
+    var tb = el("table", "hist-table");
+    tb.appendChild(el("caption", "sr-only", "Airports not clear, by hourly reading"));
+    var th = el("thead"), hr = el("tr");
+    ["Reading time", "Not clear", "Ground stops or closures", "Airports counted"].forEach(function (h) { var c = el("th", null, h); c.scope = "col"; hr.appendChild(c); });
+    th.appendChild(hr); tb.appendChild(th);
+    var body = el("tbody");
+    rows.slice().reverse().forEach(function (r) {
+      var tr = el("tr");
+      var c0 = el("th", null, fmtTime(new Date(r.ms))); c0.scope = "row"; tr.appendChild(c0);
+      tr.appendChild(el("td", null, String(r.notGreen)));
+      tr.appendChild(el("td", null, String(r.stops)));
+      tr.appendChild(el("td", null, String(r.total)));
+      body.appendChild(tr);
+    });
+    tb.appendChild(body); wrap.appendChild(tb); det.appendChild(wrap);
+    box.appendChild(det);
+  }
+
   // ---------- loading ----------
   function renderLive() {
     buildAirports();
@@ -953,6 +1062,7 @@
     renderSummary();
     renderEvents();
     renderLatest();
+    renderChanged();
     renderBoard();
     renderCardLive();
     renderMap();
@@ -960,8 +1070,9 @@
   }
 
   function loadLive() {
-    return Promise.all([getJson("data/state.json", true), getJson("data/airports.json", true)]).then(function (r) {
+    return Promise.all([getJson("data/state.json", true), getJson("data/airports.json", true), getJson("data/board-history.json", true)]).then(function (r) {
       if (r[0]) { D.state = r[0]; }
+      D.history = r[2] || D.history;
       if (r[1]) { D.cards = r[1]; }
       // Merge: state.json is the truth for levels and events when airports.json lags behind it.
       if (D.state && D.cards && D.cards.updated_utc && D.state.updated_utc && D.cards.updated_utc < D.state.updated_utc && Array.isArray(D.state.board)) {
@@ -971,6 +1082,7 @@
         });
       }
       renderLive();
+      renderHistory();
       return null;
     });
   }
@@ -997,6 +1109,7 @@
     renderFreshness();
     renderEvents();
     renderLatest();
+    renderChanged();
     renderCardLive();
   }
 
