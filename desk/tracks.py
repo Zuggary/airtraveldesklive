@@ -353,8 +353,8 @@ def update_national(
 
 # ---------- Website job: one national fetch per 5-minute run ----------
 WEB_TRAIL = 8                 # 8 fixes, 5 minutes apart, is a 40-minute trail
-WEB_DROP_AFTER = 3            # runs an aircraft may stay unseen
-WEB_MAX_CALLS = 6             # adsb.lol GETs per run
+WEB_DROP_AFTER = 5            # runs an aircraft may stay unseen (each circle is fetched every 3rd run)
+WEB_MAX_CALLS = 2             # adsb.lol GETs per run (the docs allow 500 a day per IP; the 6 circles rotate over 3 runs)
 WEB_EVERY_SEC = 300.0         # the page dead-reckons for at most this long, then snaps to the next file
 
 
@@ -368,7 +368,11 @@ def web_national(out_dir: Path | str, prev: Optional[dict[str, Any]], fetcher: O
     errors: list[tuple[str, Exception]] = []
     got: list[dict[str, Any]] = []
     ok = 0
-    for i, (code, lat, lon) in enumerate(regional_circles(WEB_MAX_CALLS)):
+    # Rotate through the 6 circles, WEB_MAX_CALLS per run, so a full sweep takes 3 runs (about 15 minutes).
+    all_circles = regional_circles(NATIONAL_CIRCLES)
+    start = (int(now // WEB_EVERY_SEC) * WEB_MAX_CALLS) % len(all_circles)
+    todo = [all_circles[(start + k) % len(all_circles)] for k in range(WEB_MAX_CALLS)]
+    for i, (code, lat, lon) in enumerate(todo):
         if i and pause > 0:
             time.sleep(pause)
         url = NATIONAL_URL.format(lat=lat, lon=lon, dist=NATIONAL_DIST_NM)
@@ -390,7 +394,7 @@ def web_national(out_dir: Path | str, prev: Optional[dict[str, Any]], fetcher: O
         distance_nm(AIRPORTS[c][1], AIRPORTS[c][2], r["trail"][-1][1], r["trail"][-1][0]) <= WEB_HUB_NM for c in BUSIEST_30)}
     payload = {
         "aircraft": nt.snapshot(WEB_CAP, meta=True, keep=near_hub), "source": SOURCE, "fetched_utc": _iso(now), "n": nt.n,
-        "interval_s": WEB_EVERY_SEC, "circles": [c for c, _, _ in regional_circles(WEB_MAX_CALLS)], "tracked": len(nt.ac),
+        "interval_s": WEB_EVERY_SEC, "circles": [c for c, _, _ in todo], "tracked": len(nt.ac),
     }
     _atomic_write(Path(out_dir) / "national.json", json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     return nt, ok, errors
