@@ -4,107 +4,117 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Air Travel Desk — Live US Flight Delays &amp; Ground Stops</title>
-  <meta name="description" content="Live US airport status board, FAA ground stops, ground delays, and National Weather Service alerts.">
+  <meta name="description" content="Live US airport delays and ground stops, a map with radar, airport search, and what to do if you are stuck at the airport.">
   <link rel="canonical" href="https://www.airtraveldesklive.com/">
   <meta property="og:title" content="Air Travel Desk — Live US Flight Delays &amp; Ground Stops">
-  <meta property="og:description" content="Live US airport status board, FAA ground stops, ground delays, and National Weather Service alerts.">
+  <meta property="og:description" content="Live US airport delays and ground stops, a map with radar, airport search, and what to do if you are stuck at the airport.">
   <meta property="og:image" content="https://www.airtraveldesklive.com/og.png">
   <meta property="og:url" content="https://www.airtraveldesklive.com/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Air Travel Desk — Live US Flight Delays &amp; Ground Stops">
-  <meta name="twitter:description" content="Live US airport status board, FAA ground stops, ground delays, and National Weather Service alerts.">
+  <meta name="twitter:description" content="Live US airport delays and ground stops, a map with radar, airport search, and what to do if you are stuck at the airport.">
   <meta name="twitter:image" content="https://www.airtraveldesklive.com/og.png">
   <meta name="theme-color" content="#0d1722">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon.png" type="image/png">
   <link rel="stylesheet" href="style.css">
+  <script type="application/ld+json">
+  {"@context": "https://schema.org", "@type": "WebApplication", "name": "Air Travel Desk",
+   "url": "https://www.airtraveldesklive.com/",
+   "description": "Live US airport status: FAA ground stops and delays, National Weather Service alerts, NOAA radar and TSA checkpoint numbers.",
+   "applicationCategory": "TravelApplication", "operatingSystem": "Any", "isAccessibleForFree": true,
+   "image": "https://www.airtraveldesklive.com/og.png"}
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="container">
     <header class="site-header">
       <div class="brand-row">
-        <div class="brand">
-          <span class="live-dot" aria-hidden="true"></span>
-          <h1>Air Travel Desk</h1>
-        </div>
+        <span class="live-dot" aria-hidden="true"></span>
+        <h1 class="brand-title">Air Travel Desk</h1>
       </div>
-      <a class="btn btn-primary" href="https://www.youtube.com/@AirTravelDeskLive" target="_blank" rel="noopener noreferrer">
-        YouTube live stream: coming soon
-      </a>
+      <nav class="watch-bar" aria-label="Watch live with voice">
+        <span class="watch-label">Watch live with voice</span>
+        <a class="chip" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>
+        <!-- YouTube link goes here when the channel is live (AN5). -->
+        <a class="chip" href="tv.html">TV mode</a>
+        <button type="button" class="chip chip--button" id="load-live" aria-expanded="false" aria-controls="live-panel">Load live video</button>
+      </nav>
+      <div class="live-panel" id="live-panel" hidden>
+        <p class="live-note">The video plays from Twitch. Loading it contacts Twitch, which sets its own cookies. Nothing loads from Twitch until you press the button.</p>
+        <div class="live-frame" id="live-frame"></div>
+      </div>
     </header>
 
+    <a class="owed-shortcut" href="#owed" id="owed-shortcut">Delayed? What you're owed <span aria-hidden="true">&darr;</span></a>
+
+    <noscript>
+      <p class="noscript-note">This page needs JavaScript to show live data. For the FAA's own status page, go to nasstatus.faa.gov.</p>
+    </noscript>
+
     <main id="main-content">
-      <div class="status-bar">
-        <p id="updated-line" class="updated-text" aria-live="polite">Loading status…</p>
-      </div>
-      <p id="stale-notice" class="stale-notice" role="status" hidden>Data may be out of date</p>
-
-      <section class="live-section" aria-labelledby="live-heading">
-        <h2 id="live-heading" class="section-heading">Live video with voice</h2>
-        <div class="live-frame" id="live-frame">
-          <div class="live-gate">
-            <p>The live video plays from Twitch. Loading it contacts Twitch, which sets its own cookies.</p>
-            <button type="button" class="btn btn-primary" id="load-live">Load live video</button>
-            <p class="live-alt"><a href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Or watch on twitch.tv/airtraveldesklive</a></p>
-          </div>
-        </div>
-        <p class="desk-note">Nothing loads from Twitch until you press the button. If the stream is offline, the desk below still updates.</p>
-      </section>
-
-      <section class="desk-section" aria-labelledby="desk-heading">
-        <h2 id="desk-heading" class="section-heading">The desk</h2>
-        <div class="desk-frame" id="desk-frame">
-          <iframe id="desk-iframe" src="tv.html" allow="fullscreen" title="Air Travel Desk screen: live map, disruptions, airport board and TSA numbers" width="1280" height="720" loading="eager"></iframe>
-        </div>
-        <p class="desk-note">An automated broadcast. Data updates about every 5 minutes; GitHub's scheduler can run late. For the voice, <a href="tv.html">open full screen</a> and press Turn on voice.</p>
-      </section>
-
-      <section aria-labelledby="events-heading">
-        <h2 id="events-heading" class="section-heading">Active Disruptions</h2>
+      <section id="now" aria-labelledby="now-heading">
+        <h2 id="now-heading" class="section-heading">Right now</h2>
+        <p id="summary" class="summary" aria-live="polite">Loading the latest FAA status…</p>
+        <p id="updated-line" class="updated-text">&nbsp;</p>
+        <p id="stale-notice" class="stale-notice" role="status" hidden></p>
         <div id="events" class="events-list"></div>
       </section>
 
-      <section aria-labelledby="board-heading">
-        <h2 id="board-heading" class="section-heading">30 Busiest US Airports</h2>
+      <section id="airports" aria-labelledby="airports-heading">
+        <h2 id="airports-heading" class="section-heading">Find your airport</h2>
+        <div class="search-box">
+          <label for="airport-search">Airport code, city or name</label>
+          <input id="airport-search" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="SFO, san fran, newark">
+        </div>
+        <ul id="search-results" class="search-results" aria-label="Search results" hidden></ul>
+        <p id="search-empty" class="search-empty" hidden>No match among the 30 busiest airports.</p>
+
+        <div id="airport-card-slot" class="card-slot" tabindex="-1"></div>
+
+        <h3 class="sub-heading">The 30 busiest airports</h3>
         <div id="board" class="board-grid"></div>
       </section>
 
-      <section class="owed-panel" aria-labelledby="owed-heading">
-        <div class="owed-copy">
-          <h2 id="owed-heading">Flight trouble today?</h2>
-          <p>See if airline compensation or meal and hotel rules apply to your trip.</p>
+      <section id="map-section" aria-labelledby="map-heading">
+        <h2 id="map-heading" class="section-heading">Map</h2>
+        <p class="map-help">Tap a dot to open that airport's card.</p>
+        <div class="map-wrap">
+          <canvas id="map" role="img" aria-label="Map of the lower 48 states with radar and the 30 busiest airports. Airports with delays are marked in amber, ground stops in red."></canvas>
         </div>
-        <a class="btn btn-primary" href="https://www.downtimecredit.com/flights/" target="_blank" rel="noopener noreferrer">
-          Delayed or cancelled? Check what you're owed
-        </a>
+        <ul class="legend" aria-label="Map key">
+          <li><span class="swatch swatch--clear" aria-hidden="true"></span>Clear</li>
+          <li><span class="swatch swatch--delay" aria-hidden="true"></span>Delay</li>
+          <li><span class="swatch swatch--stop" aria-hidden="true"></span>Ground stop</li>
+        </ul>
+        <p class="credit">Radar: NOAA MRMS. Outlines: Natural Earth. Airport status: FAA.</p>
+      </section>
+
+      <section id="owed" class="owed-panel" aria-labelledby="owed-heading">
+        <h2 id="owed-heading">Delayed? What you're owed</h2>
+        <p>See what an airline owes you for a delay or a cancellation, and how to ask for it.</p>
+        <a class="btn btn-primary" href="https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive" target="_blank" rel="noopener noreferrer">Check what you're owed</a>
+        <p class="refund-line" id="owed-refund">Refunds are a separate rule, 14 CFR 260.6, and it applies whatever the cause of the delay or cancellation.</p>
+        <p>Each airport card has a table of what each airline has committed to. Open an airport above, then choose your airline.</p>
+        <a class="btn btn-secondary" href="#airports">Find my airport</a>
+      </section>
+
+      <section id="compare" aria-labelledby="compare-heading">
+        <h2 id="compare-heading" class="section-heading">How busy is travel?</h2>
+        <div id="compare-cards" class="compare-grid"></div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <p>An automated desk. Data: FAA, National Weather Service, NOAA MRMS radar, TSA, adsb.lol (ODbL); map: Natural Earth. Not affiliated with any airline or government agency.</p>
-      <p><a href="privacy.html">Privacy</a></p>
+      <p>An automated desk, not a person at a keyboard. Not affiliated with any airline or government agency.</p>
+      <p>Data: FAA, National Weather Service, NOAA MRMS radar, TSA, Bureau of Transportation Statistics (BTS), adsb.lol (ODbL), &copy; OpenStreetMap contributors. Map outlines: Natural Earth.</p>
+      <p><a class="tap" href="privacy.html">Privacy</a></p>
     </footer>
   </div>
 
+  <script src="lib.js" defer></script>
   <script src="app.js" defer></script>
-  <script>
-  (function () {
-    var btn = document.getElementById("load-live"), box = document.getElementById("live-frame");
-    btn.addEventListener("click", function () {
-      var f = document.createElement("iframe");
-      f.src = "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true";
-      f.title = "Air Travel Desk live video on Twitch"; f.allowFullscreen = true;
-      f.setAttribute("allow", "autoplay; fullscreen"); f.className = "live-player";
-      box.innerHTML = ""; box.appendChild(f);
-    });
-  })();
-  (function () {
-    var frame = document.getElementById("desk-frame"), ifr = document.getElementById("desk-iframe");
-    function fit() { var k = frame.clientWidth / 1280; ifr.style.transform = "scale(" + k + ")"; frame.style.height = (720 * k) + "px"; }
-    if (window.ResizeObserver) new ResizeObserver(fit).observe(frame); window.addEventListener("resize", fit); fit();
-  })();
-  </script>
 </body>
 </html>

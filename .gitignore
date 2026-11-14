@@ -2,4 +2,6 @@ data/tsa-cache/
 data/radar.png
 data/radar.json
 data/tsa.json
+data/bts-cache/
+data/bts.json
 __pycache__/

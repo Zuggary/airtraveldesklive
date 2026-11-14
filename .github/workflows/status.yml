@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
-      - name: Restore radar and TSA cache
+      - name: Restore radar, TSA, BTS and places cache
         uses: actions/cache@v4
         with:
           path: |
@@ -43,14 +43,31 @@ jobs:
             data/tsa.json
             data/radar.png
             data/radar.json
+            data/bts.json
+            data/places.json
           key: desk-cache-${{ github.run_id }}
           restore-keys: desk-cache-
+
+      - name: Month key for the BTS download cache
+        id: bts-month
+        run: echo "ym=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore BTS zip files (about 32 MB each; saved once a month)
+        uses: actions/cache@v4
+        with:
+          path: data/bts-cache
+          key: bts-zips-${{ steps.bts-month.outputs.ym }}
+          restore-keys: bts-zips-
 
       - name: Build airport status data
         run: python tools/build_status.py
 
-      - name: Build desk screen data (FAA, NWS, adsb.lol, radar, TSA)
+      - name: Build desk screen data (FAA, NWS, adsb.lol, radar, TSA, BTS)
         run: python tools/build_web.py --out data
+
+      - name: Build places list (OpenStreetMap, refreshed at most weekly)
+        continue-on-error: true
+        run: python tools/build_places.py --out data
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -59,16 +76,26 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html tv.html us-states.geojson qr-owed.svg privacy.html app.js style.css og.png favicon.svg favicon.png CNAME; do
+          for file in index.html tv.html us-states.geojson qr-owed.svg privacy.html app.js lib.js style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
           done
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
-          for f in radar.png radar.json tsa.json; do [ -f "data/$f" ] && cp "data/$f" _site/data/; done
+          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json; do [ -f "data/$f" ] && cp "data/$f" _site/data/; done
           mkdir -p _site/brand
           cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
+
+      - name: Check that every public root file is published
+        # The copy list above is an allowlist. Fail loudly if a public file at the root was left off it.
+        run: |
+          missing=0
+          for f in *.html *.js *.css *.txt *.xml *.svg *.png *.geojson CNAME; do
+            [ -f "$f" ] || continue
+            [ -f "_site/$f" ] || { echo "::error::$f is in the repo root but not in _site; add it to the copy list"; missing=1; }
+          done
+          exit $missing
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

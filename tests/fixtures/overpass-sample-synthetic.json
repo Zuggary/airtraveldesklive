@@ -1,0 +1,110 @@
+{
+ "version": 0.6,
+ "elements": [
+  {
+   "type": "node",
+   "id": 1,
+   "lat": 37.6215,
+   "lon": -122.3795,
+   "tags": {
+    "tourism": "hotel",
+    "name": "Fixture Hotel One",
+    "website": "https://example.test/one"
+   }
+  },
+  {
+   "type": "way",
+   "id": 2,
+   "center": {
+    "lat": 37.63,
+    "lon": -122.39
+   },
+   "tags": {
+    "tourism": "motel",
+    "name": "Fixture Motel Two",
+    "contact:website": "http://example.test/two"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3,
+   "lat": 37.622,
+   "lon": -122.38,
+   "tags": {
+    "tourism": "hotel"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4,
+   "lat": 37.64,
+   "lon": -122.4,
+   "tags": {
+    "amenity": "car_rental",
+    "name": "Fixture Rental A",
+    "website": "ftp://example.test/a"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5,
+   "lat": 37.641,
+   "lon": -122.401,
+   "tags": {
+    "amenity": "car_rental",
+    "name": "Fixture Rental B",
+    "website": "example.test/no-scheme"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6,
+   "lat": 37.6216,
+   "lon": -122.3796,
+   "tags": {
+    "tourism": "hotel",
+    "name": "fixture hotel one",
+    "website": "https://example.test/dupe"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7,
+   "lat": 38.2,
+   "lon": -122.379,
+   "tags": {
+    "tourism": "hotel",
+    "name": "Fixture Far Hotel"
+   }
+  },
+  {
+   "type": "node",
+   "id": 8,
+   "lat": 37.625,
+   "lon": -122.385,
+   "tags": {
+    "tourism": "hostel",
+    "name": "Fixture Hostel"
+   }
+  },
+  {
+   "type": "relation",
+   "id": 9,
+   "tags": {
+    "tourism": "hotel",
+    "name": "Fixture No Position"
+   }
+  },
+  {
+   "type": "node",
+   "id": 10,
+   "lat": 37.622,
+   "lon": -122.381,
+   "tags": {
+    "amenity": "car_rental",
+    "name": "Fixture Rental C",
+    "website": "https://example.test/c"
+   }
+  }
+ ]
+}

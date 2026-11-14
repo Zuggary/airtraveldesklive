@@ -1,0 +1,184 @@
+"""Tests for lib.js (search, commitments rules, summary) and the data files. Needs node for the lib.js tests."""
+import json, shutil, subprocess, sys, unittest
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from desk.airports import BUSIEST_30  # noqa: E402
+from tools import build_web  # noqa: E402
+
+NODE = shutil.which("node")
+AIRPORTS = [{"code": c, "name": build_web.display(c), "short": build_web.SHORT.get(c, c), "city": build_web.CITY[c]} for c in BUSIEST_30]
+
+
+def js(expr, **data):
+    """Run a JS expression with ATD (lib.js) and DATA (the kwargs as JSON); return the JSON result."""
+    code = "const ATD=require(%s);const DATA=%s;process.stdout.write(JSON.stringify(%s));" % (
+        json.dumps(str(ROOT / "lib.js")), json.dumps(data), expr)
+    r = subprocess.run([NODE, "-e", code], capture_output=True, text=True, timeout=30)
+    if r.returncode:
+        raise RuntimeError(r.stderr)
+    return json.loads(r.stdout)
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestSearch(unittest.TestCase):
+    def find(self, q):
+        return [a["code"] for a in js("ATD.searchAirports(DATA.list, DATA.q)", list=AIRPORTS, q=q)]
+
+    def test_san_fran_finds_sfo(self):
+        self.assertEqual(self.find("san fran")[0], "SFO")
+        self.assertNotIn("SAN", self.find("san fran"))
+
+    def test_code_city_and_name(self):
+        self.assertEqual(self.find("SFO")[0], "SFO")
+        self.assertEqual(self.find("sfo")[0], "SFO")
+        self.assertEqual(self.find("newark")[0], "EWR")
+        self.assertEqual(self.find("o'hare")[0], "ORD")
+        self.assertEqual(self.find("kennedy")[0], "JFK")
+        self.assertIn("MDW", self.find("chicago"))
+        self.assertEqual(self.find("san diego")[0], "SAN")
+
+    def test_empty_and_nonsense(self):
+        self.assertEqual(self.find(""), [])
+        self.assertEqual(self.find("zzzzqq"), [])
+
+    def test_deep_link(self):
+        codes = list(BUSIEST_30)
+        self.assertEqual(js("ATD.airportFromSearch('?airport=sfo', DATA.codes)", codes=codes), "SFO")
+        self.assertEqual(js("ATD.airportFromSearch('?airport=XXX', DATA.codes)", codes=codes), "")
+        self.assertEqual(js("ATD.airportFromSearch('', DATA.codes)", codes=codes), "")
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestCommitments(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.data = json.loads((ROOT / "data" / "dot-commitments.json").read_text())
+
+    def view(self, airline):
+        return js("ATD.commitmentView(DATA.c, DATA.id)", c=self.data, id=airline)
+
+    def test_ten_airlines_and_source_date(self):
+        self.assertEqual(len(self.data["airlines"]), 10)
+        self.assertEqual(self.data["source_last_updated"], "2025-09-11")
+        self.assertIn("2025-09-11", self.view("delta")["source"])
+        self.assertEqual(self.view("delta")["dotUrl"], "https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard")
+
+    def test_spirit_not_listed(self):
+        v = self.view("spirit")
+        self.assertFalse(v["listed"])
+        self.assertIn("not listed on the DOT dashboard", v["notListed"])
+        self.assertEqual(v["rows"], [])
+
+    def test_no_means_no_commitment(self):
+        v = self.view("frontier")
+        by = {r["key"]: r for r in v["rows"]}
+        self.assertEqual(by["hotel"]["text"], "No commitment")
+        self.assertFalse(by["hotel"]["committed"])
+        self.assertEqual(by["rebook_same"]["text"], "Committed")
+        self.assertEqual(len(v["rows"]), 8)
+        for r in v["rows"]:
+            self.assertNotIn(r["text"], ("No", "Yes"))
+
+    def test_labels_come_from_the_file(self):
+        v = self.view("alaska")
+        self.assertEqual(v["rows"][0]["label"], self.data["commitment_labels"]["rebook_same"])
+
+    def test_wording_rules(self):
+        self.assertTrue(self.view("delta")["intro"].startswith("Your airline has committed to"))
+        self.assertIn("14 CFR 260.6", self.view("delta")["refund"])
+        self.assertIn("whatever the cause", self.view("delta")["refund"])
+        self.assertIn("14 CFR 260.6", self.view("spirit")["refund"])
+        for a in self.data["airlines"]:
+            text = json.dumps(self.view(a["id"])).lower()
+            self.assertNotIn("must cover", text)
+            self.assertNotIn("must provide", text)
+
+    def test_no_must_cover_anywhere_in_site_files(self):
+        for name in ("index.html", "app.js", "lib.js", "privacy.html"):
+            self.assertNotIn("must cover", (ROOT / name).read_text().lower(), name)
+
+    def test_committed_file_unchanged_from_lane_copy(self):
+        src = Path.home() / "factory-scratch" / "shared" / "dot-airline-commitments.json"
+        if not src.is_file():
+            self.skipTest("lane copy not on this machine")
+        self.assertEqual(src.read_bytes(), (ROOT / "data" / "dot-commitments.json").read_bytes())
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestSummaryAndCountdown(unittest.TestCase):
+    def test_summary(self):
+        ap = [{"short": "San Francisco", "level": "delay", "events": [{"avg": "2 hours and 18 minutes"}]},
+              {"short": "San Diego", "level": "delay", "events": [{"avg": "34 minutes"}]},
+              {"short": "Atlanta", "level": "clear", "events": []}]
+        self.assertEqual(js("ATD.nationalSummary(DATA.ap)", ap=ap),
+                         "2 airports with delays · longest: San Francisco, avg 2 h 18 min")
+        self.assertIn("No delays", js("ATD.nationalSummary([])"))
+
+    def test_countdown(self):
+        self.assertEqual(js("ATD.countdown(1000*60*60, 0)"), "ends in 1 h")
+        self.assertEqual(js("ATD.countdown(1000*60*80, 0)"), "ends in 1 h 20 min")
+        self.assertEqual(js("ATD.countdown(1000, 1000*60*5)"), "past listed end time")
+        self.assertEqual(js("ATD.countdown(null, 0)"), "")
+
+    def test_safe_url(self):
+        self.assertEqual(js("ATD.safeUrl('javascript:alert(1)')"), "")
+        self.assertEqual(js("ATD.safeUrl('https://a.test/x')"), "https://a.test/x")
+
+    def test_three_tips(self):
+        self.assertEqual(len(js("ATD.rebookTips()")), 3)
+
+
+class TestSecurityWaits(unittest.TestCase):
+    def test_schema(self):
+        data = json.loads((ROOT / "data" / "security-waits.json").read_text())
+        self.assertEqual(sorted(data), sorted(BUSIEST_30))
+        for code, v in data.items():
+            self.assertRegex(v["url"], r"^https://")
+            self.assertIs(v["live_number"], False)
+            self.assertIsInstance(v["note"], str)
+            self.assertTrue(v["note"])
+            self.assertIsInstance(v["verified"], bool)
+
+
+class TestAirportCards(unittest.TestCase):
+    def test_cards_from_events(self):
+        FX = ROOT / "tests" / "fixtures"
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = build_web.build(Path(d), {}, (FX / "faa-1.xml").read_text(), '{"ac":[]}', {}, True)
+            cards = json.loads((Path(d) / "airports.json").read_text())
+        self.assertEqual(sorted(cards["airports"]), sorted(BUSIEST_30))
+        self.assertEqual(len(p["board"]), 30)
+        for c in cards["airports"].values():
+            self.assertIn(c["level"], ("clear", "delay", "stop"))
+            self.assertTrue(c["city"])
+            self.assertTrue(c["tz"])
+
+    def test_near_airports_limit_and_order(self):
+        evs = [{"source": "FAA", "airport": c, "kind": "ground_delay", "fields": {"avg": f"{i} minutes"}} for i, c in enumerate(["ATL", "DFW", "DEN", "ORD", "LAX", "JFK", "LAS"], 1)]
+        evs.append({"source": "FAA", "airport": "SEA", "kind": "ground_stop", "fields": {}})
+        evs.append({"source": "adsb.lol", "airport": "MCO", "kind": "squawk7700", "fields": {}})
+        got = build_web.pick_near_airports(evs)
+        self.assertEqual(len(got), 5)
+        self.assertEqual(got[0], "SEA")
+        self.assertEqual(got[1], "LAS")
+
+    def test_near_count_uses_fetcher(self):
+        from desk.airports import AIRPORTS
+        evs = [{"source": "FAA", "airport": "SFO", "kind": "ground_delay", "fields": {"avg": "10 minutes"}, "reason": "wind"}]
+        board = [{"code": c, "level": "amber" if c == "SFO" else "green"} for c in BUSIEST_30]
+        urls = []
+        def fetch(url):
+            urls.append(url)
+            return json.dumps({"ac": [{"hex": "a1", "lat": 37.6, "lon": -122.4}, {"hex": "a2", "lat": 37.7, "lon": -122.4}, {"hex": "a3"}]})
+        out = build_web.build_airport_cards(evs, board, {"SFO": ["Wind Advisory"]}, "2026-01-01T00:00:00Z", near_fetch=fetch)
+        self.assertEqual(out["airports"]["SFO"]["aircraft_near"], 2)
+        self.assertEqual(out["airports"]["SFO"]["alerts"], ["Wind Advisory"])
+        self.assertIsNone(out["airports"]["ATL"]["aircraft_near"])
+        self.assertEqual(len(urls), 1)
+        self.assertIn("/dist/20", urls[0])
+
+
+if __name__ == "__main__":
+    unittest.main()

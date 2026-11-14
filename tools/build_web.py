@@ -11,6 +11,7 @@ import argparse
 import copy
 import json
 import os
+import re
 import sys
 import tempfile
 import urllib.request
@@ -20,11 +21,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from desk import feeds, lines, radar, screen, state, tsa  # noqa: E402
-from desk.airports import AIRPORTS, TZ, display, nearest_airport, spoken  # noqa: E402
+from desk import bts, feeds, lines, radar, screen, state, tracks, tsa  # noqa: E402
+from desk.airports import AIRPORTS, BUSIEST_30, SHORT, TZ, display, nearest_airport, spoken  # noqa: E402
 
 MAX_LINES = 8
 NWS_TIMEOUT = 15
+NEAR_URL = "https://api.adsb.lol/v2/lat/{lat}/lon/{lon}/dist/20"
+NEAR_MAX_CALLS = 5
+NEAR_TIMEOUT = 15
+DATA_VERSION = 1
+
+# City words for the search box and the card subtitle. A label only.
+CITY = {
+    "ATL": "Atlanta, GA", "DFW": "Dallas-Fort Worth, TX", "DEN": "Denver, CO", "ORD": "Chicago, IL",
+    "LAX": "Los Angeles, CA", "JFK": "New York, NY", "LAS": "Las Vegas, NV", "MCO": "Orlando, FL",
+    "MIA": "Miami, FL", "CLT": "Charlotte, NC", "SEA": "Seattle, WA", "PHX": "Phoenix, AZ",
+    "EWR": "Newark, NJ", "SFO": "San Francisco, CA", "IAH": "Houston, TX", "BOS": "Boston, MA",
+    "FLL": "Fort Lauderdale, FL", "MSP": "Minneapolis, MN", "LGA": "New York, NY", "DTW": "Detroit, MI",
+    "PHL": "Philadelphia, PA", "SLC": "Salt Lake City, UT", "BWI": "Baltimore, MD", "IAD": "Washington, DC",
+    "SAN": "San Diego, CA", "DCA": "Washington, DC", "TPA": "Tampa, FL", "BNA": "Nashville, TN",
+    "AUS": "Austin, TX", "MDW": "Chicago, IL",
+}
+_LEVEL_WORD = {"green": "clear", "amber": "delay", "red": "stop"}
 
 
 def now_iso() -> str:
@@ -76,7 +94,7 @@ def enrich(events: list[dict]) -> list[dict]:
 
 
 def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str | None = None,
-          nws_map: dict | None = None, skip_slow: bool = False) -> dict:
+          nws_map: dict | None = None, skip_slow: bool = False, near_fetch=None) -> dict:
     stale: list[str] = []
     try:
         faa_events = feeds.parse_faa(faa_text if faa_text is not None else feeds.fetch(feeds.FAA_URL))
@@ -145,7 +163,85 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
         "update_note": "Updates about every 5 minutes. GitHub's scheduler can run late.",
     }
     write_json(out_dir / "state.json", payload)
+    cards = build_airport_cards(events, payload["board"], nws_by_airport, stamp, near_fetch=near_fetch, skip_near=skip_slow or nws_map is not None and near_fetch is None)
+    write_json(out_dir / "airports.json", cards)
+    if not skip_slow:
+        build_bts(out_dir)
     return payload
+
+
+def _minutes(text: str) -> int:
+    h = re.search(r"(\d+)\s*hours?", text or "", re.IGNORECASE)
+    m = re.search(r"(\d+)\s*minutes?", text or "", re.IGNORECASE)
+    return (int(h.group(1)) * 60 if h else 0) + (int(m.group(1)) if m else 0)
+
+
+def pick_near_airports(events: list[dict], limit: int = NEAR_MAX_CALLS) -> list[str]:
+    """Airports with an active FAA event, worst first (stop, then longest average), at most limit."""
+    rank = {"ground_stop": 3, "closure": 3, "ground_delay": 2, "delay": 1}
+    best: dict[str, tuple[int, int]] = {}
+    for ev in events:
+        code = str(ev.get("airport") or "").upper()
+        if ev.get("source") != "FAA" or code not in BUSIEST_30 or ev.get("kind") not in rank:
+            continue
+        key = (rank[ev["kind"]], _minutes((ev.get("fields") or {}).get("avg", "")))
+        if code not in best or key > best[code]:
+            best[code] = key
+    return sorted(best, key=lambda c: (-best[c][0], -best[c][1], c))[:limit]
+
+
+def count_near(json_text: str) -> int:
+    return len(tracks.parse_near(json_text))
+
+
+def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: dict, stamp: str,
+                        near_fetch=None, skip_near: bool = False) -> dict:
+    """One card per busiest-30 airport: status, reason, events, NWS alert names, aircraft nearby, local tz."""
+    level_by = {b["code"]: _LEVEL_WORD.get(b["level"], "clear") for b in board}
+    near: dict[str, int] = {}
+    if not skip_near:
+        get = near_fetch or (lambda url: feeds.fetch(url, timeout=NEAR_TIMEOUT))
+        for i, code in enumerate(pick_near_airports(events)):
+            _, lat, lon = AIRPORTS[code]
+            try:
+                near[code] = count_near(get(NEAR_URL.format(lat=lat, lon=lon)))
+            except Exception:
+                pass
+    cards = {}
+    for code in BUSIEST_30:
+        evs = [e for e in events if e.get("source") == "FAA" and str(e.get("airport") or "").upper() == code]
+        reasons = []
+        for e in evs:
+            r = (e.get("reason") or "").strip()
+            if r and r not in reasons:
+                reasons.append(r)
+        out_ev = []
+        for e in evs:
+            f = e.get("fields") or {}
+            out_ev.append({
+                "kind": e.get("kind"), "reason": e.get("reason") or "", "status": e.get("status") or "OFFICIAL",
+                "avg": f.get("avg") or "", "max": f.get("max") or "", "min": f.get("min") or "",
+                "trend": f.get("trend") or "", "direction": f.get("direction") or "",
+                "end_time": f.get("end_time") or "", "end_utc": e.get("end_utc") or "",
+            })
+        _, lat, lon = AIRPORTS[code]
+        cards[code] = {
+            "code": code, "name": display(code), "short": SHORT.get(code, code), "city": CITY.get(code, ""),
+            "tz": TZ.get(code), "lat": lat, "lon": lon,
+            "level": level_by.get(code, "clear"), "reason": "; ".join(reasons),
+            "events": out_ev, "alerts": list(nws_by_airport.get(code) or []),
+            "aircraft_near": near.get(code),
+        }
+    return {"version": DATA_VERSION, "updated_utc": stamp, "aircraft_source": "adsb.lol (ODbL), within 20 nm", "airports": cards}
+
+
+def build_bts(out_dir: Path) -> str:
+    """BTS on-time card data. Failure is not fatal: the page hides the card when bts.json is missing."""
+    try:
+        return bts.maybe_update(out_dir, cache_dir=out_dir / "bts-cache")
+    except Exception as exc:
+        print(f"bts: skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
+        return "error"
 
 
 def main() -> int:

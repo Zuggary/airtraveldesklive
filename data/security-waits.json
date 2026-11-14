@@ -1,0 +1,182 @@
+{
+ "ATL": {
+  "url": "https://www.atl.com/",
+  "live_number": false,
+  "note": "Official site of the airport operator (Hartsfield-Jackson Atlanta). The site blocks automated requests (HTTP 403), so the link was not checked by script.",
+  "verified": false
+ },
+ "DFW": {
+  "url": "https://www.dfwairport.com/security/",
+  "live_number": false,
+  "note": "Official page of the airport operator (DFW Airport).",
+  "verified": true
+ },
+ "DEN": {
+  "url": "https://www.flydenver.com/",
+  "live_number": false,
+  "note": "Official site of the airport operator (Denver International). The site blocks automated requests (HTTP 403), so the link was not checked by script.",
+  "verified": false
+ },
+ "ORD": {
+  "url": "https://www.flychicago.com/ohare/myflight/security/pages/default.aspx",
+  "live_number": false,
+  "note": "Official page of the airport operator (Chicago O'Hare ).",
+  "verified": true
+ },
+ "LAX": {
+  "url": "https://www.flylax.com/",
+  "live_number": false,
+  "note": "Official site of the airport operator (Los Angeles World Airports). The site blocks automated requests (HTTP 403), so the link was not checked by script.",
+  "verified": false
+ },
+ "JFK": {
+  "url": "https://www.jfkairport.com/at-airport/security",
+  "live_number": false,
+  "note": "Official page of the airport operator (Port Authority of NY and NJ).",
+  "verified": true
+ },
+ "LAS": {
+  "url": "https://www.harryreidairport.com/security-wait-times",
+  "live_number": false,
+  "note": "Official page of the airport operator (Harry Reid International).",
+  "verified": true
+ },
+ "MCO": {
+  "url": "https://flymco.com/security/",
+  "live_number": false,
+  "note": "Official page of the airport operator (Greater Orlando Aviation Authority).",
+  "verified": true
+ },
+ "MIA": {
+  "url": "https://www.miami-airport.com/airport-security.asp",
+  "live_number": false,
+  "note": "Official page of the airport operator (Miami-Dade Aviation Department).",
+  "verified": true
+ },
+ "CLT": {
+  "url": "https://www.cltairport.com/airport-info/security/",
+  "live_number": false,
+  "note": "Official page of the airport operator (Charlotte Douglas).",
+  "verified": true
+ },
+ "SEA": {
+  "url": "https://www.portseattle.org/page/live-estimated-checkpoint-wait-times",
+  "live_number": false,
+  "note": "Official page of the airport operator (Port of Seattle).",
+  "verified": true
+ },
+ "PHX": {
+  "url": "https://www.skyharbor.com/flying-from-phx/security-screening/",
+  "live_number": false,
+  "note": "Official page of the airport operator (Phoenix Sky Harbor).",
+  "verified": true
+ },
+ "EWR": {
+  "url": "https://www.newarkairport.com/at-airport/security-wait-times",
+  "live_number": false,
+  "note": "Official page of the airport operator (Port Authority of NY and NJ).",
+  "verified": true
+ },
+ "SFO": {
+  "url": "https://www.flysfo.com/passengers/flight-info/check-in-security",
+  "live_number": false,
+  "note": "Official page of the airport operator (San Francisco International).",
+  "verified": true
+ },
+ "IAH": {
+  "url": "https://www.fly2houston.com/iah/security/",
+  "live_number": false,
+  "note": "Official page of the airport operator (Houston Airports).",
+  "verified": true
+ },
+ "BOS": {
+  "url": "https://www.massport.com/logan-airport/getting-to-logan/security-wait-times",
+  "live_number": false,
+  "note": "Official page of the airport operator (Massport).",
+  "verified": true
+ },
+ "FLL": {
+  "url": "https://www.broward.org/airport/",
+  "live_number": false,
+  "note": "Official site of the airport operator (Broward County Aviation Department). The site blocks automated requests (HTTP 403), so the link was not checked by script.",
+  "verified": false
+ },
+ "MSP": {
+  "url": "https://www.mspairport.com/airport/security-screening/security-wait-times",
+  "live_number": false,
+  "note": "Official page of the airport operator (Metropolitan Airports Commission).",
+  "verified": true
+ },
+ "LGA": {
+  "url": "https://www.laguardiaairport.com/at-airport/security",
+  "live_number": false,
+  "note": "Official page of the airport operator (Port Authority of NY and NJ).",
+  "verified": true
+ },
+ "DTW": {
+  "url": "https://www.metroairport.com/security",
+  "live_number": false,
+  "note": "Official page of the airport operator (Wayne County Airport Authority).",
+  "verified": true
+ },
+ "PHL": {
+  "url": "https://www.phl.org/flights/security-information/checkpoint-hours",
+  "live_number": false,
+  "note": "Official page of the airport operator (Philadelphia International).",
+  "verified": true
+ },
+ "SLC": {
+  "url": "https://slcairport.com/security/",
+  "live_number": false,
+  "note": "Official page of the airport operator (Salt Lake City Department of Airports).",
+  "verified": true
+ },
+ "BWI": {
+  "url": "https://bwiairport.com/flying-with-us/security-tsa-guidelines/",
+  "live_number": false,
+  "note": "Official page of the airport operator (Maryland Aviation Administration).",
+  "verified": true
+ },
+ "IAD": {
+  "url": "https://www.flydulles.com/iad/security-information-0",
+  "live_number": false,
+  "note": "Official page of the airport operator (Metropolitan Washington Airports Authority).",
+  "verified": true
+ },
+ "SAN": {
+  "url": "https://www.san.org/security-checkpoints-and-tsa-information/",
+  "live_number": false,
+  "note": "Official page of the airport operator (San Diego County Regional Airport Authority).",
+  "verified": true
+ },
+ "DCA": {
+  "url": "https://www.flyreagan.com/travel-information/security-information",
+  "live_number": false,
+  "note": "Official page of the airport operator (Metropolitan Washington Airports Authority).",
+  "verified": true
+ },
+ "TPA": {
+  "url": "https://www.tampaairport.com/",
+  "live_number": false,
+  "note": "Official site of the airport operator (Hillsborough County Aviation Authority). The site blocks automated requests (HTTP 403), so the link was not checked by script.",
+  "verified": false
+ },
+ "BNA": {
+  "url": "https://flynashville.com/security",
+  "live_number": false,
+  "note": "Official page of the airport operator (Metropolitan Nashville Airport Authority).",
+  "verified": true
+ },
+ "AUS": {
+  "url": "https://www.flyaustin.com/travel-security-austin-bergstrom-international-airport",
+  "live_number": false,
+  "note": "Official page of the airport operator (Austin-Bergstrom International).",
+  "verified": true
+ },
+ "MDW": {
+  "url": "https://www.flychicago.com/midway/myflight/security/pages/default.aspx",
+  "live_number": false,
+  "note": "Official page of the airport operator (Chicago Midway ).",
+  "verified": true
+ }
+}
