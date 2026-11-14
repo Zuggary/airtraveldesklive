@@ -7,11 +7,12 @@
   var SLOW_MS = 30 * 60000;
   var STALE_MIN = 20;
   var TWITCH_SRC = "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true";
+  var DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive";
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var LEVEL_WORD = { clear: "Clear", delay: "Delay", stop: "Ground stop" };
   var FALLBACK_LEVEL = { green: "clear", amber: "delay", red: "stop" };
 
-  var D = { state: null, cards: null, places: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
+  var D = { state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
   var airports = [];       // [{code, name, short, city, level, ...}] in board order
   var byCode = {};
   var currentCode = "";
@@ -293,13 +294,7 @@
     return a;
   }
 
-  function renderCardLive() {
-    var r = cardRefs;
-    if (!r) { return; }
-    var a = byCode[currentCode];
-    if (!a) { return; }
-    var box = r.live;
-    box.textContent = "";
+  function appendFaaStatus(box, a) {
     var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
     var row = el("p", "card-status");
     row.appendChild(el("span", "badge badge--" + lvl, LEVEL_WORD[lvl]));
@@ -317,6 +312,40 @@
       }
     });
     if (a.reason) { box.appendChild(el("p", "event-reason", "Reason: " + a.reason)); }
+  }
+
+  function wxLines(a) {
+    var w = a.wx;
+    if (!w || !w.now_text || ageMin(w.obs_utc) == null || ageMin(w.obs_utc) > 90) { return null; }
+    var now = "Weather at " + fmtTime(new Date(Date.parse(w.obs_utc)), a.tz) + ": " + w.now_text;
+    if (w.wind_kt != null) { now += ", wind " + Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) : ""); }
+    now += " (aviationweather.gov, " + ageText(w.obs_utc) + ")";
+    var next3h = w.next3h_text
+      ? "Forecast, next 3 hours: " + w.next3h_text + " (aviationweather.gov TAF" + (w.taf_issue_utc ? ", issued " + ageText(w.taf_issue_utc) : "") + ")"
+      : "";
+    return { now: now, next3h: next3h };
+  }
+
+  function renderGuideNow(box, a) {
+    if (!box) { return; }
+    box.textContent = "";
+    box.appendChild(el("h6", "guide-subhead", "Right now at " + (a.short || a.code)));
+    appendFaaStatus(box, a);
+    var wx = wxLines(a);
+    if (wx) {
+      box.appendChild(el("p", "guide-wx", wx.now));
+      if (wx.next3h) { box.appendChild(el("p", "guide-wx", wx.next3h)); }
+    }
+  }
+
+  function renderCardLive() {
+    var r = cardRefs;
+    if (!r) { return; }
+    var a = byCode[currentCode];
+    if (!a) { return; }
+    var box = r.live;
+    box.textContent = "";
+    appendFaaStatus(box, a);
     var facts = el("ul", "facts");
     var t = fmtTime(new Date(), a.tz);
     if (t) { facts.appendChild(el("li", null, "Local time: " + t)); }
@@ -330,18 +359,15 @@
     var upd = D.cards && D.cards.updated_utc || (D.state && D.state.updated_utc);
     facts.appendChild(el("li", null, "Status checked " + ageText(upd)));
     box.appendChild(facts);
+    renderGuideNow(r.guideNow, a);
   }
 
   // Weather, storm area and holding notes: each line names its source and age. Old readings are left out, not shown as current.
   function wxFacts(facts, a) {
-    var w = a.wx;
-    if (w && w.now_text && ageMin(w.obs_utc) != null && ageMin(w.obs_utc) <= 90) {
-      var line = "Weather at " + fmtTime(new Date(Date.parse(w.obs_utc)), a.tz) + ": " + w.now_text;
-      if (w.wind_kt != null) { line += ", wind " + Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) : ""); }
-      facts.appendChild(el("li", null, line + " (aviationweather.gov, " + ageText(w.obs_utc) + ")"));
-      if (w.next3h_text) {
-        facts.appendChild(el("li", null, "Forecast, next 3 hours: " + w.next3h_text + " (aviationweather.gov TAF" + (w.taf_issue_utc ? ", issued " + ageText(w.taf_issue_utc) : "") + ")"));
-      }
+    var wx = wxLines(a);
+    if (wx) {
+      facts.appendChild(el("li", null, wx.now));
+      if (wx.next3h) { facts.appendChild(el("li", null, wx.next3h)); }
     }
     var s = a.storm;
     if (s && s.text && ageMin(s.as_of_utc) != null && ageMin(s.as_of_utc) <= 90) {
@@ -416,6 +442,57 @@
     out.appendChild(link(A.DOT_URL, "Open the DOT dashboard", "tap"));
   }
 
+  function guideBlock(a) {
+    var wrap = el("div", "guide-wrap");
+    var det = el("details", "stuck-details airport-guide");
+    det.appendChild(el("summary", null, "Airport guide"));
+
+    var body = el("div", "guide-body");
+    var entry = D.guide && D.guide.airports && D.guide.airports[a.code];
+    var checked = (D.guide && D.guide.checked_utc) ? String(D.guide.checked_utc).slice(0, 10) : "";
+
+    if (!entry) {
+      body.appendChild(el("p", "places-empty", "Official airport guide links are not available right now."));
+    } else {
+      var heading = (entry.operator ? entry.operator + " — " : "") + "Official airport pages" + (checked ? " (checked " + checked + ")" : "");
+      body.appendChild(el("h6", "guide-subhead", heading));
+
+      var ul = el("ul", "guide-links");
+      (entry.links || []).forEach(function (item) {
+        if (!item || !A.safeUrl(item.url)) { return; }
+        var label = item.label || "Airport website";
+        if (item.verified === false) { label += " (we could not check this link by script)"; }
+        var li = el("li", "guide-link-item");
+        li.appendChild(link(item.url, label, "tap guide-link"));
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+
+    var nowBox = el("div", "guide-now");
+    body.appendChild(nowBox);
+
+    body.appendChild(el("h6", "guide-subhead", "Near the airport"));
+    body.appendChild(el("p", "guide-text", "Hotels and car rental are listed below."));
+
+    body.appendChild(el("h6", "guide-subhead", "Not on this page"));
+    body.appendChild(el("p", "guide-text", "Food, charging and sleeping notes appear only where the airport publishes them; follow the links above."));
+
+    var actions = el("div", "guide-actions");
+    var stuckLink = el("a", "btn btn-secondary guide-action", "Missed a flight? Open the I'm stuck guide");
+    stuckLink.href = "stuck.html";
+    actions.appendChild(stuckLink);
+    actions.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you're owed", "btn btn-primary guide-action"));
+    body.appendChild(actions);
+
+    det.appendChild(body);
+    wrap.appendChild(det);
+
+    var srcText = "Links from each airport operator's own website" + (checked ? "; checked on " + checked : "") + ".";
+    wrap.appendChild(el("p", "credit guide-source", srcText));
+    return { wrap: wrap, nowBox: nowBox };
+  }
+
   function buildCard(a) {
     var code = a.code;
     var card = el("article", "airport-card");
@@ -442,6 +519,9 @@
     var ol = el("ol", "tips");
     A.rebookTips().forEach(function (t) { ol.appendChild(el("li", null, t)); });
     stuck.appendChild(ol);
+
+    var guide = guideBlock(a);
+    stuck.appendChild(guide.wrap);
 
     stuck.appendChild(el("h5", null, "Where to stay and rent a car"));
     stuck.appendChild(placesBlock(code, "hotels", "Hotels within 5 km", "No hotels with a name are listed in OpenStreetMap within 5 km."));
@@ -482,10 +562,10 @@
     renderCommitments(out, "");
 
     stuck.appendChild(el("h5", null, "Owed something?"));
-    stuck.appendChild(link("https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive", "Delayed or cancelled? Check what you're owed", "btn btn-primary"));
+    stuck.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you're owed", "btn btn-primary"));
     card.appendChild(stuck);
 
-    cardRefs = { card: card, live: live };
+    cardRefs = { card: card, live: live, guideNow: guide.nowBox };
     return card;
   }
 
@@ -883,11 +963,12 @@
   function loadSlow() {
     return Promise.all([
       getJson("data/places.json"), getJson("data/security-waits.json"), getJson("data/dot-commitments.json"),
-      getJson("data/bts.json", true), getJson("data/tsa.json", true)
+      getJson("data/bts.json", true), getJson("data/tsa.json", true), getJson("data/airport-guide.json")
     ]).then(function (r) {
       D.places = r[0]; D.security = r[1]; D.commit = r[2];
       D.bts = (r[3] && r[3].nation) ? r[3] : null;
       D.tsa = r[4];
+      D.guide = r[5];
       renderCompare();
       if (!slowLoaded && currentCode) { slowLoaded = true; openAirport(currentCode, false); }
       slowLoaded = true;

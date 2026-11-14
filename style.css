@@ -455,3 +455,34 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .copy-status { font-size: 0.9375rem; font-weight: 700; color: var(--green-text); }
 .owed-detail-note { margin: 0; font-size: 1rem; }
 .result-footer-note { margin: 4px 0 0; font-size: 0.9375rem; color: var(--text-muted); }
+
+/* AN14 airport guide */
+.guide-wrap { margin: 12px 0; }
+.airport-guide > summary::after { content: "+"; margin-left: auto; font-size: 1.2rem; color: var(--text-muted); }
+.airport-guide[open] > summary::after { content: "−"; }
+.guide-body { padding: 4px 12px 14px; border-top: 1px solid var(--border); }
+.guide-subhead { margin: 14px 0 6px; font-size: 1rem; font-weight: 800; color: var(--text); }
+.guide-body > .guide-subhead:first-child { margin-top: 8px; }
+.guide-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.guide-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.guide-link:hover { background: var(--surface-alt); text-decoration: underline; }
+.guide-now > p, .guide-text { margin: 6px 0 0; font-size: 1rem; }
+.guide-wx { margin: 6px 0 0; font-size: 0.9375rem; color: var(--text-muted); }
+.guide-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.guide-action { width: 100%; min-height: 48px; }
+.guide-source { margin: 4px 0 0; }
+@media (min-width: 700px) {
+  .guide-actions { flex-direction: row; flex-wrap: wrap; }
+  .guide-action { width: auto; }
+}

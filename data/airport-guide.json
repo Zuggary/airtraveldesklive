@@ -1,0 +1,1007 @@
+{
+ "version": 1,
+ "checked_utc": "2026-11-14",
+ "note": "Official airport operator pages. Each link returned HTTP 200 to a plain request on the check date (2026-11-14); a link marked verified false belongs to a site that blocks automated checks.",
+ "airports": {
+  "ATL": {
+   "operator": "City of Atlanta Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.atl.com/",
+     "verified": false
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.atl.com/maps/",
+     "verified": false
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://atl.com/about-atl/airport-amenities/",
+     "verified": false
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.atl.com/passenger-information/lost-and-found/",
+     "verified": false
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.atl.com/ground-transportation/",
+     "verified": false
+    }
+   ]
+  },
+  "DFW": {
+   "operator": "Dallas Fort Worth International Airport Board",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.dfwairport.com/",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.dfwairport.com/map/",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.dfwairport.com/park/",
+     "verified": true
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.dfwairport.com/explore/wifi-tech/",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.dfwairport.com/explore/plan/lostandfound/",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.dfwairport.com/shop-dine-services/",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.dfwairport.com/explore/plan/assist/accessibility/",
+     "verified": true
+    }
+   ]
+  },
+  "DEN": {
+   "operator": "City and County of Denver Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flydenver.com",
+     "verified": false
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.flydenver.com/at-the-airport/services-and-amenities/wifi-and-technology/",
+     "verified": false
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flydenver.com/at-the-airport/services-and-amenities/lost-and-found/",
+     "verified": false
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flydenver.com/dine-shop-relax/",
+     "verified": false
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.flydenver.com/parking-and-transportation/to-and-from/denver-airport-transit-center/",
+     "verified": false
+    }
+   ]
+  },
+  "ORD": {
+   "operator": "Chicago Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flychicago.com/ohare/home",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.flychicago.com/ohare/map/Pages/default.aspx",
+     "verified": true
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.flychicago.com/ohare/ServicesAmenities/FAQ/pages/default.aspx",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flychicago.com/ohare/ServicesAmenities/services/Pages/lostfound.aspx",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flychicago.com/ohare/eatshopmore/eat/Pages/default.aspx",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.flychicago.com/ohare/tofrom/parking/pages/general.aspx",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.flychicago.com/ohare/ServicesAmenities/accessibility/Pages/Getting-To-and-From.aspx",
+     "verified": true
+    }
+   ]
+  },
+  "LAX": {
+   "operator": "Los Angeles World Airports (LAWA)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flylax.com",
+     "verified": false
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.flylax.com/lax-wifi",
+     "verified": false
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flylax.com/lax-comments-and-contact-us/lost-and-found",
+     "verified": false
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.flylax.com/lax-americans-with-disability-act/ada-detail-page",
+     "verified": false
+    }
+   ]
+  },
+  "JFK": {
+   "operator": "Port Authority of New York and New Jersey",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.jfkairport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.jfkairport.com/at-airport/airport-maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.jfkairport.com/at-airport/wifi-internet-access",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.jfkairport.com/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.jfkairport.com/at-airport/where-to-eat",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.jfkairport.com/at-airport/accessibility-services",
+     "verified": true
+    }
+   ]
+  },
+  "LAS": {
+   "operator": "Clark County Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.harryreidairport.com/",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.harryreidairport.com/Maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.harryreidairport.com/airport-services",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.harryreidairport.com/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.harryreidairport.com/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.harryreidairport.com/special-assistance",
+     "verified": true
+    }
+   ]
+  },
+  "MCO": {
+   "operator": "Greater Orlando Aviation Authority (GOAA)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://flymco.com/",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://flymco.com/terminal-maps/",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://flymco.com/wifi/",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://flymco.com/lost-and-found/",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://flymco.com/parking-information/",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://flymco.com/accessibility/",
+     "verified": true
+    }
+   ]
+  },
+  "MIA": {
+   "operator": "Miami-Dade Aviation Department",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.miami-airport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.miami-airport.com/maps.asp",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.miami-airport.com/lost_and_found.asp",
+     "verified": true
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.miami-airport.com/services-and-amenities.asp",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.miami-airport.com/getting-around-mia.asp",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.miami-airport.com/myMIAccess.asp",
+     "verified": true
+    }
+   ]
+  },
+  "CLT": {
+   "operator": "City of Charlotte Aviation Department",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.cltairport.com/",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.cltairport.com/airport-info/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.cltairport.com/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.cltairport.com/airport-info/accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "SEA": {
+   "operator": "Port of Seattle",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.portseattle.org/sea-tac",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.portseattle.org/sea-tac/maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.portseattle.org/sea-tac/customer-services-amenities",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.portseattle.org/sea-tac/accessibility-at-sea-airport",
+     "verified": true
+    }
+   ]
+  },
+  "PHX": {
+   "operator": "City of Phoenix Aviation Department",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.skyharbor.com/",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.skyharbor.com/maps-directions/",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.skyharbor.com/at-the-airport/food-drinks/",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.skyharbor.com/parking/",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.skyharbor.com/accessibility-and-assistance/",
+     "verified": true
+    }
+   ]
+  },
+  "EWR": {
+   "operator": "Port Authority of New York and New Jersey",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.newarkairport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.newarkairport.com/at-the-airport/airport-maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.newarkairport.com/at-the-airport/wifi-instructions",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.newarkairport.com/at-the-airport/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.newarkairport.com/at-the-airport/shops-restaurants-and-services",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.newarkairport.com/to-from-airport/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.newarkairport.com/at-the-airport/accessibility-services",
+     "verified": true
+    }
+   ]
+  },
+  "SFO": {
+   "operator": "City and County of San Francisco Airport Commission",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flysfo.com",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flysfo.com/shop-dine-relax",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.flysfo.com/parking",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://fly.sfo.gov/maps",
+     "verified": true
+    }
+   ]
+  },
+  "IAH": {
+   "operator": "Houston Airport System",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.fly2houston.com/iah",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.fly2houston.com/iah/map",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.fly2houston.com/iah/wifi",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.fly2houston.com/iah/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.fly2houston.com/iah/shop-dine-relax",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.fly2houston.com/iah/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.fly2houston.com/iah/accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "BOS": {
+   "operator": "Massachusetts Port Authority (Massport)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.massport.com/logan-airport",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.massport.com/logan-airport/at-the-airport/airport-map",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.massport.com/logan-airport/at-the-airport/wifi",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.massport.com/logan-airport/at-the-airport/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.massport.com/logan-airport/dining-shopping/restaurants",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.massport.com/logan-airport/getting-here/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.massport.com/logan-airport/at-the-airport/accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "FLL": {
+   "operator": "Broward County Aviation Department",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.broward.org/airport/Pages/default.aspx",
+     "verified": false
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.broward.org/airport/Passengers/Services",
+     "verified": false
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.broward.org/airport/Business/lostandfound",
+     "verified": false
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.broward.org/airport/Business/TenantDirectory",
+     "verified": false
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.broward.org/airport/Passengers/Transportation",
+     "verified": false
+    }
+   ]
+  },
+  "MSP": {
+   "operator": "Metropolitan Airports Commission (MAC)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.mspairport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.mspairport.com/airport/accessibility/accessibility-services-maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.mspairport.com/airport/service-amenities/wi-fi",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.mspairport.com/eat-shop-relax",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.mspairport.com/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.mspairport.com/accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "LGA": {
+   "operator": "Port Authority of New York and New Jersey",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://laguardiaairport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://laguardiaairport.com/at-airport/airport-maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://laguardiaairport.com/at-airport/services-amenities",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://laguardiaairport.com/at-airport/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://laguardiaairport.com/dine-shop-relax/where-to-eat",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://laguardiaairport.com/at-airport/accessibility-services",
+     "verified": true
+    }
+   ]
+  },
+  "DTW": {
+   "operator": "Wayne County Airport Authority",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.metroairport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.metroairport.com/at-dtw/maps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.metroairport.com/at-dtw/services-amenities/wi-fi",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.metroairport.com/at-dtw/lost-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.metroairport.com/at-dtw/services-amenities/dining",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.metroairport.com/at-dtw/getting-around/accessibility-additional-assistance",
+     "verified": true
+    }
+   ]
+  },
+  "PHL": {
+   "operator": "City of Philadelphia Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.phl.org/",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://maps.phl.org",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.phl.org/parking",
+     "verified": true
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.phl.org/at-phl/services-and-amenities/free-wifi",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.phl.org/at-phl/services-and-amenities/lost-found",
+     "verified": true
+    }
+   ]
+  },
+  "SLC": {
+   "operator": "Salt Lake City Department of Airports",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://slcairport.com",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://slcairport.com/airport-services/wi-fi/",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://slcairport.com/airport-services/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://slcairport.com/dining-and-shopping",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://slcairport.com/parking-and-transportation/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://slcairport.com/airport-services/accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "BWI": {
+   "operator": "Maryland Aviation Administration",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://bwiairport.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://bwiairport.com/wayfinding/",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://bwiairport.com/wifi/",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://bwiairport.com/flying-with-us/lost-found/",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://bwiairport.com/to-from-bwi/parking/",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://bwiairport.com/accessibility/",
+     "verified": true
+    }
+   ]
+  },
+  "IAD": {
+   "operator": "Metropolitan Washington Airports Authority (MWAA)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flydulles.com",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flydulles.com/customer-service/iad-lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flydulles.com/shopping-dining",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.flydulles.com/parking-transportation/parking-information",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.flydulles.com/customer-service/disability-services",
+     "verified": true
+    }
+   ]
+  },
+  "SAN": {
+   "operator": "San Diego County Regional Airport Authority",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.san.org/",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://www.san.org/Services-Facilities",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.san.org/Shop-Dine",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.san.org/Parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.san.org/Accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "DCA": {
+   "operator": "Metropolitan Washington Airports Authority (MWAA)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flyreagan.com",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.flyreagan.com/parking-transportation/parking-information",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.flyreagan.com/travel-information/terminal-map",
+     "verified": true
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.flyreagan.com/travel-information/services-amenities",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flyreagan.com/customer-service/dca-lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flyreagan.com/shopping-dining",
+     "verified": true
+    }
+   ]
+  },
+  "TPA": {
+   "operator": "Hillsborough County Aviation Authority",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.tampaairport.com",
+     "verified": false
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.tampaairport.com/about-us/our-sustainability-program/walk-it-out/main-terminal-walking-map",
+     "verified": false
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.tampaairport.com/about-us/airport-faq",
+     "verified": false
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.tampaairport.com/business/airport-police/lost-and-found",
+     "verified": false
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.tampaairport.com/airport-directory",
+     "verified": false
+    }
+   ]
+  },
+  "BNA": {
+   "operator": "Metropolitan Nashville Airport Authority (MNAA)",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://flynashville.com/",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://flynashville.com/goodmaps",
+     "verified": true
+    },
+    {
+     "label": "Wi-Fi",
+     "url": "https://flynashville.com/wifi",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://flynashville.com/lost-and-found",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://flynashville.com/dining",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://flynashville.com/parking",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://flynashville.com/accessibility",
+     "verified": true
+    }
+   ]
+  },
+  "AUS": {
+   "operator": "City of Austin Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flyaustin.com",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://airportmaps.flyaustin.com/",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flyaustin.com/lost-and-found-airport",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flyaustin.com/shop-and-dine-aus",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.flyaustin.com/accessibility-services",
+     "verified": true
+    }
+   ]
+  },
+  "MDW": {
+   "operator": "Chicago Department of Aviation",
+   "links": [
+    {
+     "label": "Airport website",
+     "url": "https://www.flychicago.com/midway/pages/default.aspx",
+     "verified": true
+    },
+    {
+     "label": "Lost and found",
+     "url": "https://www.flychicago.com/midway/ServicesAmenities/services/Pages/lostfound.aspx",
+     "verified": true
+    },
+    {
+     "label": "Accessibility and special assistance",
+     "url": "https://www.flychicago.com/midway/ServicesAmenities/accessibility/Pages/default.aspx",
+     "verified": true
+    },
+    {
+     "label": "Terminal maps",
+     "url": "https://www.flychicago.com/midway/map/Pages/printablemap.aspx",
+     "verified": true
+    },
+    {
+     "label": "Passenger services and FAQs",
+     "url": "https://www.flychicago.com/midway/ServicesAmenities/services/Pages/technology.aspx",
+     "verified": true
+    },
+    {
+     "label": "Food and shops",
+     "url": "https://www.flychicago.com/midway/eatshopmore/eat/Pages/default.aspx",
+     "verified": true
+    },
+    {
+     "label": "Parking and ground transport",
+     "url": "https://www.flychicago.com/midway/tofrom/pages/default.aspx",
+     "verified": true
+    }
+   ]
+  }
+ }
+}

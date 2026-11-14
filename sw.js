@@ -13,6 +13,7 @@
     "./stuck.js",
     "./data/dot-commitments.json",
     "./data/airports.json",
+    "./data/airport-guide.json",
     "./favicon.svg",
     "./favicon.png"
   ];
