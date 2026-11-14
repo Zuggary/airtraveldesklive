@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIR TRAVEL DESK — Automated Broadcast</title>
+<meta name="description" content="Air Travel Desk: an automated live screen of US airport delays and ground stops from FAA, NWS, NOAA and TSA data.">
+<style>
+  /* Designed at 1280x720: 1rem = 16px there. 1080p scales every rem by 1.5. */
+  /* 16:9 desk, letterboxed to any window: 1 rem = 1/80 of the desk width. */
+  html { font-size: min(calc(100vw / 80), calc(100vh * 16 / 9 / 80)); }
+
+  :root {
+    --bg-deep: #070e1c;
+    --bg-panel: #0d182e;
+    --bg-card: #12213d;
+    --bg-card-alt: #0f1c35;
+    --border: #20365e;
+    --text-main: #eef3fb;
+    --text-muted: #a9bad6;
+    --text-dim: #8296ba;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --yellow: #eab308;
+    --grey: #9ca3af;
+    --purple: #a855f7;
+    --blue: #3b82f6;
+    --green: #22c55e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-deep);
+    color: var(--text-main);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: min(calc(100vw / 80), calc(100vh * 16 / 9 / 80));
+    display: grid; place-items: center;
+  }
+
+  .screen {
+    display: flex;
+    flex-direction: column;
+    width: 80rem;
+    height: 45rem;
+    background: radial-gradient(circle at 30% 25%, #0f1e3a 0%, #070e1c 70%);
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    height: 3.5rem;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: linear-gradient(180deg, #0e1b34 0%, #0a1428 100%);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+  .brand-badge {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    color: #fff; font-weight: 800; font-size: 1.125rem; letter-spacing: 0.07em;
+    padding: 0.4rem 0.8rem; border-radius: 6px;
+    border: 1px solid rgba(147, 197, 253, 0.35);
+  }
+  .live-dot {
+    width: 0.6rem; height: 0.6rem; border-radius: 50%;
+    background: #38bdf8; box-shadow: 0 0 10px #38bdf8;
+    
+  }
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.8); }
+  }
+  .brand-sub {
+    font-size: 0.875rem; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .stale-banner {
+    display: none; align-items: center; gap: 0.4rem;
+    background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.65);
+    color: #fecaca; font-weight: 700; font-size: 0.875rem;
+    padding: 0.25rem 0.6rem; border-radius: 6px;
+    min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .stale-banner.visible { display: inline-flex; }
+  .clocks { display: flex; align-items: center; gap: 0.9rem; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .clock-box { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+  .clock-label { font-size: 0.875rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-dim); }
+  .clock-value { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+  .clock-box.utc .clock-value { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
+
+  /* ---------- main grid ---------- */
+  .main {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 33rem;
+  }
+  .left { display: grid; grid-template-rows: 1fr 11.75rem; min-height: 0; min-width: 0; border-right: 1px solid var(--border); }
+  .right { display: flex; flex-direction: column; min-height: 0; background: var(--bg-panel); }
+
+  .map-pane { position: relative; background: #081224; overflow: hidden; min-height: 0; border-bottom: 1px solid var(--border); }
+  #us-map { width: 100%; height: 100%; display: block; }
+  .map-overlay-title {
+    position: absolute; top: 0.6rem; left: 0.75rem;
+    font-size: 0.875rem; font-weight: 700; letter-spacing: 0.1em; color: var(--text-muted);
+    text-transform: uppercase; background: rgba(8, 18, 36, 0.8);
+    padding: 0.25rem 0.6rem; border: 1px solid var(--border); border-radius: 5px;
+  }
+  .map-legend {
+    position: absolute; bottom: 0.6rem; left: 0.75rem;
+    display: flex; gap: 0.9rem; align-items: center;
+    background: rgba(8, 18, 36, 0.88); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.3rem 0.7rem; font-size: 0.875rem; color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; font-weight: 600; }
+  .legend-dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; display: inline-block; }
+
+  /* ---------- panels ---------- */
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 28, 53, 0.85); flex-shrink: 0;
+  }
+  .panel-title { font-size: 0.875rem; font-weight: 800; letter-spacing: 0.1em; color: #cfe0ff; text-transform: uppercase; white-space: nowrap; }
+  .panel-count { font-size: 0.875rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .bottom-left { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+  .tsa-panel, .owed-panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .tsa-panel { border-right: 1px solid var(--border); }
+  .tsa-body { padding: 0.45rem 0.9rem; display: flex; flex-direction: column; justify-content: center; flex: 1; gap: 0.15rem; }
+  .tsa-big { font-size: 2.2rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; color: #fff; }
+  .tsa-sub { font-size: 0.875rem; color: var(--text-muted); }
+  .tsa-ly { margin-top: 0.35rem; padding-top: 0.35rem; border-top: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  .tsa-ly-num { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tsa-pct { font-size: 1.25rem; font-weight: 800; color: #86efac; }
+  .tsa-pct.neg { color: #fdba74; }
+  .tsa-label { font-size: 0.875rem; color: var(--text-dim); font-weight: 600; }
+
+  .owed-body { flex: 1; display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.8rem; min-height: 0; }
+  .owed-qr { height: 100%; max-height: 8.6rem; aspect-ratio: 1; background: #fff; border-radius: 6px; flex-shrink: 0; display: block; }
+  .owed-text { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+  .owed-head { font-size: 1.3rem; font-weight: 800; line-height: 1.15; color: #fff; }
+  .owed-url { font-size: 0.875rem; font-weight: 700; color: #93c5fd; }
+
+  /* ---------- disruptions ---------- */
+  .disruptions-section { flex: 1; display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid var(--border); }
+  .disruptions-list { flex: 1; overflow: hidden; padding: 0.45rem 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; min-height: 0; }
+  .empty-state {
+    padding: 1rem; text-align: center; color: var(--text-muted); font-size: 1.1rem; font-weight: 600;
+    background: var(--bg-card-alt); border: 1px dashed var(--border); border-radius: 8px;
+  }
+  .event-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-left-width: 5px; border-radius: 7px;
+    padding: 0.25rem 0.7rem; display: flex; flex-direction: column; gap: 0.05rem; flex-shrink: 0;
+  }
+  .event-card.hidden { display: none; }
+  .event-card.kind-ground_stop { border-left-color: var(--red); }
+  .event-card.kind-ground_delay { border-left-color: var(--amber); }
+  .event-card.kind-delay { border-left-color: var(--yellow); }
+  .event-card.kind-closure { border-left-color: var(--grey); }
+  .event-card.kind-squawk7700 { border-left-color: var(--purple); }
+  .event-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .event-airport { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+  .event-airport .nm { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .airport-code { font-size: 0.875rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.05rem 0.4rem; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: #dbeafe; flex-shrink: 0; }
+  .status-chip { font-size: 0.875rem; font-weight: 800; letter-spacing: 0.04em; padding: 0.05rem 0.45rem; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
+  .status-OFFICIAL { background: rgba(59, 130, 246, 0.22); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.55); }
+  .status-CONFIRMED { background: rgba(34, 197, 94, 0.22); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.55); }
+  .status-UNCONFIRMED { background: rgba(249, 115, 22, 0.22); color: #fdba74; border: 1px solid rgba(249, 115, 22, 0.55); }
+  .event-meta { font-size: 0.875rem; color: #dce7fa; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .event-kind { font-weight: 800; color: #fff; }
+  .event-numbers { color: var(--text-muted); }
+  .event-body { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; }
+  .event-body .event-meta { flex: 1; min-width: 0; }
+  .event-side { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; font-size: 0.875rem; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ev-local { color: var(--text-muted); font-weight: 600; }
+  .ev-count { color: #fca5a5; font-weight: 800; }
+  .ev-count .sec { font-weight: 600; opacity: 0.8; }
+  .ev-count.noend, .ev-count.expired { color: var(--text-muted); font-weight: 600; }
+  .event-sources { font-size: 0.875rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-sources .agree { color: #86efac; }
+  .event-sources .warn { color: #fdba74; }
+
+  /* ---------- board ---------- */
+  .board-section { flex-shrink: 0; }
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-flow: column; grid-template-rows: repeat(10, 1.35rem); gap: 2px; padding: 0.4rem 0.7rem 0.45rem; }
+  .tile { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.4rem; border-radius: 4px; font-size: 0.875rem; line-height: 1; white-space: nowrap; overflow: hidden; }
+  .tile b { font-weight: 800; letter-spacing: 0.03em; }
+  .tile span { overflow: hidden; text-overflow: ellipsis; }
+  .tile.green { background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.55); color: #d9fbe5; }
+  .tile.amber { background: #f59e0b; border: 1px solid #fbbf24; color: #1a1203; }
+  .tile.red { background: #dc2626; border: 1px solid #f87171; color: #fff; }
+  .board-key { font-size: 0.875rem; color: var(--text-muted); font-weight: 600; display: flex; gap: 0.6rem; align-items: center; }
+  .board-key i { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.25rem; vertical-align: -1px; }
+
+  /* ---------- bottom ---------- */
+  .bottom-area { flex-shrink: 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); background: #091326; }
+  .ticker-row { height: 2.2rem; display: flex; align-items: center; background: #0b172e; border-bottom: 1px solid var(--border); overflow: hidden; }
+  .ticker-tag { height: 100%; padding: 0 0.9rem; display: flex; align-items: center; background: #1d4ed8; color: #fff; font-size: 0.875rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; z-index: 2; }
+  .ticker-track-wrap { flex: 1; overflow: hidden; position: relative; height: 100%; display: flex; align-items: center; }
+  .ticker-track { white-space: nowrap; will-change: transform; font-size: 1rem; font-weight: 500; color: #e6eefc; padding-left: 1.5rem; }
+  .notice-strip { height: 1.75rem; padding: 0 1rem; display: flex; align-items: center; justify-content: flex-end; background: #071020; font-size: 0.875rem; }
+  .credits { color: var(--text-muted); font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge"><span class="live-dot"></span><span>AIR TRAVEL DESK</span></div>
+      <div class="brand-sub">Automated broadcast</div>
+    </div>
+
+    <div id="stale-banner" class="stale-banner"><span id="stale-detail"></span></div>
+
+    <div class="clocks">
+      <div class="clock-box"><span class="clock-label">ET</span><span id="clock-ET" class="clock-value">--:--:--</span></div>
+      <div class="clock-box"><span class="clock-label">CT</span><span id="clock-CT" class="clock-value">--:--:--</span></div>
+      <div class="clock-box"><span class="clock-label">MT</span><span id="clock-MT" class="clock-value">--:--:--</span></div>
+      <div class="clock-box"><span class="clock-label">PT</span><span id="clock-PT" class="clock-value">--:--:--</span></div>
+      <div class="clock-box utc"><span class="clock-label">UTC</span><span id="clock-UTC" class="clock-value">--:--:--</span></div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="left">
+      <section class="map-pane">
+        <canvas id="us-map"></canvas>
+        <div class="map-overlay-title">Lower 48 National Airspace Status</div>
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--red);"></span>Ground Stop</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--amber);"></span>Ground Delay</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--yellow);"></span>Delay</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--grey);"></span>Closure</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--purple);"></span>Squawk 7700</div>
+        </div>
+      </section>
+
+      <div class="bottom-left">
+        <section class="tsa-panel">
+          <div class="panel-header"><div class="panel-title">TSA screened</div><div id="tsa-date" class="panel-count">--</div></div>
+          <div class="tsa-body" id="tsa-body">
+            <div class="tsa-sub">Waiting for TSA data</div>
+          </div>
+        </section>
+        <section class="owed-panel">
+          <div class="panel-header"><div class="panel-title">Passenger rights</div><div class="panel-count">scan with your phone</div></div>
+          <div class="owed-body">
+            <img class="owed-qr" src="qr-owed.svg" alt="QR code for downtimecredit.com/flights">
+            <div class="owed-text">
+              <div class="owed-head">Delayed? Check what you're owed</div>
+              <div class="owed-url">downtimecredit.com/flights</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <aside class="right">
+      <section class="disruptions-section">
+        <div class="panel-header">
+          <div class="panel-title">DISRUPTIONS</div>
+          <div id="disruptions-count" class="panel-count">0 active</div>
+        </div>
+        <div id="disruptions-list" class="disruptions-list">
+          <div class="empty-state">No FAA delays right now</div>
+        </div>
+      </section>
+
+      <section class="board-section">
+        <div class="panel-header">
+          <div class="panel-title">30 busiest airports</div>
+          <div class="board-key">
+            <span><i style="background:#22c55e"></i>clear</span>
+            <span><i style="background:#f59e0b"></i>delay</span>
+            <span><i style="background:#dc2626"></i>stop or closed</span>
+          </div>
+        </div>
+        <div id="board" class="board"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="bottom-area">
+    <div class="ticker-row">
+      <div class="ticker-tag">DESK LOG</div>
+      <div id="ticker-wrap" class="ticker-track-wrap">
+        <div id="ticker-track" class="ticker-track">Air Travel Desk initializing...</div>
+      </div>
+    </div>
+    <div class="notice-strip">
+      <div class="credits"><span class="update-note" id="update-note"></span>FAA · NWS · adsb.lol (ODbL) · TSA · Radar: NOAA MRMS · map: Natural Earth</div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const stateUrl = params.get("state") || "data/state.json";
+  const baseDir = new URL(stateUrl, window.location.href).href.replace(/[^/]*$/, "");
+  const PAGE_SEC = 10;
+
+  const COLORS = { ground_stop: "#ef4444", ground_delay: "#f59e0b", delay: "#eab308", closure: "#9ca3af", squawk7700: "#a855f7" };
+  const KIND_PRIORITY = { delay: 1, closure: 2, ground_delay: 3, ground_stop: 4, squawk7700: 5 };
+  const KIND_LABELS = { ground_stop: "Ground Stop", ground_delay: "Ground Delay", delay: "Delay", closure: "Closure", squawk7700: "Squawk 7700" };
+
+  let geoStates = null;
+  let currentState = { updated_utc: null, stale_feeds: [], events: [], board: [], last_lines: [] };
+  let projectedBounds = null;
+  let tickerOffset = 0;
+  let lastFrameTs = null;
+  let lastTickerKey = null;
+  let radarImg = null;       // HTMLImageElement of radar.png
+  let radarMeta = null;      // radar.json contents
+  let radarCache = null;     // {key, canvas}
+  let pageIdx = 0;
+  let pages = [[]];          // arrays of card indices per page
+  let lastCardsKey = null;
+
+  const U = () => (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16;
+
+  // ---------- Albers equal-area conic for the lower 48 ----------
+  const DEG = Math.PI / 180;
+  const PHI1 = 29.5 * DEG, PHI2 = 45.5 * DEG, PHI0 = 37.5 * DEG, LAMBDA0 = -96.0 * DEG;
+  const ALBERS_N = 0.5 * (Math.sin(PHI1) + Math.sin(PHI2));
+  const ALBERS_C = Math.cos(PHI1) * Math.cos(PHI1) + 2 * ALBERS_N * Math.sin(PHI1);
+  const ALBERS_RHO0 = Math.sqrt(ALBERS_C - 2 * ALBERS_N * Math.sin(PHI0)) / ALBERS_N;
+
+  function albersRaw(lonDeg, latDeg) {
+    const phi = latDeg * DEG, lam = lonDeg * DEG;
+    const theta = ALBERS_N * (lam - LAMBDA0);
+    const rho = Math.sqrt(Math.max(0, ALBERS_C - 2 * ALBERS_N * Math.sin(phi))) / ALBERS_N;
+    return [rho * Math.sin(theta), ALBERS_RHO0 - rho * Math.cos(theta)];
+  }
+  function albersInverse(x, y) {
+    const dy = ALBERS_RHO0 - y;
+    const rho = Math.sqrt(x * x + dy * dy);
+    const theta = Math.atan2(x, dy);
+    const s = (ALBERS_C - (rho * ALBERS_N) * (rho * ALBERS_N)) / (2 * ALBERS_N);
+    if (s < -1 || s > 1) return null;
+    return [(LAMBDA0 + theta / ALBERS_N) / DEG, Math.asin(s) / DEG];
+  }
+
+  function isMainland(feat) {
+    const name = (feat.properties && feat.properties.name) || "";
+    return !(name === "Alaska" || name === "Hawaii" || name === "Puerto Rico");
+  }
+  function polysOf(feat) {
+    const geom = feat.geometry || {};
+    return geom.type === "Polygon" ? [geom.coordinates] : (geom.type === "MultiPolygon" ? geom.coordinates : []);
+  }
+
+  function computeBounds(features) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const feat of features) {
+      if (!isMainland(feat)) continue;
+      for (const poly of polysOf(feat)) for (const ring of poly) for (const pt of ring) {
+        const [x, y] = albersRaw(pt[0], pt[1]);
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+    return { minX, maxX, minY, maxY };
+  }
+
+  function fitFor(width, height, u) {
+    const padX = 28 * u, padY = 40 * u;
+    const drawW = Math.max(100, width - padX * 2), drawH = Math.max(100, height - padY * 2);
+    const spanX = projectedBounds.maxX - projectedBounds.minX || 1;
+    const spanY = projectedBounds.maxY - projectedBounds.minY || 1;
+    const scale = Math.min(drawW / spanX, drawH / spanY);
+    return { scale, offsetX: (width - spanX * scale) / 2, offsetY: (height - spanY * scale) / 2 };
+  }
+  function projectWith(fit, lon, lat) {
+    const [x, y] = albersRaw(lon, lat);
+    return [fit.offsetX + (x - projectedBounds.minX) * fit.scale, fit.offsetY + (projectedBounds.maxY - y) * fit.scale];
+  }
+  function unprojectWith(fit, px, py) {
+    const x = projectedBounds.minX + (px - fit.offsetX) / fit.scale;
+    const y = projectedBounds.maxY - (py - fit.offsetY) / fit.scale;
+    return albersInverse(x, y);
+  }
+
+  // ---------- radar: reproject EPSG:4326 image into the map projection ----------
+  function buildRadarCanvas(w, h, fit) {
+    const bbox = (radarMeta && radarMeta.bbox) || [-125, 24, -66, 50];
+    const [west, south, east, north] = bbox;
+    const iw = radarImg.naturalWidth, ih = radarImg.naturalHeight;
+    const src = document.createElement("canvas");
+    src.width = iw; src.height = ih;
+    const sctx = src.getContext("2d");
+    sctx.drawImage(radarImg, 0, 0);
+    const sdata = sctx.getImageData(0, 0, iw, ih).data;
+
+    const out = document.createElement("canvas");
+    out.width = w; out.height = h;
+    const octx = out.getContext("2d");
+    const odata = octx.createImageData(w, h);
+    const od = odata.data;
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const ll = unprojectWith(fit, px + 0.5, py + 0.5);
+        if (!ll) continue;
+        const [lon, lat] = ll;
+        if (lon < west || lon >= east || lat <= south || lat > north) continue;
+        const sx = Math.floor((lon - west) / (east - west) * iw);
+        const sy = Math.floor((north - lat) / (north - south) * ih);
+        // Take the strongest echo in a 3x3 source block: the map is narrower than the image,
+        // so single-pixel sampling turned rain into faint specks.
+        let si = -1, best = -1;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = sy + dy; if (yy < 0 || yy >= ih) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = sx + dx; if (xx < 0 || xx >= iw) continue;
+            const k = (yy * iw + xx) * 4;
+            if (sdata[k + 3] === 0) continue;
+            const score = sdata[k] + sdata[k + 1] * 0.6 - sdata[k + 2] * 0.5; // warmer = stronger echo
+            if (score > best) { best = score; si = k; }
+          }
+        }
+        if (si < 0) continue;
+        const r = sdata[si], g = sdata[si + 1], b = sdata[si + 2];
+        const weak = b > r && b > g;            // light blue/cyan = light precipitation
+        const oi = (py * w + px) * 4;
+        od[oi] = r; od[oi + 1] = g; od[oi + 2] = b; od[oi + 3] = weak ? 150 : 255;
+      }
+    }
+    octx.putImageData(odata, 0, 0);
+
+    // keep the echoes inside the lower 48 outline
+    const clipped = document.createElement("canvas");
+    clipped.width = w; clipped.height = h;
+    const cctx = clipped.getContext("2d");
+    cctx.beginPath();
+    for (const feat of geoStates.features || []) {
+      if (!isMainland(feat)) continue;
+      for (const poly of polysOf(feat)) for (const ring of poly) {
+        for (let i = 0; i < ring.length; i++) {
+          const [qx, qy] = projectWith(fit, ring[i][0], ring[i][1]);
+          if (i === 0) cctx.moveTo(qx, qy); else cctx.lineTo(qx, qy);
+        }
+        cctx.closePath();
+      }
+    }
+    cctx.clip();
+    cctx.drawImage(out, 0, 0);
+    return clipped;
+  }
+
+  function drawMap(nowMs) {
+    const canvas = document.getElementById("us-map");
+    if (!canvas) return;
+    const u = U();
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(38, 63, 108, 0.25)";
+    ctx.lineWidth = 1;
+    const gstep = 80 * u;
+    for (let gx = 0; gx < w; gx += gstep) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
+    for (let gy = 0; gy < h; gy += gstep) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
+
+    if (!(geoStates && projectedBounds)) { ctx.restore(); return; }
+    const fit = fitFor(w, h, u);
+
+    ctx.fillStyle = "#112240";
+    ctx.strokeStyle = "#2b4778";
+    ctx.lineWidth = 1.25;
+    for (const feat of geoStates.features || []) {
+      if (!isMainland(feat)) continue;
+      for (const poly of polysOf(feat)) {
+        ctx.beginPath();
+        for (const ring of poly) {
+          for (let i = 0; i < ring.length; i++) {
+            const [px, py] = projectWith(fit, ring[i][0], ring[i][1]);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        }
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // radar under markers
+    if (radarImg && radarImg.naturalWidth) {
+      const key = [w, h, radarMeta && radarMeta.fetched_utc].join("|");
+      if (!radarCache || radarCache.key !== key) {
+        radarCache = { key, canvas: buildRadarCanvas(w, h, fit) };
+      }
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(radarCache.canvas, 0, 0, w, h);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "rgba(43, 71, 120, 0.9)";
+      ctx.lineWidth = 0.8;
+      for (const feat of geoStates.features || []) {
+        if (!isMainland(feat)) continue;
+        for (const poly of polysOf(feat)) {
+          ctx.beginPath();
+          for (const ring of poly) {
+            for (let i = 0; i < ring.length; i++) {
+              const [px, py] = projectWith(fit, ring[i][0], ring[i][1]);
+              if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+          }
+          ctx.stroke();
+        }
+      }
+    }
+
+    const events = currentState.events || [];
+    const markers = [];
+    for (const ev of events) {
+      if (typeof ev.lat !== "number" || typeof ev.lon !== "number") continue;
+      if (ev.lat < 20 || ev.lat > 55 || ev.lon < -130 || ev.lon > -60) continue;
+      const pos = projectWith(fit, ev.lon, ev.lat);
+      const kind = String(ev.kind || "delay").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      const label = ev.airport || ((ev.fields && ev.fields.callsign) ? ev.fields.callsign : "7700");
+      markers.push({ ev, px: pos[0], py: pos[1], kind, color: COLORS[kind] || "#eab308", label, prio: KIND_PRIORITY[kind] || 0 });
+    }
+    markers.sort((a, b) => a.prio - b.prio);
+
+    ctx.font = "700 " + (14 * u) + "px system-ui, sans-serif";
+    const placed = [];
+    const bh = 18 * u;
+    const hitMarker = (bx, by, bw, bhh, skip) => {
+      for (let j = 0; j < markers.length; j++) {
+        const om = markers[j];
+        const r = (j === skip ? 9 : 13) * u;
+        const cx = Math.max(bx, Math.min(om.px, bx + bw));
+        const cy = Math.max(by, Math.min(om.py, by + bhh));
+        if (Math.hypot(cx - om.px, cy - om.py) < r) return true;
+      }
+      return false;
+    };
+    const hitLabel = (bx, by, bw, bhh) => {
+      const pad = 4 * u;
+      for (const o of placed) {
+        if (!(bx + bw + pad <= o.x || o.x + o.w + pad <= bx || by + bhh + pad <= o.y || o.y + o.h + pad <= by)) return true;
+      }
+      return false;
+    };
+
+    for (let i = 0; i < markers.length; i++) {
+      const m = markers[i];
+      const bw = Math.ceil(ctx.measureText(m.label).width) + 8 * u;
+      let close = false;
+      for (let j = 0; j < markers.length; j++) {
+        if (i !== j && Math.hypot(m.px - markers[j].px, m.py - markers[j].py) < 30 * u) { close = true; break; }
+      }
+      const cands = [];
+      if (!close) cands.push([m.px + 12 * u, m.py - 9 * u, false]);
+      cands.push(
+        [m.px + 20 * u, m.py - 28 * u, true], [m.px - 20 * u - bw, m.py - 9 * u, true],
+        [m.px + 20 * u, m.py + 10 * u, true], [m.px - 20 * u - bw, m.py - 28 * u, true],
+        [m.px - 20 * u - bw, m.py + 10 * u, true], [m.px + 20 * u, m.py - 9 * u, true]
+      );
+      for (let step = 1; step <= 8; step++) {
+        const dy = step * 23 * u;
+        cands.push(
+          [m.px + 24 * u, m.py - 9 * u - dy, true], [m.px + 24 * u, m.py - 9 * u + dy, true],
+          [m.px - 24 * u - bw, m.py - 9 * u - dy, true], [m.px - 24 * u - bw, m.py - 9 * u + dy, true]
+        );
+      }
+      let chosen = null;
+      for (const [rx, ry, leader] of cands) {
+        const bx = Math.max(4, Math.min(w - bw - 4, rx));
+        const by = Math.max(4, Math.min(h - bh - 4, ry));
+        if (!hitLabel(bx, by, bw, bh) && !hitMarker(bx, by, bw, bh, i)) {
+          chosen = { x: bx, y: by, w: bw, h: bh, leader: leader || close, marker: m };
+          break;
+        }
+      }
+      if (!chosen) {
+        chosen = { x: Math.max(4, Math.min(w - bw - 4, m.px + 20 * u)), y: Math.max(4, Math.min(h - bh - 4, m.py - 9 * u + placed.length * 20 * u)), w: bw, h: bh, leader: true, marker: m };
+      }
+      placed.push(chosen);
+    }
+
+    for (const item of placed) {
+      if (!item.leader) continue;
+      const m = item.marker;
+      ctx.beginPath();
+      ctx.moveTo(m.px, m.py);
+      ctx.lineTo(Math.max(item.x, Math.min(m.px, item.x + item.w)), Math.max(item.y, Math.min(m.py, item.y + item.h)));
+      ctx.strokeStyle = "rgba(226, 232, 240, 0.78)";
+      ctx.lineWidth = 1.25;
+      ctx.stroke();
+    }
+
+    for (const m of markers) {
+      if (m.kind === "squawk7700") {
+        const phase = (nowMs % 1800) / 1800;
+        ctx.beginPath();
+        ctx.arc(m.px, m.py, (10 + phase * 26) * u, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(168, 85, 247, " + ((1 - phase) * 0.75).toFixed(3) + ")";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(m.px, m.py, 10 * u, 0, Math.PI * 2); ctx.fillStyle = "rgba(7, 14, 28, 0.85)"; ctx.fill();
+      ctx.beginPath(); ctx.arc(m.px, m.py, 6.5 * u, 0, Math.PI * 2); ctx.fillStyle = m.color; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+    }
+
+    ctx.font = "700 " + (14 * u) + "px system-ui, sans-serif";
+    for (const item of placed) {
+      const m = item.marker;
+      ctx.fillStyle = "rgba(7, 14, 28, 0.90)";
+      ctx.fillRect(item.x, item.y, item.w, item.h);
+      if (item.leader) {
+        ctx.strokeStyle = m.color; ctx.lineWidth = 1;
+        ctx.strokeRect(item.x + 0.5, item.y + 0.5, item.w - 1, item.h - 1);
+      }
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText(m.label, item.x + 4 * u, item.y + 14 * u);
+    }
+    ctx.restore();
+  }
+
+  // ---------- text helpers ----------
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  // FAA text says EST. / EDT / CST ...: show ET / CT / MT / PT
+  function tidyZones(text) {
+    return String(text || "").replace(/\b([ECMP])[SD]T\b\.?/g, "$1T");
+  }
+
+  function localTimeText(tz) {
+    if (!tz) return "";
+    try {
+      const now = new Date();
+      const t = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }).format(now);
+      let z = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(now).find((p) => p.type === "timeZoneName");
+      z = z ? z.value : "";
+      if (tz !== "America/Phoenix") z = z.replace(/^([ECMP])[SD]T$/, "$1T");
+      return t + " " + z;
+    } catch (_) { return ""; }
+  }
+
+  function formatKeyNumbers(ev) {
+    const f = ev.fields || {};
+    const parts = [];
+    if (ev.kind === "ground_stop") {
+      if (f.end_time) parts.push("until " + tidyZones(f.end_time).replace(/\.$/, ""));
+      if (ev.reason) parts.push(ev.reason);
+    } else if (ev.kind === "ground_delay") {
+      if (f.avg) parts.push("avg " + f.avg);
+      if (f.max) parts.push("max " + f.max);
+      if (ev.reason) parts.push(ev.reason);
+    } else if (ev.kind === "delay") {
+      if (f.direction) parts.push(f.direction);
+      if (f.min && f.max) parts.push(f.min + " to " + f.max);
+      else if (f.max) parts.push("up to " + f.max);
+      if (f.trend) parts.push(f.trend);
+      if (ev.reason && !ev.reason.toUpperCase().startsWith("OTHER:")) parts.push(ev.reason);
+    } else if (ev.kind === "closure") {
+      if (f.reopen) parts.push("reopen " + tidyZones(f.reopen));
+    } else if (ev.kind === "squawk7700") {
+      if (f.callsign) parts.push("callsign " + f.callsign);
+      if (f.alt !== null && f.alt !== undefined && f.alt !== "") parts.push(f.alt + " ft");
+      parts.push("transponder 7700");
+    }
+    return parts.join(" · ");
+  }
+
+  function sourcesHtml(ev) {
+    const sources = (ev.sources && ev.sources.length) ? ev.sources : [ev.source || ""];
+    let s = "Sources: " + escapeHtml(sources.join(" · "));
+    if (currentState.updated_utc) {
+      const mins = Math.max(0, Math.round((Date.now() - Date.parse(currentState.updated_utc)) / 60000));
+      s += " · " + (mins < 1 ? "just now" : mins + " min ago");
+    }
+    if (ev.status === "CONFIRMED") s += ' <span class="agree">· FAA + NWS agree</span>';
+    else if (ev.status === "UNCONFIRMED") s += ' <span class="warn">· no FAA corroboration</span>';
+    return s;
+  }
+
+  // ---------- disruptions (paged) ----------
+  function countdownHtml(ev) {
+    if (ev.kind !== "ground_stop") return "";
+    if (!ev.end_utc) return '<span class="ev-count noend">end time not given</span>';
+    return '<span class="ev-count" data-end="' + escapeHtml(ev.end_utc) + '"></span>';
+  }
+
+  function renderDisruptions(events) {
+    const listEl = document.getElementById("disruptions-list");
+    const key = JSON.stringify(events);
+    if (key === lastCardsKey) return;
+    lastCardsKey = key;
+    if (events.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">No FAA delays right now</div>';
+      pages = [[]];
+      updateCount(0);
+      return;
+    }
+    let html = "";
+    for (const ev of events) {
+      const kind = ev.kind || "delay";
+      const status = ev.status || "OFFICIAL";
+      const code = ev.airport || "7700";
+      const displayName = ev.display || ev.spoken || code;
+      const numbers = formatKeyNumbers(ev);
+      const local = localTimeText(ev.tz);
+      html +=
+        '<div class="event-card kind-' + escapeHtml(kind) + '" data-tz="' + escapeHtml(ev.tz || "") + '">' +
+          '<div class="event-top">' +
+            '<div class="event-airport"><span class="airport-code">' + escapeHtml(code) + '</span><span class="nm">' + escapeHtml(displayName) + '</span></div>' +
+            '<span class="status-chip status-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>' +
+          '</div>' +
+          '<div class="event-body">' +
+            '<div class="event-meta"><span class="event-kind">' + escapeHtml(KIND_LABELS[kind] || kind) + '</span>' +
+              (numbers ? ' <span class="event-numbers">· ' + escapeHtml(numbers) + '</span>' : '') + '</div>' +
+            '<div class="event-side">' +
+              (ev.tz ? '<span class="ev-local">Local <span class="lt">' + escapeHtml(local) + '</span></span>' : '') +
+              countdownHtml(ev) +
+            '</div>' +
+          '</div>' +
+          '<div class="event-sources">' + sourcesHtml(ev) + '</div>' +
+        '</div>';
+    }
+    listEl.innerHTML = html;
+    tickCountdowns();
+    paginate();
+  }
+
+  function updateCount(total) {
+    const el = document.getElementById("disruptions-count");
+    if (pages.length > 1) {
+      el.textContent = total + " active · page " + ((pageIdx % pages.length) + 1) + "/" + pages.length;
+    } else {
+      el.textContent = total + " active";
+    }
+  }
+
+  function paginate() {
+    const listEl = document.getElementById("disruptions-list");
+    const cards = Array.from(listEl.querySelectorAll(".event-card"));
+    cards.forEach((c) => c.classList.remove("hidden"));
+    const cs = getComputedStyle(listEl);
+    const avail = listEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const gap = parseFloat(cs.rowGap) || 0;
+    const result = [];
+    let cur = [], used = 0;
+    cards.forEach((c, i) => {
+      const hgt = c.offsetHeight;
+      if (cur.length && used + gap + hgt > avail) { result.push(cur); cur = []; used = 0; }
+      used += (cur.length ? gap : 0) + hgt;
+      cur.push(i);
+    });
+    if (cur.length) result.push(cur);
+    pages = result.length ? result : [[]];
+    showPage();
+  }
+
+  function showPage() {
+    const listEl = document.getElementById("disruptions-list");
+    const cards = Array.from(listEl.querySelectorAll(".event-card"));
+    if (!cards.length) return;
+    const keep = new Set(pages[pageIdx % pages.length]);
+    cards.forEach((c, i) => c.classList.toggle("hidden", !keep.has(i)));
+    updateCount(cards.length);
+  }
+
+  // ---------- board ----------
+  function renderBoard(board) {
+    const el = document.getElementById("board");
+    const html = (board || []).map((t) =>
+      '<div class="tile ' + escapeHtml(t.level) + '" title="' + escapeHtml(t.kind || "no FAA event") + '"><b>' + escapeHtml(t.code) + '</b><span>' + escapeHtml(t.name) + '</span></div>'
+    ).join("");
+    if (el.dataset.k !== html) { el.dataset.k = html; el.innerHTML = html; }
+  }
+
+  // ---------- TSA ----------
+  function fmtDate(iso) {
+    return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric", year: "numeric" }).format(new Date(iso + "T00:00:00Z"));
+  }
+  function renderTsa(t) {
+    const body = document.getElementById("tsa-body");
+    if (!t || !t.latest_count) return;
+    document.getElementById("tsa-date").textContent = fmtDate(t.latest_date);
+    let ly = '<div class="tsa-sub">Same weekday last year: no data</div>';
+    if (t.ly_count) {
+      const pct = (t.latest_count - t.ly_count) / t.ly_count * 100;
+      const sign = pct >= 0 ? "+" : "−";
+      ly = '<div class="tsa-ly"><div><div class="tsa-label">Same weekday last year · ' + escapeHtml(fmtDate(t.ly_date)) + '</div>' +
+        '<div class="tsa-ly-num">' + t.ly_count.toLocaleString("en-US") + '</div></div>' +
+        '<div class="tsa-pct' + (pct < 0 ? " neg" : "") + '">' + sign + Math.abs(pct).toFixed(1) + '%</div></div>';
+    }
+    body.innerHTML = '<div class="tsa-big">' + t.latest_count.toLocaleString("en-US") + '</div><div class="tsa-sub">people screened at checkpoints</div>' + ly;
+  }
+
+  // ---------- ticker ----------
+  function updateTickerText(lines) {
+    const key = JSON.stringify(lines || []);
+    if (key === lastTickerKey) return;
+    lastTickerKey = key;
+    const track = document.getElementById("ticker-track");
+    const wrap = document.getElementById("ticker-wrap");
+    let baseText;
+    if (!lines || lines.length === 0) {
+      baseText = "Air Travel Desk · Monitoring FAA NAS status, National Weather Service alerts, and adsb.lol squawks";
+    } else {
+      baseText = lines.map((item) => {
+        const t = item.time_utc ? item.time_utc.slice(11, 19) + " UTC" : ("T+" + Math.round(item.t || 0) + "s");
+        return "[" + t + "] " + (item.text || "");
+      }).join("   ●   ");
+    }
+    const unit = baseText + "     ●     ";
+    track.textContent = unit;
+    const minWidth = (wrap ? wrap.clientWidth : 1700) + 400;
+    let count = 1;
+    while (track.scrollWidth < minWidth && count < 12) { count += 1; track.textContent = unit.repeat(count); }
+    track.dataset.unitCount = String(count);
+    track.textContent = unit.repeat(count * 2);
+  }
+
+  // The web build updates about every 5 minutes and GitHub's scheduler can run late; the Mac desk polls every minute.
+  const STALE_MIN = Number(params.get("stale_min")) || (/^data\//.test(stateUrl) ? 20 : 3);
+  function updateStaleBanner() {
+    const banner = document.getElementById("stale-banner");
+    const detail = document.getElementById("stale-detail");
+    const staleFeeds = Array.isArray(currentState.stale_feeds) ? currentState.stale_feeds : [];
+    let isOld = false;
+    if (currentState.updated_utc) {
+      const ms = Date.parse(currentState.updated_utc);
+      if (!Number.isNaN(ms) && (Date.now() - ms) > STALE_MIN * 60 * 1000) isOld = true;
+    }
+    if (isOld || staleFeeds.length > 0) {
+      banner.classList.add("visible");
+      const parts = [];
+      if (isOld) parts.push("no update in " + Math.round((Date.now() - Date.parse(currentState.updated_utc)) / 60000) + " min");
+      if (staleFeeds.length > 0) parts.push("feeds: " + staleFeeds.join(", "));
+      detail.textContent = "Data stale: " + parts.join("; ");
+    } else {
+      banner.classList.remove("visible");
+      detail.textContent = "";
+    }
+  }
+
+  // ---------- clocks and countdowns (every second) ----------
+  const clockFmt = {};
+  function fmtClock(tz, hour12) {
+    const k = tz + hour12;
+    if (!clockFmt[k]) clockFmt[k] = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", second: "2-digit", hour12 });
+    return clockFmt[k];
+  }
+  function tickCountdowns() {
+    const now = Date.now();
+    document.querySelectorAll(".ev-count[data-end]").forEach((el) => {
+      const left = Math.floor((Date.parse(el.dataset.end) - now) / 1000);
+      if (Number.isNaN(left)) { el.textContent = "end time not given"; el.className = "ev-count noend"; return; }
+      if (left <= 0) { el.textContent = "past listed end time"; el.className = "ev-count expired"; return; }
+      const hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
+      el.innerHTML = "ends in " + hh + ":" + String(mm).padStart(2, "0") + '<span class="sec">:' + String(ss).padStart(2, "0") + "</span>";
+    });
+  }
+  function updateClocks() {
+    const now = new Date();
+    const zones = { ET: "America/New_York", CT: "America/Chicago", MT: "America/Denver", PT: "America/Los_Angeles" };
+    for (const k in zones) document.getElementById("clock-" + k).textContent = fmtClock(zones[k], true).format(now);
+    document.getElementById("clock-UTC").textContent = fmtClock("UTC", false).format(now);
+    document.querySelectorAll(".event-card").forEach((c) => {
+      const lt = c.querySelector(".lt");
+      if (lt && c.dataset.tz) lt.textContent = localTimeText(c.dataset.tz);
+    });
+    tickCountdowns();
+    updateStaleBanner();
+  }
+
+  // ---------- loading ----------
+  async function loadGeoJson() {
+    try {
+      const resp = await fetch("us-states.geojson");
+      if (!resp.ok) return;
+      geoStates = await resp.json();
+      projectedBounds = computeBounds(geoStates.features || []);
+    } catch (_) {}
+  }
+
+  async function pollState() {
+    try {
+      const resp = await fetch(stateUrl, { cache: "no-store" });
+      if (!resp.ok) return;
+      currentState = (await resp.json()) || {};
+      const events = Array.isArray(currentState.events) ? currentState.events : [];
+      renderDisruptions(events);
+      renderBoard(currentState.board);
+      updateTickerText(Array.isArray(currentState.last_lines) ? currentState.last_lines : []);
+      updateStaleBanner();
+      const un = document.getElementById("update-note");
+      if (un) un.textContent = currentState.update_note ? currentState.update_note + " · " : "";
+    } catch (_) {}
+  }
+
+  async function pollExtras() {
+    try {
+      const r = await fetch(baseDir + "radar.json", { cache: "no-store" });
+      if (r.ok) {
+        const meta = await r.json();
+        if (!radarMeta || meta.fetched_utc !== radarMeta.fetched_utc) {
+          const img = new Image();
+          img.onload = () => { radarImg = img; radarMeta = meta; };
+          img.src = baseDir + "radar.png?v=" + encodeURIComponent(meta.fetched_utc);
+        }
+      }
+    } catch (_) {}
+    try {
+      const r = await fetch(baseDir + "tsa.json", { cache: "no-store" });
+      if (r.ok) renderTsa(await r.json());
+    } catch (_) {}
+  }
+
+  function animate(ts) {
+    if (lastFrameTs === null) lastFrameTs = ts;
+    const dt = (ts - lastFrameTs) / 1000;
+    lastFrameTs = ts;
+    drawMap(ts);
+    const track = document.getElementById("ticker-track");
+    const wrap = document.getElementById("ticker-wrap");
+    if (track && wrap) {
+      const halfWidth = track.scrollWidth / 2;
+      if (halfWidth > wrap.clientWidth) {
+        tickerOffset += dt * 75 * U();
+        if (tickerOffset >= halfWidth) tickerOffset -= halfWidth;
+        track.style.transform = "translateX(" + (-tickerOffset).toFixed(1) + "px)";
+      } else {
+        tickerOffset = 0;
+        track.style.transform = "translateX(0px)";
+      }
+    }
+    window.requestAnimationFrame(animate);
+  }
+
+  updateClocks();
+  updateTickerText([]);
+  window.setInterval(updateClocks, 1000);
+  window.setInterval(() => { if (pages.length > 1) { pageIdx = (pageIdx + 1) % pages.length; showPage(); } }, PAGE_SEC * 1000);
+  window.addEventListener("resize", () => { if (lastCardsKey) paginate(); });
+  loadGeoJson();
+  pollState();
+  pollExtras();
+  window.setInterval(pollState, 5000);
+  window.setInterval(pollExtras, 30000);
+  window.requestAnimationFrame(animate);
+})();
+</script>
+<div class="viewer-controls" id="viewer-controls">
+  <button type="button" id="btn-voice" aria-pressed="false">Turn on voice</button>
+  <button type="button" id="btn-full">Full screen</button>
+</div>
+<style>
+  .screen { position: relative; }
+  .viewer-controls { position: absolute; left: 28.6rem; top: 1.05rem; display: flex; gap: 0.5rem; z-index: 50; opacity: 0.92; }
+  .viewer-controls button { font: 700 0.75rem/1 system-ui, sans-serif; color: #0d1722; background: #f2b33d; border: 0; border-radius: 0.35rem; padding: 0.45rem 0.6rem; cursor: pointer; }
+  .viewer-controls button[aria-pressed="true"] { background: #22c55e; }
+  .viewer-controls button:focus-visible { outline: 0.15rem solid #fff; outline-offset: 0.1rem; }
+  .viewer-controls.hide { display: none; }
+</style>
+<script>
+/* Viewer controls: browser speech (Web Speech API, on the device, no third party) and full screen.
+   Voice is off until the viewer turns it on. It reads only the desk's templated lines. */
+(function () {
+  const params = new URLSearchParams(location.search);
+  const controls = document.getElementById("viewer-controls");
+  if (params.get("controls") === "0") { controls.classList.add("hide"); return; }
+  const scr = document.querySelector(".screen"); if (scr) scr.appendChild(controls);
+  const btnVoice = document.getElementById("btn-voice"), btnFull = document.getElementById("btn-full");
+  const synth = window.speechSynthesis;
+  let voiceOn = false, seen = new Set(), lastSpokenAt = 0, lastRecap = "";
+  const key = (l) => (l.time_utc || l.t || "") + "|" + l.text;
+  function pickVoice() {
+    const vs = synth ? synth.getVoices() : [];
+    return vs.find(v => /en-US/i.test(v.lang) && /natural|enhanced|premium/i.test(v.name)) || vs.find(v => /en-US/i.test(v.lang)) || null;
+  }
+  function say(text) {
+    if (!synth || !text) return;
+    const u = new SpeechSynthesisUtterance(text);
+    const v = pickVoice(); if (v) u.voice = v;
+    u.rate = 1.0; u.pitch = 1.0; u.lang = "en-US";
+    synth.speak(u); lastSpokenAt = Date.now();
+  }
+  async function check() {
+    if (!voiceOn) return;
+    try {
+      const r = await fetch(params.get("state") || "data/state.json", { cache: "no-store" });
+      const st = await r.json();
+      const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
+      for (const l of lines) {
+        if (/^Right now/.test(l.text)) lastRecap = l.text;
+        if (seen.has(key(l))) continue;
+        seen.add(key(l)); say(l.text);
+      }
+      // A recap every 10 minutes when nothing new was said.
+      if (lastRecap && Date.now() - lastSpokenAt > 600000) say(lastRecap);
+    } catch (_) {}
+  }
+  if (!synth) { btnVoice.textContent = "Voice not supported here"; btnVoice.disabled = true; }
+  btnVoice.addEventListener("click", async () => {
+    voiceOn = !voiceOn;
+    btnVoice.setAttribute("aria-pressed", String(voiceOn));
+    btnVoice.textContent = voiceOn ? "Voice on" : "Turn on voice";
+    if (!voiceOn) { synth.cancel(); return; }
+    // Start with the latest lines only, so turning voice on does not replay the whole log.
+    try {
+      const r = await fetch(params.get("state") || "data/state.json", { cache: "no-store" });
+      const st = await r.json(); const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
+      lines.forEach(l => seen.add(key(l)));
+      const recap = [...lines].reverse().find(l => /^Right now/.test(l.text));
+      say("Air Travel Desk. " + (recap ? recap.text : (lines.length ? lines[lines.length - 1].text : "Watching FAA airport status.")));
+    } catch (_) { say("Air Travel Desk."); }
+  });
+  btnFull.addEventListener("click", () => {
+    const el = document.documentElement;
+    if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen();
+  });
+  setInterval(check, 15000);
+})();
+</script>
+</body>
+</html>

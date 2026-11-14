@@ -1,0 +1,5 @@
+data/tsa-cache/
+data/radar.png
+data/radar.json
+data/tsa.json
+__pycache__/

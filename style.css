@@ -483,3 +483,13 @@ button:focus-visible {
   margin: 0 0 12px;
   color: var(--text-muted);
 }
+
+/* Desk screen (the broadcast page, 1280x720, scaled to fit) */
+.desk-section { margin-top: 8px; }
+.desk-frame { position: relative; width: 100%; overflow: hidden; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: #0b1420; }
+.desk-frame iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; border: 0; transform-origin: 0 0; }
+.desk-note { font-size: 0.9rem; opacity: 0.8; margin: 8px 0 0; }
+.desk-note a { color: #9fd3ff; }
+
+/* On wide screens the desk frame already shows the board; keep the list, drop the duplicate board. */
+@media (min-width: 900px) { section[aria-labelledby="board-heading"] { display: none; } }

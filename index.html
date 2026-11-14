@@ -41,6 +41,14 @@
       </div>
       <p id="stale-notice" class="stale-notice" role="status" hidden>Data may be out of date</p>
 
+      <section class="desk-section" aria-labelledby="desk-heading">
+        <h2 id="desk-heading" class="section-heading">The desk</h2>
+        <div class="desk-frame" id="desk-frame">
+          <iframe id="desk-iframe" src="tv.html" allow="fullscreen" title="Air Travel Desk screen: live map, disruptions, airport board and TSA numbers" width="1280" height="720" loading="eager"></iframe>
+        </div>
+        <p class="desk-note">An automated broadcast. Data updates about every 5 minutes; GitHub's scheduler can run late. No sound on the web. <a href="tv.html">Open full screen</a></p>
+      </section>
+
       <section aria-labelledby="events-heading">
         <h2 id="events-heading" class="section-heading">Active Disruptions</h2>
         <div id="events" class="events-list"></div>
@@ -63,11 +71,18 @@
     </main>
 
     <footer class="site-footer">
-      <p>An automated desk. Data: FAA, National Weather Service. Not affiliated with any airline or government agency.</p>
+      <p>An automated desk. Data: FAA, National Weather Service, NOAA MRMS radar, TSA, adsb.lol (ODbL); map: Natural Earth. Not affiliated with any airline or government agency.</p>
       <p><a href="privacy.html">Privacy</a></p>
     </footer>
   </div>
 
   <script src="app.js" defer></script>
+  <script>
+  (function () {
+    var frame = document.getElementById("desk-frame"), ifr = document.getElementById("desk-iframe");
+    function fit() { var k = frame.clientWidth / 1280; ifr.style.transform = "scale(" + k + ")"; frame.style.height = (720 * k) + "px"; }
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(frame); window.addEventListener("resize", fit); fit();
+  })();
+  </script>
 </body>
 </html>
