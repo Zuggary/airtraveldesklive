@@ -15,6 +15,11 @@
   var DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive";
   var REFUND_QUOTE = "Refunds are a separate rule, 14 CFR 260.6, and it applies whatever the cause of the delay or cancellation.";
   var PLAIN_READING = "This is our plain reading, not legal advice.";
+  var ASK_FIRST_PAGE = "stuck.html#ask-first";
+  var ASK_FIRST_READ = "2026-11-14";
+  var ASK_FIRST_DASHBOARD_URL = "https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard";
+  // Situations that get the short "Ask before you pay" card in the result.
+  var ASK_FIRST_SITUATIONS = ["delayed", "cancelled", "missed_connection", "overnight"];
   var LABEL_ORDER = ["rebook_same", "rebook_other", "meal", "hotel", "transport", "cash", "voucher", "miles"];
 
   var SITUATIONS = [
@@ -243,6 +248,35 @@
     };
   }
 
+  // AN25: the short "Ask before you pay" card for the result. Static text, no network.
+  // Returns null for a situation that does not get the card (for example "diverted").
+  function buildAskFirstModel(situationId, causeId) {
+    if (ASK_FIRST_SITUATIONS.indexOf(situationId) === -1) { return null; }
+    var causeLine;
+    if (causeId === "weather") {
+      causeLine = "The dashboard commitments are for airline-caused problems, not weather or air traffic control. Help for those causes is usually up to the airline, so ask anyway.";
+    } else if (causeId === "airline") {
+      causeLine = "You said the airline caused it. Ask the agent to put that reason in writing.";
+    } else {
+      causeLine = "Ask for the cause in writing. It usually matters, and the airline's own plan decides.";
+    }
+    return {
+      heading: "Ask before you pay",
+      intro: "Before you buy a meal or a hotel, ask the airline if it will help. Whether it does depends on the cause and on the airline's own plan.",
+      items: [
+        "Ask: \"Does the airline offer a meal or a hotel for this?\"",
+        "Ask for the reason, any voucher, the agent's name or ID, and the time, in writing.",
+        causeLine,
+        "Keep every receipt. If the answer is no, ask for the reason in writing. You can file a DOT complaint later."
+      ],
+      pageUrl: ASK_FIRST_PAGE,
+      pageLabel: "Read the full Ask before you pay section",
+      sourceLabel: "U.S. DOT: Airline Cancellation and Delay Dashboard",
+      sourceUrl: ASK_FIRST_DASHBOARD_URL,
+      read: ASK_FIRST_READ
+    };
+  }
+
   function buildEmailDraft(airlineName, isOther, situationId, causeId) {
     var sitText = situationLabel(situationId);
     var greetingName = isOther ? "Customer Relations" : (airlineName + " Customer Relations");
@@ -330,7 +364,36 @@
     });
   }
 
+  // AN25: the Copy button of the static "Ask before you pay" section.
+  // The page works without this script: the button is hidden until it runs, and the text can be selected by hand.
+  // No library. navigator.clipboard first, then a textarea select + execCommand, then a visible "select the text" note.
+  function initAskFirst() {
+    var btn = document.getElementById("ask-copy-btn");
+    var box = document.getElementById("ask-message");
+    var status = document.getElementById("ask-copy-status");
+    if (!btn || !box || !status) { return; }
+    btn.hidden = false;
+    function manual() {
+      box.focus();
+      box.select();
+      var copied = false;
+      try { copied = document.execCommand("copy"); } catch (e) { copied = false; }
+      status.textContent = copied ? "Copied." : "Text selected. Copy it with your device menu.";
+    }
+    btn.addEventListener("click", function () {
+      var text = box.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          status.textContent = "Copied.";
+        }, manual);
+      } else {
+        manual();
+      }
+    });
+  }
+
   function init() {
+    initAskFirst();
     var state = {
       step: 1,
       airlineId: "",
@@ -423,6 +486,32 @@
       });
       secA.appendChild(ol);
       resultBody.appendChild(secA);
+
+      // a2. Ask before you pay (short version; the full section is on this page)
+      var ask = buildAskFirstModel(state.situationId, effectiveCause);
+      if (ask) {
+        var secAsk = el("section", "result-card ask-short");
+        secAsk.id = "result-ask-first";
+        secAsk.appendChild(el("h2", "result-heading", ask.heading));
+        secAsk.appendChild(el("p", null, ask.intro));
+        var askList = el("ul", "ask-list");
+        ask.items.forEach(function (t) { askList.appendChild(el("li", null, t)); });
+        secAsk.appendChild(askList);
+        var askLinkP = el("p", null);
+        var askLink = el("a", "tap", ask.pageLabel);
+        askLink.href = ask.pageUrl;
+        askLinkP.appendChild(askLink);
+        secAsk.appendChild(askLinkP);
+        var askSrc = el("p", "small", "Source: ");
+        var askSrcLink = el("a", "tap", ask.sourceLabel);
+        askSrcLink.href = ask.sourceUrl;
+        askSrcLink.target = "_blank";
+        askSrcLink.rel = "noopener noreferrer";
+        askSrc.appendChild(askSrcLink);
+        askSrc.appendChild(document.createTextNode(", read " + ask.read + "."));
+        secAsk.appendChild(askSrc);
+        resultBody.appendChild(secAsk);
+      }
 
       // b. Say this at the counter + Say this on the phone
       var scripts = buildScripts(airlineName, isOther, state.situationId, effectiveCause);
@@ -647,6 +736,10 @@
     buildScripts: buildScripts,
     buildCommitmentsModel: buildCommitmentsModel,
     buildEmailDraft: buildEmailDraft,
+    buildAskFirstModel: buildAskFirstModel,
+    initAskFirst: initAskFirst,
+    ASK_FIRST_PAGE: ASK_FIRST_PAGE,
+    ASK_FIRST_SITUATIONS: ASK_FIRST_SITUATIONS,
     init: init
   };
 });

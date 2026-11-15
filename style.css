@@ -678,3 +678,26 @@ a.brand { text-decoration: none; color: var(--text); display: inline-flex; align
 .guide-note { margin: 6px 0 0; }
 #watch .live-note { margin: 0 0 8px; }
 .watch-section { margin-top: 28px; }
+
+/* AN25 ask before you pay */
+.ask-first-jump { margin: 0 0 12px; }
+.ask-first { margin-top: 28px; }
+.ask-lead { margin: 0 0 8px; font-size: 1.0625rem; font-weight: 700; }
+.ask-block { border: 1px solid var(--border); border-radius: 8px; margin: 10px 0; background: var(--surface); }
+.ask-block > summary { display: flex; align-items: center; min-height: 48px; padding: 0 14px; cursor: pointer; font-weight: 800; list-style: none; }
+.ask-block > summary::-webkit-details-marker { display: none; }
+.ask-block > summary::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; margin-right: 12px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
+.ask-block[open] > summary::before { transform: rotate(45deg); }
+.ask-block > summary:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.ask-block > :not(summary) { margin-left: 14px; margin-right: 14px; }
+.ask-block > :last-child { margin-bottom: 14px; }
+.ask-block p { margin-top: 8px; margin-bottom: 8px; }
+.ask-lines, .ask-list { padding-left: 22px; display: grid; gap: 10px; margin-top: 8px; margin-bottom: 8px; }
+.ask-block .rule { padding: 8px 12px; border-left: 4px solid var(--accent); background: var(--navy); border-radius: 6px; }
+.ask-block .cite { display: block; margin-top: 4px; font-size: 0.9375rem; color: var(--text-muted); }
+.ask-block .cite a { text-decoration: underline; text-underline-offset: 2px; }
+.ask-block .ask-message { min-height: 200px; }
+.ask-block .email-draft-box { width: calc(100% - 28px); }
+.ask-short .ask-list { margin-top: 8px; }
+.ask-block [hidden] { display: none; }
+.ask-short .small .tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }

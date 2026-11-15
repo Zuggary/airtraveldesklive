@@ -1,0 +1,102 @@
+{
+  "about": "U.S. DOT and eCFR pages read first-hand for the 'Ask before you pay' section of stuck.html (job AN25). Quotes are exact. Only entries with cited true are linked as a rule source on the page.",
+  "read": "2026-11-14",
+  "sources": [
+    {
+      "id": "dot-dashboard",
+      "url": "https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard",
+      "title": "U.S. DOT Airline Cancellation and Delay Dashboard",
+      "read": "2026-11-14",
+      "page_last_updated": "2025-09-11",
+      "cited": true,
+      "quotes": [
+        "A green check mark on the dashboard means an airline has committed to providing that service or amenity to its customers. A red “x” means the airline has not made that commitment. However, airlines with a red “x” may provide these services and amenities in some instances in their discretion.",
+        "A controllable flight cancellation or delay is essentially a delay or cancellation caused by the airline. Examples include: maintenance or crew problems; cabin cleaning; baggage loading; and fueling.",
+        "Airlines are required to adhere to the promises that they make in their customer service plan, including commitments to care for customers in the event of controllable delays or cancellations. The Department will hold airlines accountable if they fail to do so.",
+        "Each airline has its own policies about what it will do for delayed or cancelled passengers. If an airline has made a commitment to provide a particular service or compensation, then the Department can hold the airline accountable.",
+        "If your flight is experiencing a long delay or is cancelled, ask airline staff if they will pay for meals or a hotel room or compensate you for your time. While some airlines offer these amenities to passengers, others may not provide amenities to stranded passengers."
+      ]
+    },
+    {
+      "id": "dot-refunds",
+      "url": "https://www.transportation.gov/individuals/aviation-consumer-protection/refunds",
+      "title": "U.S. DOT Refunds",
+      "read": "2026-11-14",
+      "page_last_updated": "2025-11-07",
+      "cited": true,
+      "quotes": [
+        "Cancelled Flight - A consumer is entitled to a refund if the airline cancelled a flight, regardless of the reason, and the consumer chooses not to travel or accept travel credits, vouchers, or other forms of compensation offered by the airline",
+        "Late arrival - The consumer is scheduled to arrive at the destination airport 3 hours or more for domestic itineraries or 6 hours or more for international itineraries later than the original scheduled arrival time;",
+        "Although not required by DOT, airlines often offer to rebook consumers on alternative flights following a flight cancellation or significant delay/change.",
+        "When making these offers, airlines must let you know that you are entitled to a refund if you don’t accept the offer.",
+        "The travel credits, vouchers, or other forms of compensation airlines offer must be valid for at least five years and airlines must disclose to you any material restrictions, limitations, or conditions on the credits or vouchers.",
+        "Consumer Traveled - If you chose to take a significantly delayed/changed flight or an alternative flight offered by the airline, you are not entitled to a refund under DOT rules."
+      ]
+    },
+    {
+      "id": "ecfr-260-6",
+      "url": "https://www.ecfr.gov/current/title-14/chapter-II/subchapter-A/part-260/section-260.6",
+      "title": "14 CFR 260.6, Refunding fare for flights cancelled or significantly delayed or changed by carriers",
+      "read": "2026-11-14",
+      "page_last_updated": "eCFR up to date as of 2026-11-12",
+      "cited": true,
+      "quotes": [
+        "A covered carrier that is the merchant of record must provide a full and prompt refund of the airfare, including any taxes and ancillary fees, as set forth in paragraph (a)(2) of this section to a consumer that holds a nonrefundable ticket on a scheduled flight to, from, or within the United States for any cancelled flight or significantly delayed or changed flight where the consumer chooses not to:",
+        "The consumer's right to a full refund under this section."
+      ]
+    },
+    {
+      "id": "dot-tarmac",
+      "url": "https://www.transportation.gov/individuals/aviation-consumer-protection/tarmac-delays",
+      "title": "U.S. DOT Tarmac Delays",
+      "read": "2026-11-14",
+      "page_last_updated": "2025-09-26",
+      "cited": true,
+      "quotes": [
+        "For flights landing at U.S. airports, airlines are required to provide passengers with an opportunity to safely get off of the airplane before 3 hours for domestic flights and 4 hours for international flights.",
+        "Exceptions to the time limits are allowed only for safety, security, or air traffic control-related reasons.",
+        "During a tarmac delay, airlines must provide you with a snack, such as a granola bar, and drinking water no later than two hours after the start of the tarmac delay.",
+        "The only instance in which an airline is not required to hand out food and water to all passengers during a tarmac delay that lasts two hours or longer is when the pilot determines that food and water service cannot be provided due to safety or security reasons."
+      ]
+    },
+    {
+      "id": "dot-complaint",
+      "url": "https://www.transportation.gov/airconsumer/file-consumer-complaint",
+      "title": "U.S. DOT File a Consumer Complaint",
+      "read": "2026-11-14",
+      "page_last_updated": "2025-08-01",
+      "cited": true,
+      "quotes": [
+        "Before you contact DOT for help with an air travel problem, you should give the airline a chance to resolve it. Airlines have trouble-shooters at the airports, usually called Customer Service Representatives, who can take care of many problems on the spot. They may be able to arrange meals and hotel rooms for stranded passengers, write checks if you’re bumped from your flight, help with baggage issues, and settle other routine claims or complaints.",
+        "DOT requires airlines to acknowledge consumer complaints within 30 days of receiving them and to send consumers written responses addressing these complaints within 60 days of receiving them.",
+        "If you feel that the airline does not resolve the issue to your satisfaction, you may want to file a complaint with DOT.",
+        "Except for civil rights complaints, DOT does not investigate every air travel service complaint received due to the volume of complaints received."
+      ]
+    },
+    {
+      "id": "dot-complaint-form",
+      "url": "https://airconsumer.dot.gov/consumer/s/oacp-form",
+      "title": "U.S. DOT online complaint form",
+      "read": "2026-11-14",
+      "page_last_updated": "",
+      "cited": false,
+      "link_only": true,
+      "quotes": [],
+      "note": "Linked from the DOT site's own navigation as 'File a Consumer Complaint'. The form page loads with script only, so its text could not be read. The site links it as an action and quotes nothing from it."
+    },
+    {
+      "id": "dot-fly-rights-archived",
+      "url": "https://www.transportation.gov/airconsumer/fly-rights",
+      "title": "U.S. DOT Fly Rights (archived page)",
+      "read": "2026-11-14",
+      "page_last_updated": "",
+      "cited": false,
+      "archived": true,
+      "quotes": [
+        "As part of a continuing effort to ensure that guidance issued by the Office of Aviation Consumer Protection (OACP) is up to date, this webpage has been placed in archived status. Some or all of the information may have been superseded by statute or rulemaking. Continued reliance on this page is not advised.",
+        "Each airline has its own policies about what it will do for delayed passengers waiting at the airport; there are no federal requirements."
+      ],
+      "note": "Archived by DOT. The site does not link it or use it as a rule source. It only agrees with the current dashboard page that the airline's own policy decides."
+    }
+  ]
+}

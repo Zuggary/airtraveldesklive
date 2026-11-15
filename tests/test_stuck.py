@@ -43,12 +43,16 @@ class TestStuckStaticChecks(unittest.TestCase):
         self.assertIn("This is our plain reading, not legal advice.", self.combined)
 
     def test_only_allowed_http_urls_in_stuck_files(self):
+        # AN25: the DOT and eCFR pages cited in the "Ask before you pay" section are listed, with read dates and
+        # exact quotes, in data/ask-first-sources.json. No other external URL is allowed.
+        listed = {s["url"] for s in json.loads(read_text("data/ask-first-sources.json"))["sources"]}
+        allowed = listed | {DOWNTIME_URL}
         for name, text in (("stuck.html", self.stuck_html), ("stuck.js", self.stuck_js)):
             found = URL_RE.findall(text)
             for url in found:
-                self.assertEqual(
+                self.assertIn(
                     url,
-                    DOWNTIME_URL,
+                    allowed,
                     f"Unexpected http(s) URL in {name}: {url}",
                 )
 

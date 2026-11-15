@@ -274,6 +274,10 @@ def render_airline_page(
             '          <p>The <a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a> walks through what to do, '
             "what to say at the counter and an email draft. It is plain-language help, not legal advice.</p>"
         ),
+        (
+            '          <p><a class="tap" href="../stuck.html#ask-first">Ask before you pay</a>: what to say to an agent about a meal or '
+            "hotel, and what to ask for in writing.</p>"
+        ),
         "        </div>",
         "      </section>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
@@ -361,7 +365,8 @@ def render_index_page(
         f"          <li>{bap._esc(REFUND_SENTENCE)}</li>",
         "          <li>Where this site says money is possibly owed, your airline decides every claim. This is not legal advice.</li>",
         "        </ul>",
-        '        <p class="small">Stuck at an airport now? Use the <a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a>.</p>',
+        '        <p class="small">Stuck at an airport now? Use the <a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a>. '
+        'Before you pay for a meal or hotel, read <a class="tap" href="../stuck.html#ask-first">Ask before you pay</a>.</p>',
         "      </section>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',

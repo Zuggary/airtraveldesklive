@@ -33,12 +33,13 @@
       <div class="wizard-shell">
         <h1 class="stuck-page-title">I'm stuck at the airport</h1>
         <p class="stuck-page-intro">Step-by-step help while you wait. Works offline after your first visit. Nothing you pick or type is stored or sent anywhere.</p>
+        <p class="ask-first-jump"><a class="tap" href="#ask-first">Thinking of paying for a meal or hotel? Ask first. What to say and what to get in writing</a></p>
         <p id="stuck-meta" class="stuck-page-meta">Purpose: help you decide what to do when your flight is delayed or cancelled. Sources: U.S. DOT airline dashboard (updated <span id="dot-updated-date">2025-09-11</span>), 14 CFR 260.6. Last checked 2026-11-14.</p>
         <p id="wizard-progress" class="wizard-progress" aria-live="polite">Step 1 of 4</p>
         <p id="data-notice" class="stale-notice" role="status" hidden></p>
 
         <noscript>
-          <p class="noscript-note">This step-by-step guide needs JavaScript. Go back to the <a href="index.html">live board</a> or check your airline's app and customer service desk. You can also read what each airline has committed to on the <a href="airlines/index.html">airline pages</a>.</p>
+          <p class="noscript-note">This step-by-step guide needs JavaScript. The <a href="#ask-first">Ask before you pay</a> part below works without it. Go back to the <a href="index.html">live board</a> or check your airline's app and customer service desk. You can also read what each airline has committed to on the <a href="airlines/index.html">airline pages</a>.</p>
         </noscript>
 
         <section id="step-1" class="wizard-step" aria-labelledby="step-1-heading">
@@ -90,6 +91,94 @@
           <div id="result-body" class="result-body"></div>
         </section>
       </div>
+
+      <section id="ask-first" class="wizard-shell ask-first" aria-labelledby="ask-first-heading">
+        <h2 id="ask-first-heading" class="result-heading">Ask before you pay</h2>
+        <p class="ask-lead">Before you pay for a meal or a hotel, ask the airline if it will help. Ask first. Then decide.</p>
+        <p class="small">Plain-language help, not legal advice. Each DOT rule below has a link to the U.S. DOT page and the date we read it. This section works without JavaScript.</p>
+
+        <details class="ask-block" open>
+          <summary>Why ask first</summary>
+          <p>Some airlines pay for a meal or a hotel when they cause the delay or cancellation. Some do not. It depends on the cause and on the airline's own plan.</p>
+          <p class="rule">The U.S. DOT says each airline has its own policies for delayed and cancelled passengers. If an airline has made a commitment, DOT can hold it to that. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p class="rule">DOT tells travelers to ask airline staff if they will pay for meals or a hotel room. It says some airlines offer these and others may not. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p class="rule">We found no DOT page that says every airline has to pay for meals or a hotel. The airline's own plan decides. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p>So ask before you pay. If you pay first, the airline may or may not pay you back.</p>
+        </details>
+
+        <details class="ask-block" open>
+          <summary>What to say</summary>
+          <ul class="ask-lines">
+            <li><strong>At the counter:</strong> &ldquo;My flight is [delayed / cancelled]. Does the airline offer a meal or a hotel for this?&rdquo;</li>
+            <li><strong>On the phone:</strong> &ldquo;My flight is [delayed / cancelled]. What is the reason in your system, and is a meal or hotel voucher available?&rdquo;</li>
+            <li><strong>In chat:</strong> &ldquo;Flight [FLIGHT] is [delayed / cancelled]. What is the reason? Can you give me a meal or hotel voucher, or tell me why not?&rdquo;</li>
+          </ul>
+          <p>Be polite and clear. Say what you need: a meal, a hotel, or a new flight.</p>
+          <p class="rule">DOT says airport customer service representatives may be able to arrange meals and hotel rooms for stranded passengers. Look for them first. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/file-consumer-complaint" target="_blank" rel="noopener noreferrer">U.S. DOT: File a Consumer Complaint</a>, read 2026-11-14.</span></p>
+        </details>
+
+        <details class="ask-block">
+          <summary>What to ask for in writing</summary>
+          <ul class="ask-list">
+            <li>The reason for the delay or cancellation. Ask for the cause code if there is one.</li>
+            <li>The voucher, or a confirmation that they said yes or no.</li>
+            <li>The agent's name or ID number.</li>
+            <li>The time you spoke with them.</li>
+          </ul>
+          <p>A text, an email, or a photo of a printed slip all work. After a phone call, write the details down at once and ask for a confirmation email.</p>
+        </details>
+
+        <details class="ask-block">
+          <summary>Airline cause or weather?</summary>
+          <p>The cause usually matters. Ask for it in writing.</p>
+          <p class="rule">Airline-caused delays and cancellations are what the dashboard commitments are for. DOT's examples are maintenance or crew problems, cabin cleaning, baggage loading and fueling. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p class="rule">Weather, air traffic control and security are not what the dashboard commitments are for. For these causes, help is usually up to the airline. Some airlines still help, so ask anyway. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p class="rule">On the dashboard, Yes means the airline has committed to it. No means it has not made that commitment, but the airline may still help at its own discretion. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p>If the agent says weather and you think the airline caused the problem, ask for the reason in writing.</p>
+          <p><a class="tap" href="airlines/index.html">See what each airline has committed to</a></p>
+        </details>
+
+        <details class="ask-block">
+          <summary>The DOT rules that apply</summary>
+          <p class="rule">Refund for a cancelled flight. If the airline cancels your flight, for any reason, and you choose not to travel or take a voucher or credit, DOT says you can get a refund of your ticket. <span class="cite">Source: <a href="https://www.transportation.gov/individuals/aviation-consumer-protection/refunds" target="_blank" rel="noopener noreferrer">U.S. DOT: Refunds</a>, read 2026-11-14.</span> <span class="cite">Source: <a href="https://www.ecfr.gov/current/title-14/chapter-II/subchapter-A/part-260/section-260.6" target="_blank" rel="noopener noreferrer">14 CFR 260.6</a>, read 2026-11-14.</span></p>
+          <p class="rule">A big delay or schedule change counts too. DOT's example is arriving 3 hours or more later than planned on a U.S. domestic trip. If you fly the new flight anyway, DOT rules do not give you a refund. <span class="cite">Source: <a href="https://www.transportation.gov/individuals/aviation-consumer-protection/refunds" target="_blank" rel="noopener noreferrer">U.S. DOT: Refunds</a>, read 2026-11-14.</span></p>
+          <p class="rule">Under 14 CFR 260.6 and the DOT refund page, if an airline offers a voucher or credit instead of a refund, it has to tell you about your right to a refund. The voucher or credit has to last at least five years. <span class="cite">Source: <a href="https://www.transportation.gov/individuals/aviation-consumer-protection/refunds" target="_blank" rel="noopener noreferrer">U.S. DOT: Refunds</a>, read 2026-11-14.</span> <span class="cite">Source: <a href="https://www.ecfr.gov/current/title-14/chapter-II/subchapter-A/part-260/section-260.6" target="_blank" rel="noopener noreferrer">14 CFR 260.6</a>, read 2026-11-14.</span></p>
+          <p class="rule">Rebooking. Airlines often offer a new flight. DOT's page says rebooking is not required by DOT. On the dashboard (last updated 2025-09-11), every airline in the tables has committed to rebook you on its own flights when it causes the problem. <span class="cite">Source: <a href="https://www.transportation.gov/individuals/aviation-consumer-protection/refunds" target="_blank" rel="noopener noreferrer">U.S. DOT: Refunds</a>, read 2026-11-14.</span> <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p class="rule">The dashboard. It shows what large U.S. airlines have committed to when they cause a delay or cancellation. DOT says airlines are required to keep the promises in their customer service plans. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
+          <p class="rule">Long waits on the ground in a plane. DOT says that on a flight in the U.S., the airline has to give you a chance to get off, or start moving to a place where you can, before 3 hours (domestic) or 4 hours (international). Exceptions are for safety, security or air traffic control reasons. DOT also says the airline has to give you a snack and water within 2 hours, unless the pilot decides safety or security does not allow it. <span class="cite">Source: <a href="https://www.transportation.gov/individuals/aviation-consumer-protection/tarmac-delays" target="_blank" rel="noopener noreferrer">U.S. DOT: Tarmac Delays</a>, read 2026-11-14.</span></p>
+          <p class="rule">Complaints. Try the airline first. DOT says the airline has to acknowledge your complaint within 30 days and answer in writing within 60 days. If that does not solve it, you may file a complaint with DOT. DOT does not investigate every complaint. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/file-consumer-complaint" target="_blank" rel="noopener noreferrer">U.S. DOT: File a Consumer Complaint</a>, read 2026-11-14.</span></p>
+          <p><a class="btn btn-secondary" href="https://airconsumer.dot.gov/consumer/s/oacp-form" target="_blank" rel="noopener noreferrer">Open the DOT complaint form</a></p>
+        </details>
+
+        <details class="ask-block" id="ask-message-block" open>
+          <summary>Copy-paste message</summary>
+          <p>Replace the words in [brackets], then copy it. Use it in chat or email, or read it out on the phone.</p>
+          <label class="sr-only" for="ask-message">Message to the airline</label>
+          <textarea id="ask-message" class="email-draft-box ask-message" rows="10">Hello. I am at [AIRPORT]. My [AIRLINE] flight [FLIGHT] was due to leave at [TIME]. It is [delayed / cancelled].
+I need help with: [NEED: meal / hotel / rebooking].
+Before I pay, please tell me if the airline will provide this.
+Please also tell me the reason for the delay or cancellation, and give me your name or ID.
+If the answer is no, please give me the reason in writing.
+Thank you.</textarea>
+          <div class="copy-row">
+            <button type="button" class="btn btn-secondary" id="ask-copy-btn" hidden>Copy message</button>
+            <span class="copy-status" id="ask-copy-status" role="status" aria-live="polite"></span>
+          </div>
+          <p class="small" id="ask-copy-help">To copy by hand: tap in the box, select all, then use your device's copy command.</p>
+        </details>
+
+        <details class="ask-block">
+          <summary>Keep receipts. If the answer is no.</summary>
+          <ul class="ask-list">
+            <li>Keep every receipt. Take a photo of each one.</li>
+            <li>Write down the time and what the agent said.</li>
+            <li>If the agent says no, ask for the reason in writing.</li>
+            <li>If you pay anyway, ask the airline for the money back later. The email draft in the steps above can help.</li>
+            <li>If the airline does not solve it, you can file a DOT complaint later.</li>
+          </ul>
+          <p>Money you spend on something your airline has committed to is possibly owed back to you. Your airline decides every claim.</p>
+        </details>
+      </section>
 
       <section class="wizard-shell airline-links" aria-labelledby="airline-links-heading">
         <h2 id="airline-links-heading" class="result-heading">What each airline has committed to</h2>
