@@ -106,7 +106,7 @@
   canvas.addEventListener("click", function (e) {
     var r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, best = null, bd = 22;
     marks.forEach(function (m) { var d = Math.hypot(m.x - x, m.y - y); if (!m.me && d < bd) { bd = d; best = m; } });
-    if (best) { window.location.href = best.code + ".html"; }
+    if (best) { window.location.href = "/airports/" + best.code; }
   });
   canvas.addEventListener("pointermove", function (e) {
     var r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;

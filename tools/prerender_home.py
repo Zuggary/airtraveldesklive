@@ -342,7 +342,7 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
         cls = "event-card event-card--night" if night else "event-card event-card--stop" if stop else "event-card"
         badge = "badge badge--night" if night else "badge badge--stop" if stop else "badge badge--delay"
         big, small = event_figure(ev, str(ev.get("tz") or a.get("tz") or ""), at if night else now)
-        href = f"airports/{code}.html" if re.fullmatch(r"[A-Z]{3}", code) else "airports/index.html"
+        href = f"/airports/{code}" if re.fullmatch(r"[A-Z]{3}", code) else "/airports/"
         lines = [
             f'<article class="{cls}">',
             f'<div class="event-header"><h3 class="event-title"><a class="ev-link" href="{href}"><span class="ev-code">{_esc(code)}</span>'

@@ -175,7 +175,7 @@ class TestPagesFromFixtures(unittest.TestCase):
             self.assertEqual("glance-ontime-num" in html, has, code)
 
     def test_index_lists_all_100_once(self) -> None:
-        hrefs = re.findall(r'class="tap airport-index-link" href="([A-Z]{3})\.html"', self.index)
+        hrefs = re.findall(r'class="tap airport-index-link" href="/airports/([A-Z]{3})"', self.index)
         self.assertEqual(sorted(hrefs), sorted(BUSIEST_100))
         self.assertIn("100 busiest US airports", self.index)
         self.assertNotIn("30 busiest", self.index)
@@ -188,9 +188,9 @@ class TestPagesFromFixtures(unittest.TestCase):
         locs = re.findall(r"<loc>([^<]+)</loc>", xml)
         airport_locs = [u for u in locs if "/airports/" in u]
         self.assertEqual(len(airport_locs), 101)
-        self.assertIn(f"{SITE}/airports/index.html", airport_locs)
+        self.assertIn(f"{SITE}/airports/", airport_locs)
         for code in BUSIEST_100:
-            self.assertIn(f"{SITE}/airports/{code}.html", airport_locs)
+            self.assertIn(f"{SITE}/airports/{code}", airport_locs)
         self.assertEqual(len(set(locs)), len(locs))
         self.assertIn(f"{SITE}/", locs)
 
@@ -234,10 +234,10 @@ class TestSearchFindsNewAirports(unittest.TestCase):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("No match among the 100 busiest airports.", index)
         self.assertNotIn("No match among the 30", index)
-        self.assertIn('href="airports/index.html">All 100 busiest airports', index)
+        self.assertIn('href="/airports/">All 100 busiest airports', index)
         app = (ROOT / "app.js").read_text(encoding="utf-8")
         self.assertIn("A.searchAirports(allAirports", app)
-        self.assertIn('window.location.href = "airports/" + code + ".html"', app)
+        self.assertIn('window.location.href = "/airports/" + code', app)
         self.assertIn("100 busiest", (ROOT / "about.html").read_text(encoding="utf-8"))
 
     def test_workflow_expects_100_pages_and_runs_the_places_batch(self) -> None:

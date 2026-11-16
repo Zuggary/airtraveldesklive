@@ -173,7 +173,7 @@ def _flight_check(code: str) -> list[str]:
 
 
 def _src_link(text: str) -> str:
-    return f'<a class="tap" href="../sources.html">{_esc(text)}</a>'
+    return f'<a class="tap" href="/sources">{_esc(text)}</a>'
 
 
 ICONS = {
@@ -520,7 +520,7 @@ def _help_card(code: str, lvl: str) -> list[str]:
         "        </div>",
         '        <div class="stuck-note">',
         (
-            '          <p>Delayed or cancelled? The <a class="tap" href="../stuck.html">step-by-step guide</a> covers airline commitments, '
+            '          <p>Delayed or cancelled? The <a class="tap" href="/stuck">step-by-step guide</a> covers airline commitments, '
             'refund rules under 14 CFR 260.6, what to say at the counter and an email draft. Or '
             f'<a class="tap" href="{DOWNTIME_URL}" target="_blank" rel="noopener noreferrer">'
             "check what you may be owed</a>. This is plain-language help, not legal advice; your airline decides "
@@ -669,7 +669,7 @@ def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str
     hot = lvl in ("delay", "stop", "closed")
     return [
         '        <div class="ap-actions">',
-        f'          <a id="stuck-btn" class="btn {"btn-accent" if hot else "btn-ghost"}" href="../stuck.html">I\'m stuck guide</a>',
+        f'          <a id="stuck-btn" class="btn {"btn-accent" if hot else "btn-ghost"}" href="/stuck">I\'m stuck guide</a>',
         '          <details class="flight-check">',
         f'            <summary id="flight-btn" class="btn {"btn-ghost" if hot else "btn-accent"}">Check my flight</summary>',
         '            <div class="flight-pop">',
@@ -854,24 +854,24 @@ def _nav_chip(label: str, href: str, current: bool, extra: str = "") -> str:
     return f'        <a class="{cls}" href="{href}"{attrs}>{label}</a>'
 
 
-def _render_header(current: str = "airports", airports_href: str = "index.html") -> str:
+def _render_header(current: str = "airports", airports_href: str = "/airports/") -> str:
     """The one site header (AN34): brand, then Live board · Airports · Airlines · Stuck? · About.
     On phones only Airports and Stuck? show; the rest are in the footer."""
-    airlines_href = "index.html" if current == "airlines" else "../airlines/index.html"
+    airlines_href = "/airlines/"
     return "\n".join([
         '  <a class="skip-link" href="#main-content">Skip to main content</a>',
         '  <header class="site-header">',
         '    <div class="header-in">',
-        '      <a class="brand" href="../index.html">',
+        '      <a class="brand" href="/">',
         '        <img class="brand-logo" src="../brand/logo.svg" width="30" height="30" alt="">',
         '        <span class="brand-title">Air Travel Desk</span>',
         "      </a>",
         '      <nav class="header-nav" aria-label="Site navigation">',
-        _nav_chip("Live board", "../index.html", current == "board", "nav-wide"),
+        _nav_chip("Live board", "/", current == "board", "nav-wide"),
         _nav_chip("Airports", airports_href, current == "airports"),
         _nav_chip("Airlines", airlines_href, current == "airlines", "nav-wide"),
-        _nav_chip("Stuck?", "../stuck.html", current == "stuck"),
-        _nav_chip("About", "../about.html", current == "about", "nav-wide"),
+        _nav_chip("Stuck?", "/stuck", current == "stuck"),
+        _nav_chip("About", "/about", current == "about", "nav-wide"),
         "      </nav>",
         "      " + THEME_BUTTON,
         "    </div>",
@@ -881,8 +881,8 @@ def _render_header(current: str = "airports", airports_href: str = "index.html")
 
 
 def _render_footer(
-    airports_href: str = "index.html",
-    airlines_href: str = "../airlines/index.html",
+    airports_href: str = "/airports/",
+    airlines_href: str = "/airlines/",
     note: str = "Updated automatically from public data. Not affiliated with any airline or government agency.",
 ) -> str:
     return "\n".join([
@@ -896,12 +896,12 @@ def _render_footer(
         "        </div>",
         '        <div class="foot-col">',
         (
-            '          <ul class="foot-links"><li><a class="tap" href="../index.html">Live board</a></li>'
+            '          <ul class="foot-links"><li><a class="tap" href="/">Live board</a></li>'
             f'<li><a class="tap" href="{airports_href}">Airports</a></li>'
             f'<li><a class="tap" href="{airlines_href}">Airline commitments</a></li>'
-            '<li><a class="tap" href="../about.html">About</a></li>'
-            '<li><a class="tap" href="../sources.html">Data and sources</a></li>'
-            '<li><a class="tap" href="../privacy.html">Privacy</a></li></ul>'
+            '<li><a class="tap" href="/about">About</a></li>'
+            '<li><a class="tap" href="/sources">Data and sources</a></li>'
+            '<li><a class="tap" href="/privacy">Privacy</a></li></ul>'
         ),
         f'          <p class="foot-contact">Contact: <a class="tap" href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>',
         "        </div>",
@@ -1070,7 +1070,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var p = el("p", cls);',
         '      if (before) { p.appendChild(document.createTextNode(before)); }',
         '      var a = el("a", "tap", linkText);',
-        '      a.href = "../sources.html";',
+        '      a.href = "/sources";',
         "      p.appendChild(a);",
         '      if (after) { p.appendChild(document.createTextNode(after)); }',
         "      return p;",
@@ -1083,7 +1083,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      p.appendChild(el("span", "fact-v", value));',
         '      p.appendChild(document.createTextNode(" "));',
         '      var s = el("span", "fact-src");',
-        '      var a = el("a", "tap", linkText); a.href = "../sources.html"; s.appendChild(a);',
+        '      var a = el("a", "tap", linkText); a.href = "/sources"; s.appendChild(a);',
         '      s.appendChild(document.createTextNode(after));',
         '      p.appendChild(s);',
         '      d.appendChild(p);',
@@ -1273,7 +1273,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        checkedLine.textContent = "";',
         '        var fp = faaParts(data.updated_utc, stale);',
         '        var cl = el("a", "tap", "FAA NAS status");',
-        '        cl.href = "../sources.html";',
+        '        cl.href = "/sources";',
         '        checkedLine.appendChild(document.createTextNode(fp[0]));',
         '        checkedLine.appendChild(cl);',
         '        checkedLine.appendChild(document.createTextNode(fp[1]));',
@@ -1340,7 +1340,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        if (label) {',
         '          nx.appendChild(el("span", "gl-k", label + ":")); nx.appendChild(document.createTextNode(" "));',
         '          nx.appendChild(el("span", "gl-v", outlookText(w))); nx.appendChild(document.createTextNode(" "));',
-        '          var gs = el("span", "gl-src"), ga = el("a", "tap", "aviationweather.gov TAF"); ga.href = "../sources.html"; gs.appendChild(ga);',
+        '          var gs = el("span", "gl-src"), ga = el("a", "tap", "aviationweather.gov TAF"); ga.href = "/sources"; gs.appendChild(ga);',
         '          if (!stale && clockLabel(taf)) { gs.appendChild(document.createTextNode(", issued " + clockLabel(taf) + " (" + oldText(ageMin(taf)) + ")")); }',
         '          nx.appendChild(gs);',
         '        }',
@@ -1467,13 +1467,13 @@ def render_airport_page(
             + ("nearby hotels and car rental, " if has_places else "")
             + f"and delay help for {name} ({code})."
         )
-    canonical = f"{SITE_URL}/airports/{code}.html"
+    canonical = f"{SITE_URL}/airports/{code}"
     breadcrumb = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
             {"@type": "ListItem", "position": 1, "name": "Air Travel Desk", "item": f"{SITE_URL}/"},
-            {"@type": "ListItem", "position": 2, "name": "Airports", "item": f"{SITE_URL}/airports/index.html"},
+            {"@type": "ListItem", "position": 2, "name": "Airports", "item": f"{SITE_URL}/airports/"},
             {"@type": "ListItem", "position": 3, "name": f"{name} ({code})", "item": canonical},
         ],
     }
@@ -1668,7 +1668,7 @@ def render_airport_page(
         f'<body class="page-airport">',
         _render_header(),
         f'    <main id="main-content" class="airport-main">',
-        f'      <p class="crumb"><a href="index.html">All airports</a> <span aria-hidden="true">/</span> {_esc(code)}</p>',
+        f'      <p class="crumb"><a href="/airports/">All airports</a> <span aria-hidden="true">/</span> {_esc(code)}</p>',
         (
             f'      <p id="stale-notice" class="stale-notice" role="status">{live["stale_html"]}</p>'
             if live["has"] and live["stale"]
@@ -1705,7 +1705,7 @@ def render_airport_page(
         ),
         (
             '        <p class="ap-alt">Other airports nearby, straight-line miles: '
-            + ", ".join(f'<a class="tap" href="{_esc(c)}.html">{_esc(c)}</a> ({m} mi{", " + w if w else ""})' for c, _n, m, w in (alternates or []))
+            + ", ".join(f'<a class="tap" href="/airports/{_esc(c)}">{_esc(c)}</a> ({m} mi{", " + w if w else ""})' for c, _n, m, w in (alternates or []))
             + ". Status is from the FAA feed, checked as shown above. We know nothing about fares or seats there; ask your airline what it can rebook.</p>"
             if alternates and live["has"] and not live["stale"] and "badge--stop" in live["chip_class"]
             else ""
@@ -1751,7 +1751,7 @@ def render_airport_page(
         "      </section>",
         '      <section class="airport-section airport-about-note" aria-labelledby="about-page-heading">',
         '        <h2 id="about-page-heading">About this page</h2>',
-        '        <p class="small">This traveler page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="../about.html">About Air Travel Desk</a> for how these pages are made.</p>',
+        '        <p class="small">This traveler page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="/about">About Air Travel Desk</a> for how these pages are made.</p>',
         *glance_html,
         "      </section>",
         "    </div>",
@@ -1806,7 +1806,7 @@ def render_index_page(
         f"Directory of the {n} busiest US airports on Air Travel Desk with city, "
         "monthly BTS on-time arrival rate, live status links and traveler guides."
     )
-    canonical = f"{SITE_URL}/airports/index.html"
+    canonical = f"{SITE_URL}/airports/"
     breadcrumb = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -1861,7 +1861,7 @@ def render_index_page(
             hay = " ".join([code, name, city, STATE_NAMES.get(st, "")]).lower()
             sections.append(f'          <li class="airport-index-card idx--{lv}" data-q="{_esc(hay)}">')
             sections.append(
-                f'            <a class="tap airport-index-link" href="{_esc(code)}.html"><span class="idx-code">{_esc(code)}</span>'
+                f'            <a class="tap airport-index-link" href="/airports/{_esc(code)}"><span class="idx-code">{_esc(code)}</span>'
                 f'<span class="idx-name">{_esc(name)} ({_esc(code)})</span></a>'
             )
             meta = " · ".join(x for x in (city, rate_line) if x)
@@ -1890,10 +1890,10 @@ def render_index_page(
         '      <div class="idx-hero">',
         '      <h1 class="idx-title">US Airports: delays, weather and traveler help</h1>',
         f'      <p class="airport-purpose">Each of the {n} busiest US airports has its own page: live FAA status, weather, the last 3 days, '
-        'official links and help if you are stuck. The <a href="../index.html">live board</a> has the national picture.</p>',
+        'official links and help if you are stuck. The <a href="/">live board</a> has the national picture.</p>',
         (
             f'      <p class="idx-now"><span class="dot dot--{"delay" if trouble else "clear"}"></span>'
-            + (f'FAA programs at {len(trouble)} of {n} now: ' + ", ".join(f'<a href="{_esc(c)}.html">{_esc(c)}</a>' for c in trouble)
+            + (f'FAA programs at {len(trouble)} of {n} now: ' + ", ".join(f'<a href="/airports/{_esc(c)}">{_esc(c)}</a>' for c in trouble)
                if trouble else f"No FAA programs at any of the {n} now")
             + f'. FAA NAS status, {_esc(pt.checked_text(live_updated_utc, "America/New_York", now))}.</p>'
             if live_ok else ""
@@ -1939,7 +1939,7 @@ def render_index_page(
 
 def render_sitemap_block(codes: list[str], build_date: str) -> str:
     """Render the managed <!-- airports:begin --> ... <!-- airports:end --> sitemap block."""
-    urls = [f"{SITE_URL}/airports/index.html"] + [f"{SITE_URL}/airports/{code}.html" for code in codes]
+    urls = [f"{SITE_URL}/airports/"] + [f"{SITE_URL}/airports/{code}" for code in codes]
     lines = [f"  {SITEMAP_BEGIN}"]
     for url in urls:
         lines.append(f"  <url><loc>{_esc(url)}</loc><lastmod>{_esc(build_date)}</lastmod></url>")

@@ -231,7 +231,7 @@
   function chipFor(a) {
     var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
     var c = el("a", "pick pick--" + lvl);
-    c.href = "airports/" + a.code + ".html";
+    c.href = "/airports/" + a.code;
     c.appendChild(el("span", "dot dot--" + lvl));
     c.appendChild(el("span", "pick-code", a.code));
     var tail = "Normal";
@@ -325,7 +325,7 @@
     var head = el("div", "event-header");
     var h3 = el("h3", "event-title");
     var lk = el("a", "ev-link");
-    lk.href = /^[A-Z]{3}$/.test(code) ? "airports/" + code + ".html" : "airports/index.html";
+    lk.href = /^[A-Z]{3}$/.test(code) ? "/airports/" + code : "/airports/";
     lk.appendChild(el("span", "ev-code", code));
     lk.appendChild(el("span", "ev-place", a.name || ev.display || place));
     h3.appendChild(lk);
@@ -436,7 +436,7 @@
       var qg = el("div", "quiet-grid");
       quiet.forEach(function (o) {
         var q = el("a", "tile qt");
-        q.href = "airports/" + o.a.code + ".html";
+        q.href = "/airports/" + o.a.code;
         q.setAttribute("data-code", o.a.code);
         q.setAttribute("aria-label", o.a.code + ", " + (o.a.short || o.a.name) + ": normal. Open airport page.");
         if (o.a.code === currentCode) { q.setAttribute("aria-current", "true"); }
@@ -548,7 +548,7 @@
     var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
     var tv = tiles[a.code] ? A.tileView(tiles[a.code]) : null;
     var b = el("a", "tile br tile--" + lvl + (tv ? " tile--" + tv.status : ""));
-    b.href = "airports/" + a.code + ".html";
+    b.href = "/airports/" + a.code;
     b.setAttribute("data-code", a.code);
     var word = tv ? tv.word : LEVEL_WORD[lvl];
     b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + (lvl === "clear" ? "normal" : word) + (tv && tv.detail ? ", " + tv.detail : "") + (tv && tv.trendWord ? ", " + tv.trendWord : "") + ". Open airport page.");
@@ -577,13 +577,13 @@
   function initSearch() {
     var input = $("airport-search"), list = $("search-results"), empty = $("search-empty");
     var res = [], active = 0;
-    function go(a) { if (a) { setLast(a.code); window.location.href = "airports/" + a.code + ".html"; } }
+    function go(a) { if (a) { setLast(a.code); window.location.href = "/airports/" + a.code; } }
     function draw() {
       list.textContent = "";
       res.forEach(function (a, i) {
         var li = el("li");
         var b = el("a", "result lvl-" + a.level + (i === active ? " is-active" : ""));
-        b.href = "airports/" + a.code + ".html";
+        b.href = "/airports/" + a.code;
         b.setAttribute("data-code", a.code);
         b.appendChild(el("span", "result-code", a.code));
         b.appendChild(el("span", "result-name", (a.short || a.name) + (a.city ? ", " + a.city.split(", ").pop() : "")));
@@ -816,7 +816,7 @@
 
     var primaryRow = el("p", "guide-primary-row");
     var fullLink = el("a", "btn btn-primary guide-full-btn", "Open the full " + a.code + " page");
-    fullLink.href = "airports/" + a.code + ".html";
+    fullLink.href = "/airports/" + a.code;
     primaryRow.appendChild(fullLink);
     body.appendChild(primaryRow);
 
@@ -847,7 +847,7 @@
 
     var stuckRow = el("p", "guide-stuck-row");
     var stuckLink = el("a", "tap guide-stuck-link", "Missed a flight? Open the I'm stuck guide");
-    stuckLink.href = "stuck.html";
+    stuckLink.href = "/stuck";
     stuckRow.appendChild(stuckLink);
     body.appendChild(stuckRow);
 
@@ -878,7 +878,7 @@
 
     var actions = el("p", "card-actions");
     var full = el("a", "btn btn-primary", "Open the " + code + " page");
-    full.href = "airports/" + code + ".html";
+    full.href = "/airports/" + code;
     actions.appendChild(full);
     var save = el("button", "btn btn-secondary btn-save", getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports");
     save.type = "button";
@@ -962,7 +962,7 @@
     if (allByCode[code]) { setLast(code); }
     if (!a) {
       // An airport after the first 30 has no card on this page: open its own page.
-      if (/^[A-Z]{3}$/.test(code || "") && allByCode[code]) { window.location.href = "airports/" + code + ".html"; }
+      if (/^[A-Z]{3}$/.test(code || "") && allByCode[code]) { window.location.href = "/airports/" + code; }
       return;
     }
     var slot = $("airport-card-slot");
@@ -1356,7 +1356,7 @@
       var rect = canvas.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
       var best = null, bd = 24;
       mapMarkers.forEach(function (m) { var d = Math.hypot(m.x - x, m.y - y); if (d <= bd) { bd = d; best = m; } });
-      if (best && !byCode[best.code] && !allByCode[best.code]) { window.location.href = "airports/" + best.code + ".html"; return; }
+      if (best && !byCode[best.code] && !allByCode[best.code]) { window.location.href = "/airports/" + best.code; return; }
       if (best) { openAirport(best.code, true); }
     });
     canvas.addEventListener("pointermove", function (e) {

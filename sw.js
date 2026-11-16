@@ -2,14 +2,13 @@
 (function () {
   "use strict";
 
-  var CACHE_NAME = "atd-offline-v14";
+  var CACHE_NAME = "atd-offline-v15";
   var STATIC_FILES = [
     "./",
-    "./index.html",
-    "./airports/index.html",
-    "./stuck.html",
-    "./about.html",
-    "./sources.html",
+    "./airports/",
+    "./stuck",
+    "./about",
+    "./sources",
     "./tokens.css",
     "./style.css",
     "./theme.js",

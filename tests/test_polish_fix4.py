@@ -90,7 +90,7 @@ class TestAboutRound4(unittest.TestCase):
         self.assertNotIn("<table", about)
         self.assertIn('<ul class="source-groups">', about)
         self.assertEqual(about.count("<li><strong>"), 5)
-        self.assertIn('href="sources.html"', about.split("Where the data comes from")[1].split("Limits of the data")[0])
+        self.assertIn('href="/sources"', about.split("Where the data comes from")[1].split("Limits of the data")[0])
         self.assertIn("The site tries to refresh about every 5 minutes and keeps the last good data if a source is late.", about)
         self.assertNotIn("every 5 minutes by a script", about)
 
@@ -104,7 +104,7 @@ class TestSourcesRound4(unittest.TestCase):
         s = read("sources.html")
         self.assertNotIn(">Terms</a>", s)
         self.assertIn('<td data-label="Licence and terms"><a href="https://www.usa.gov/government-works"', s)
-        self.assertIn('<p class="crumb"><a href="about.html">About</a>', s)
+        self.assertIn('<p class="crumb"><a href="/about">About</a>', s)
         self.assertIn("Data and sources</p>\n        <h1>Data and sources</h1>", s)
 
 
@@ -115,7 +115,7 @@ class TestNavRound4(unittest.TestCase):
             self.assertEqual(re.findall(r">([^<]+)</a>", nav_block(text)), NAV_LABELS, name)
             self.assertNotIn("Back to live board", text, name)
         self.assertNotIn("aria-current", nav_block(read("privacy.html")))  # privacy moved to the footer (AN34)
-        self.assertIn('href="stuck.html" aria-current="page">Stuck?<', nav_block(read("stuck.html")))
+        self.assertIn('href="/stuck" aria-current="page">Stuck?<', nav_block(read("stuck.html")))
 
 
 if __name__ == "__main__":

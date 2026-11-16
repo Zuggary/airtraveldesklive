@@ -64,8 +64,8 @@ class TestStuckStaticChecks(unittest.TestCase):
         self.assertEqual(URL_RE.findall(self.sw_js), [])
         self.assertIn("self.location.origin", self.sw_js)
         for required in (
-            "index.html",
-            "stuck.html",
+            '"./"',
+            '"./stuck"',
             "style.css",
             "app.js",
             "lib.js",
@@ -80,7 +80,7 @@ class TestStuckStaticChecks(unittest.TestCase):
 
     def test_links_and_registrations(self):
         index_html = read_text("index.html")
-        self.assertIn('href="stuck.html"', index_html)
+        self.assertIn('href="/stuck"', index_html)
         self.assertIn("I'm stuck at the airport", index_html)
         self.assertIn('serviceWorker.register("sw.js")', index_html)
         self.assertIn('serviceWorker.register("sw.js")', self.stuck_html)

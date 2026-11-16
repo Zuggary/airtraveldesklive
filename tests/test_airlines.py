@@ -170,7 +170,7 @@ class TestEachPage(_Base):
             titles.add(p.title)
             descriptions.add(desc[0])
             canon = [l["href"] for l in p.links if l.get("rel") == "canonical"]
-            self.assertEqual(canon, [f"{SITE}/airlines/{a['id']}.html"])
+            self.assertEqual(canon, [f"{SITE}/airlines/{a['id']}"])
             og = {m["property"]: m["content"] for m in p.metas if m.get("property")}
             self.assertEqual(og["og:url"], canon[0])
             self.assertEqual(og["og:title"], p.title)
@@ -220,8 +220,8 @@ class TestEachPage(_Base):
             self.assertEqual(ld["@type"], "BreadcrumbList")
             items = ld["itemListElement"]
             self.assertEqual([i["position"] for i in items], [1, 2, 3])
-            self.assertEqual(items[1]["item"], f"{SITE}/airlines/index.html")
-            self.assertEqual(items[2]["item"], f"{SITE}/airlines/{a['id']}.html")
+            self.assertEqual(items[1]["item"], f"{SITE}/airlines/")
+            self.assertEqual(items[2]["item"], f"{SITE}/airlines/{a['id']}")
             self.assertEqual(items[2]["name"], a["name"])
 
     def test_no_external_script_image_or_stylesheet_and_no_ads(self) -> None:
@@ -247,8 +247,8 @@ class TestEachPage(_Base):
             p = parse(html_text)
             self.assertEqual(p.chips, ["Live board", "Airports", "Airlines", "Stuck?", "About"], name)  # AN34 nav
             hrefs = [a.get("href") for a in p.anchors]
-            for want in ("../index.html", "../airports/index.html", "../about.html", "../privacy.html",
-                         "../sources.html", "mailto:hello@airtraveldesklive.com", "index.html", "../stuck.html"):
+            for want in ("/", "/airports/", "/about", "/privacy",
+                         "/sources", "mailto:hello@airtraveldesklive.com", "/airlines/", "/stuck"):
                 self.assertIn(want, hrefs, f"{name}: {want}")
             self.assertIn("Contact:", visible_text(html_text))
             self.assertIn("Data and sources", visible_text(html_text))
@@ -354,7 +354,7 @@ class TestIndex(_Base):
         p = parse(html_text)
         hrefs = [a.get("href") for a in p.anchors]
         for a in self.dot["airlines"]:
-            self.assertIn(f"{a['id']}.html", hrefs)
+            self.assertIn(f"/airlines/{a['id']}", hrefs)
         self.assertEqual(html_text.count('class="airport-index-card"'), 10)
         text = visible_text(html_text)
         self.assertIn("Has committed to 7 of 8 items on the DOT dashboard.", text)
@@ -377,9 +377,9 @@ class TestSitemap(_Base):
         self.assertIsNotNone(m)
         locs = re.findall(r"<loc>([^<]+)</loc>", m.group(1))
         self.assertEqual(len(locs), 11)
-        self.assertEqual(locs[0], f"{SITE}/airlines/index.html")
+        self.assertEqual(locs[0], f"{SITE}/airlines/")
         for a in self.dot["airlines"]:
-            self.assertIn(f"{SITE}/airlines/{a['id']}.html", locs)
+            self.assertIn(f"{SITE}/airlines/{a['id']}", locs)
         self.assertEqual(len(re.findall(r"<lastmod>2026-11-14</lastmod>", m.group(1))), 11)
 
     def test_rebuild_replaces_the_block_and_keeps_the_rest(self) -> None:
@@ -389,8 +389,8 @@ class TestSitemap(_Base):
         self.assertEqual(before, after)
         self.assertEqual(after.count("airlines:begin"), 1)
         # other entries are still there
-        self.assertIn(f"{SITE}/stuck.html", after)
-        self.assertIn(f"{SITE}/airports/index.html", after)
+        self.assertIn(f"{SITE}/stuck", after)
+        self.assertIn(f"{SITE}/airports/", after)
         self.assertIn("<!-- airports:begin -->", after)
 
     def test_sitemap_from_scratch(self) -> None:
@@ -441,24 +441,24 @@ class TestWiring(unittest.TestCase):
 
     def test_airport_footer_links_the_airline_index(self) -> None:
         footer = bap._render_footer()
-        self.assertIn('<a class="tap" href="../airlines/index.html">Airline commitments</a>', footer)
-        self.assertIn('href="index.html">Airports</a>', footer)
+        self.assertIn('<a class="tap" href="/airlines/">Airline commitments</a>', footer)
+        self.assertIn('href="/airports/">Airports</a>', footer)
         header = bap._render_header()
-        self.assertIn('href="index.html" aria-current="page">Airports</a>', header)
+        self.assertIn('href="/airports/" aria-current="page">Airports</a>', header)
 
     def test_stuck_page_links_every_airline_without_javascript(self) -> None:
         html_text = (ROOT / "stuck.html").read_text(encoding="utf-8")
         data = json.loads((ROOT / "data" / "dot-commitments.json").read_text(encoding="utf-8"))
         for a in data["airlines"]:
-            self.assertIn(f'href="airlines/{a["id"]}.html"', html_text)
-        self.assertIn('href="airlines/index.html"', html_text)
+            self.assertIn(f'href="/airlines/{a["id"]}"', html_text)
+        self.assertIn('href="/airlines/"', html_text)
         # the list is outside the script-built wizard and outside <noscript>
         ul = html_text.index('class="airline-links-list"')
         self.assertGreater(ul, html_text.index("</noscript>"))
 
     def test_stuck_result_links_the_selected_airline(self) -> None:
         js = (ROOT / "stuck.js").read_text(encoding="utf-8")
-        self.assertIn('pageUrl: "airlines/" + airline.id + ".html"', js)
+        self.assertIn('pageUrl: "/airlines/" + airline.id', js)
         self.assertIn('"See what " + airline.name + " has committed to"', js)
         self.assertIn("if (cm.pageUrl)", js)
         # the "other airline" model has no page link
@@ -467,10 +467,10 @@ class TestWiring(unittest.TestCase):
 
     def test_about_and_sources_link_the_airline_pages(self) -> None:
         for rel in ("about.html", "sources.html"):
-            self.assertIn('href="airlines/index.html"', (ROOT / rel).read_text(encoding="utf-8"), rel)
+            self.assertIn('href="/airlines/"', (ROOT / rel).read_text(encoding="utf-8"), rel)
         src = (ROOT / "sources.html").read_text(encoding="utf-8")
         row = re.search(r'<tr data-src="dot-dashboard">.*?</tr>', src, re.S).group(0)
-        self.assertIn('href="airlines/index.html"', row)
+        self.assertIn('href="/airlines/"', row)
 
 
 if __name__ == "__main__":

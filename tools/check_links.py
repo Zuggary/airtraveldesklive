@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parent.parent
-USER_AGENT = "AirTravelDeskLinkCheck/1.0 (+https://www.airtraveldesklive.com/about.html)"
+USER_AGENT = "AirTravelDeskLinkCheck/1.0 (+https://www.airtraveldesklive.com/about)"
 TIMEOUT_S = 10
 HOST_PAUSE_S = 1.5
 

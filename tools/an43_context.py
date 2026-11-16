@@ -184,7 +184,7 @@ def render_context(code: str, short: str, prof: dict[str, Any] | None, city: str
         parts_txt = ", ".join(f"{k} {v / tot * 100:.0f}%" for k, v in cr.items() if v / tot >= 0.02)
         p(f"        <p>Of the {_num(tot)} cancelled departures, the reasons the airlines gave split as follows: {escape(parts_txt)}. "
           "Whatever the reason, U.S. DOT rules say that if the airline cancels and you choose not to travel or rebook, you are owed your money back to the original form of payment, not just a credit. "
-          'See <a class="tap" href="../stuck.html">what you are owed when you are stuck</a>.</p>')
+          'See <a class="tap" href="/stuck">what you are owed when you are stuck</a>.</p>')
 
     # 6. Airlines
     cars = [x for x in (a.get("carriers") or []) if x.get("flights", 0) >= max(500, 0.05 * dep["flights"]) and x.get("ontime") is not None]
@@ -204,7 +204,7 @@ def render_context(code: str, short: str, prof: dict[str, Any] | None, city: str
     ds = [x for x in (a.get("top_destinations") or []) if x.get("ontime") is not None][:5]
     if len(ds) >= 3:
         w = min(ds, key=lambda x: x["ontime"]); bst = max(ds, key=lambda x: x["ontime"])
-        names = ", ".join(f'<a class="tap" href="{escape(x["code"])}.html">{escape(x["code"])}</a>' for x in ds[:5])
+        names = ", ".join(f'<a class="tap" href="/airports/{escape(x["code"])}">{escape(x["code"])}</a>' for x in ds[:5])
         p(f"        <p>The busiest routes from {C} go to {names}. Of those five, flights to {escape(bst['code'])} were the most punctual ({bst['ontime']:.0f}% on time) "
           f"and flights to {escape(w['code'])} the least ({w['ontime']:.0f}%). A late route usually reflects trouble at the other end, so check that airport's page too.</p>")
     p(f'        <p class="small">Source: <a class="tap" href="https://www.transtats.bts.gov/" rel="noopener">BTS TranStats</a>, Reporting Carrier On-Time Performance, {period}. '

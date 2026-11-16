@@ -100,7 +100,7 @@ class TestAboutPage(unittest.TestCase):
 
     def test_canonical_description_and_og_tags(self) -> None:
         canon = [l.get("href") for l in self.p.links if l.get("rel") == "canonical"]
-        self.assertEqual(canon, ["https://www.airtraveldesklive.com/about.html"])
+        self.assertEqual(canon, ["https://www.airtraveldesklive.com/about"])
         meta_names = {m.get("name"): m.get("content") for m in self.p.metas if "name" in m}
         meta_props = {m.get("property"): m.get("content") for m in self.p.metas if "property" in m}
         self.assertTrue(meta_names.get("description"))
@@ -140,7 +140,7 @@ class TestAboutPage(unittest.TestCase):
             "Corrections",
             "2026-11-14: site launched",
             "Privacy",
-            "privacy.html",
+            'href="/privacy"',
             "Skip to main content",
         ):
             self.assertIn(expected, self.text)
@@ -156,14 +156,14 @@ class TestAdsTxtAndSiteIntegration(unittest.TestCase):
     def test_every_page_footer_has_about_link(self) -> None:
         for page in ("index.html", "stuck.html", "privacy.html", "about.html", "tv.html"):
             _, parser = parse_html(page)
-            about_links = [a for a in parser.footer_anchors if a.get("href") == "about.html"]
-            self.assertTrue(about_links, f"{page} footer missing about.html link")
+            about_links = [a for a in parser.footer_anchors if a.get("href") == "/about"]
+            self.assertTrue(about_links, f"{page} footer missing /about link")
             self.assertTrue(any(a.get("text") == "About" for a in about_links), page)
 
         for page in ("index.html", "stuck.html", "privacy.html", "about.html"):
             text, parser = parse_html(page)
             hrefs = {a.get("href") for a in parser.footer_anchors}
-            self.assertIn("privacy.html", hrefs, page)
+            self.assertIn("/privacy", hrefs, page)
             self.assertIn("mailto:hello@airtraveldesklive.com", hrefs, page)
             self.assertIn("Contact:", text, page)
 
@@ -173,7 +173,7 @@ class TestAdsTxtAndSiteIntegration(unittest.TestCase):
 
     def test_sitemap_and_workflow_include_new_files(self) -> None:
         sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
-        self.assertIn("https://www.airtraveldesklive.com/about.html", sitemap)
+        self.assertIn("https://www.airtraveldesklive.com/about", sitemap)
 
         yml = (ROOT / ".github" / "workflows" / "status.yml").read_text(encoding="utf-8")
         m = re.search(r"for file in ([^;]+); do", yml)

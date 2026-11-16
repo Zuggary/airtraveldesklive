@@ -66,12 +66,12 @@ class TestAirportPolish(unittest.TestCase):
         for page in (self.sfo, self.index):
             nav = nav_block(page)
             self.assertEqual(nav.count('aria-current="page"'), 1)
-            self.assertRegex(nav, r'href="index.html" aria-current="page">Airports<')
+            self.assertRegex(nav, r'href="/airports/" aria-current="page">Airports<')
 
     def test_stuck_button_is_accent(self) -> None:
         # AN34 round 4: the bright button follows the state. Trouble: the stuck guide. Clear: check my flight.
         hot = re.search(r'class="ap-hero band ap-hero--(delay|stop|closed)"', self.sfo) is not None
-        lead = r'id="stuck-btn" class="btn btn-accent" href="../stuck.html">I(\'|&#39;|&#x27;)m stuck guide' if hot else r'id="flight-btn" class="btn btn-accent">Check my flight'
+        lead = r'id="stuck-btn" class="btn btn-accent" href="/stuck">I(\'|&#39;|&#x27;)m stuck guide' if hot else r'id="flight-btn" class="btn btn-accent">Check my flight'
         self.assertRegex(self.sfo, lead)
         self.assertIn("I&#x27;m stuck guide" if "I&#x27;m stuck guide" in self.sfo else "I'm stuck guide", self.sfo)
         css = (ROOT / "style.css").read_text(encoding="utf-8")
@@ -80,7 +80,7 @@ class TestAirportPolish(unittest.TestCase):
 
     def test_live_text_links_sources_and_calm_wind(self) -> None:
         self.sfo = self.sfo + AIRPORT_JS  # AN43: the status script lives in ../airport.js
-        self.assertIn('a.href = "../sources.html"', self.sfo)
+        self.assertIn('a.href = "/sources"', self.sfo)
         self.assertIn('"FAA NAS status"', self.sfo)
         self.assertIn('"aviationweather.gov METAR"', self.sfo)
         self.assertIn('return "calm"', self.sfo)
@@ -99,7 +99,7 @@ class TestAboutAndSourcesPolish(unittest.TestCase):
             labels = re.findall(r">([^<]+)</a>", nav)
             self.assertEqual(labels, NAV_LABELS, name)
             self.assertNotIn("Back to live board", text, name)
-        self.assertIn('href="about.html" aria-current="page">About<', nav_block(self.about))
+        self.assertIn('href="/about" aria-current="page">About<', nav_block(self.about))
         self.assertNotIn("aria-current", nav_block(self.sources))
 
     def test_about_rules_spaced_and_links_sources(self) -> None:
@@ -107,7 +107,7 @@ class TestAboutAndSourcesPolish(unittest.TestCase):
         css = (ROOT / "style.css").read_text(encoding="utf-8")
         self.assertRegex(css, r"ul\.rules-list li\s*\{[^}]*padding:\s*12px")
         what = self.about.split("<h2>What this is</h2>")[1].split("<h2>")[0]
-        self.assertIn('href="sources.html"', what)
+        self.assertIn('href="/sources"', what)
 
     def test_sources_single_feed_header_and_plain_words(self) -> None:
         self.assertEqual(self.sources.count("<h2>Feeds the site reads</h2>"), 1)

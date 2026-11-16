@@ -193,7 +193,7 @@ class TestStaticSection(unittest.TestCase):
 
     def test_airline_pages_link_list_and_section_keep_working(self):
         for a in ("alaska", "delta", "spirit"):
-            self.assertIn(f'href="airlines/{a}.html"', self.html)
+            self.assertIn(f'href="/airlines/{a}"', self.html)
         self.assertGreater(self.html.index('id="ask-first"'), self.html.index('id="step-4"'))
 
 
@@ -208,7 +208,7 @@ class TestAirlinePagesLink(unittest.TestCase):
             self.assertGreaterEqual(len(written), 11)
             for p in sorted(out.glob("*.html")):
                 text = p.read_text(encoding="utf-8")
-                self.assertIn('href="../stuck.html#ask-first"', text, p.name)
+                self.assertIn('href="/stuck#ask-first"', text, p.name)
                 for bad in BANNED:
                     self.assertNotIn(bad, visible_text(text).lower(), p.name)
 
@@ -227,7 +227,7 @@ class TestWizardShortVersion(unittest.TestCase):
             for cause in ("airline", "weather", "unsure"):
                 m = self.run_js(f"S.buildAskFirstModel('{sit}','{cause}')")
                 self.assertEqual(m["heading"], "Ask before you pay")
-                self.assertEqual(m["pageUrl"], "stuck.html#ask-first")
+                self.assertEqual(m["pageUrl"], "/stuck#ask-first")
                 self.assertEqual(m["read"], READ)
                 self.assertTrue(m["sourceUrl"].startswith("https://www.transportation.gov/"))
                 self.assertEqual(len(m["items"]), 4)

@@ -143,7 +143,7 @@ var ATD_ME = document.currentScript;
       var p = el("p", cls);
       if (before) { p.appendChild(document.createTextNode(before)); }
       var a = el("a", "tap", linkText);
-      a.href = "../sources.html";
+      a.href = "/sources";
       p.appendChild(a);
       if (after) { p.appendChild(document.createTextNode(after)); }
       return p;
@@ -156,7 +156,7 @@ var ATD_ME = document.currentScript;
       p.appendChild(el("span", "fact-v", value));
       p.appendChild(document.createTextNode(" "));
       var s = el("span", "fact-src");
-      var a = el("a", "tap", linkText); a.href = "../sources.html"; s.appendChild(a);
+      var a = el("a", "tap", linkText); a.href = "/sources"; s.appendChild(a);
       s.appendChild(document.createTextNode(after));
       p.appendChild(s);
       d.appendChild(p);
@@ -346,7 +346,7 @@ var ATD_ME = document.currentScript;
         checkedLine.textContent = "";
         var fp = faaParts(data.updated_utc, stale);
         var cl = el("a", "tap", "FAA NAS status");
-        cl.href = "../sources.html";
+        cl.href = "/sources";
         checkedLine.appendChild(document.createTextNode(fp[0]));
         checkedLine.appendChild(cl);
         checkedLine.appendChild(document.createTextNode(fp[1]));
@@ -413,7 +413,7 @@ var ATD_ME = document.currentScript;
         if (label) {
           nx.appendChild(el("span", "gl-k", label + ":")); nx.appendChild(document.createTextNode(" "));
           nx.appendChild(el("span", "gl-v", outlookText(w))); nx.appendChild(document.createTextNode(" "));
-          var gs = el("span", "gl-src"), ga = el("a", "tap", "aviationweather.gov TAF"); ga.href = "../sources.html"; gs.appendChild(ga);
+          var gs = el("span", "gl-src"), ga = el("a", "tap", "aviationweather.gov TAF"); ga.href = "/sources"; gs.appendChild(ga);
           if (!stale && clockLabel(taf)) { gs.appendChild(document.createTextNode(", issued " + clockLabel(taf) + " (" + oldText(ageMin(taf)) + ")")); }
           nx.appendChild(gs);
         }

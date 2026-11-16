@@ -15,7 +15,7 @@
   var DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive";
   var REFUND_QUOTE = "Refunds are a separate rule, 14 CFR 260.6, and it applies whatever the cause of the delay or cancellation.";
   var PLAIN_READING = "This is our plain reading, not legal advice.";
-  var ASK_FIRST_PAGE = "stuck.html#ask-first";
+  var ASK_FIRST_PAGE = "/stuck#ask-first";
   var ASK_FIRST_READ = "2026-11-14";
   var ASK_FIRST_DASHBOARD_URL = "https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard";
   // Situations that get the short "Ask before you pay" card in the result.
@@ -214,7 +214,7 @@
         causeNote: causeNote,
         message: airline.name + " is not listed on the DOT dashboard.",
         note: airline.note || "",
-        pageUrl: "airlines/" + airline.id + ".html",
+        pageUrl: "/airlines/" + airline.id,
         pageLabel: "See what " + airline.name + " has committed to",
         rows: [],
         moneyNote: "If you pay out of pocket, any reimbursement is money you may be able to claim back only under the airline's contract of carriage or at its discretion.",
@@ -243,7 +243,7 @@
       kind: "listed",
       causeNote: causeNote,
       intro: airline.name + " has committed to the items marked Committed when it causes the delay or cancellation.",
-      pageUrl: "airlines/" + airline.id + ".html",
+      pageUrl: "/airlines/" + airline.id,
       pageLabel: "See what " + airline.name + " has committed to",
       rows: rows,
       noNote: "No commitment means the airline has not committed to it on the dashboard. It may still help at its own discretion.",

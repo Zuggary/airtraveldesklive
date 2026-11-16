@@ -58,11 +58,11 @@ def _join(items: list[str]) -> str:
 
 
 def _header() -> str:
-    return bap._render_header(current="airlines", airports_href="../airports/index.html")
+    return bap._render_header(current="airlines", airports_href="/airports/")
 
 
 def _footer() -> str:
-    return bap._render_footer(airports_href="../airports/index.html", airlines_href="index.html", note=FOOTER_NOTE)
+    return bap._render_footer(airports_href="/airports/", airlines_href="/airlines/", note=FOOTER_NOTE)
 
 
 def _breadcrumb(items: list[tuple[str, str]]) -> dict[str, Any]:
@@ -165,10 +165,10 @@ def render_airline_page(
             f"{name} is not listed on the U.S. DOT delay and cancellation dashboard. "
             "What the dashboard covers and where refunds fit. Plain-language help, not legal advice."
         )
-    canonical = f"{SITE_URL}/airlines/{aid}.html"
+    canonical = f"{SITE_URL}/airlines/{aid}"
     breadcrumb = _breadcrumb([
         ("Air Travel Desk", f"{SITE_URL}/"),
-        ("Airline commitments", f"{SITE_URL}/airlines/index.html"),
+        ("Airline commitments", f"{SITE_URL}/airlines/"),
         (name, canonical),
     ])
 
@@ -242,7 +242,7 @@ def render_airline_page(
 
     others = [a for a in airlines if str(a["id"]) != aid]
     other_links = " &middot; ".join(
-        f'<a class="tap" href="{bap._esc(str(a["id"]))}.html">{bap._esc(str(a["name"]))}</a>' for a in others
+        f'<a class="tap" href="/airlines/{bap._esc(str(a["id"]))}">{bap._esc(str(a["name"]))}</a>' for a in others
     )
 
     parts = [
@@ -271,11 +271,11 @@ def render_airline_page(
         '        <h2 id="stuck-heading">If you are stuck now</h2>',
         '        <div class="stuck-note">',
         (
-            '          <p>The <a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a> walks through what to do, '
+            '          <p>The <a class="tap" href="/stuck">I\'m stuck at the airport guide</a> walks through what to do, '
             "what to say at the counter and an email draft. It is plain-language help, not legal advice.</p>"
         ),
         (
-            '          <p><a class="tap" href="../stuck.html#ask-first">Ask before you pay</a>: what to say to an agent about a meal or '
+            '          <p><a class="tap" href="/stuck#ask-first">Ask before you pay</a>: what to say to an agent about a meal or '
             "hotel, and what to ask for in writing.</p>"
         ),
         "        </div>",
@@ -294,7 +294,7 @@ def render_airline_page(
         "      </section>",
         '      <section class="airport-section" aria-labelledby="others-heading">',
         '        <h2 id="others-heading">Other airlines</h2>',
-        f'        <p class="small">{other_links} &middot; <a class="tap" href="index.html">All airlines</a></p>',
+        f'        <p class="small">{other_links} &middot; <a class="tap" href="/airlines/">All airlines</a></p>',
         "      </section>",
         "    </main>",
         _footer(),
@@ -320,7 +320,7 @@ def render_index_page(
         f"What {len(listed)} US airlines have committed to when they cause a delay or cancellation, from the U.S. DOT "
         "dashboard, with a page for each airline. Plain-language help, not legal advice."
     )
-    canonical = f"{SITE_URL}/airlines/index.html"
+    canonical = f"{SITE_URL}/airlines/"
     breadcrumb = _breadcrumb([
         ("Air Travel Desk", f"{SITE_URL}/"),
         ("Airline commitments", canonical),
@@ -336,7 +336,7 @@ def render_index_page(
         else:
             line = "Not listed on the DOT dashboard."
         cards.append('          <li class="airport-index-card">')
-        cards.append(f'            <a class="tap airport-index-link" href="{bap._esc(aid)}.html">{bap._esc(name)}</a>')
+        cards.append(f'            <a class="tap airport-index-link" href="/airlines/{bap._esc(aid)}">{bap._esc(name)}</a>')
         cards.append(f'            <p class="airport-index-meta">{bap._esc(line)}</p>')
         cards.append("          </li>")
 
@@ -366,8 +366,8 @@ def render_index_page(
         f"          <li>{bap._esc(REFUND_SENTENCE)}</li>",
         "          <li>Where this site says money is possibly owed, your airline decides every claim. This is not legal advice.</li>",
         "        </ul>",
-        '        <p class="small">Stuck at an airport now? Use the <a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a>. '
-        'Before you pay for a meal or hotel, read <a class="tap" href="../stuck.html#ask-first">Ask before you pay</a>.</p>',
+        '        <p class="small">Stuck at an airport now? Use the <a class="tap" href="/stuck">I\'m stuck at the airport guide</a>. '
+        'Before you pay for a meal or hotel, read <a class="tap" href="/stuck#ask-first">Ask before you pay</a>.</p>',
         "      </section>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',
@@ -391,7 +391,7 @@ def render_index_page(
 
 
 def render_sitemap_block(ids: list[str], build_date: str) -> str:
-    urls = [f"{SITE_URL}/airlines/index.html"] + [f"{SITE_URL}/airlines/{i}.html" for i in ids]
+    urls = [f"{SITE_URL}/airlines/"] + [f"{SITE_URL}/airlines/{i}" for i in ids]
     lines = [f"  {SITEMAP_BEGIN}"]
     for url in urls:
         lines.append(f"  <url><loc>{bap._esc(url)}</loc><lastmod>{bap._esc(build_date)}</lastmod></url>")

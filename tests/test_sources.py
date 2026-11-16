@@ -47,7 +47,7 @@ class TestSourcesPage(unittest.TestCase):
         self.assertEqual(self.p.table_count, 2)
         self.assertEqual(self.p.caption_count, 2)
         canon = [l.get("href") for l in self.p.links if l.get("rel") == "canonical"]
-        self.assertEqual(canon, ["https://www.airtraveldesklive.com/sources.html"])
+        self.assertEqual(canon, ["https://www.airtraveldesklive.com/sources"])
         self.assertIn("Skip to main content", self.text)
         self.assertIn("automated and may be wrong or late", self.text)
 
@@ -82,7 +82,7 @@ class TestSourcesPage(unittest.TestCase):
                      "Natural Earth", "TSA", "Bureau of Transportation Statistics", "Airline Cancellation and Delay Dashboard"):
             self.assertIn(name, about, name)
             self.assertIn(name, self.text, name)
-        self.assertIn('href="sources.html"', about)
+        self.assertIn('href="/sources"', about)
 
     def test_not_used_list_present(self) -> None:
         self.assertIn('id="not-used"', self.text)
@@ -114,19 +114,19 @@ class TestSiteWiring(unittest.TestCase):
     def test_footer_link_on_every_page(self) -> None:
         for page in PAGES:
             _, parser = parse_html(page)
-            links = [a for a in parser.footer_anchors if a.get("href") == "sources.html"]
+            links = [a for a in parser.footer_anchors if a.get("href") == "/sources"]
             self.assertTrue(links, page)
             self.assertEqual(links[0].get("text"), "Data and sources", page)
 
     def test_airport_page_footer_links_to_sources(self) -> None:
         from tools import build_airport_pages as b
-        self.assertIn('href="../sources.html"', b._render_footer())
+        self.assertIn('href="/sources"', b._render_footer())
         self.assertIn("../brand/logo.svg", b._render_header())
 
     def test_sitemap_sw_and_workflow(self) -> None:
-        self.assertIn("https://www.airtraveldesklive.com/sources.html", (ROOT / "sitemap.xml").read_text(encoding="utf-8"))
+        self.assertIn("https://www.airtraveldesklive.com/sources", (ROOT / "sitemap.xml").read_text(encoding="utf-8"))
         sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-        for f in ("./sources.html", "./sources.js", "./brand/logo.svg", "./about.html"):
+        for f in ("./sources", "./sources.js", "./brand/logo.svg", "./about"):
             self.assertIn('"%s"' % f, sw)
         yml = (ROOT / ".github" / "workflows" / "status.yml").read_text(encoding="utf-8")
         m = re.search(r"for file in ([^;]+); do", yml)
@@ -174,7 +174,7 @@ class TestBuildSources(unittest.TestCase):
             for k in ("name", "page", "terms", "licence", "used_for", "update", "kind", "group"):
                 self.assertTrue(s[k], (s["id"], k))
             self.assertIn(s["kind"], ("time", "date", "static", "stream"))
-            self.assertTrue(s["page"].startswith("https://") or s["page"].endswith(".html"))
+            self.assertTrue(s["page"].startswith("https://") or s["page"].startswith("/"))
 
 
 @unittest.skipUnless(NODE, "node not installed")

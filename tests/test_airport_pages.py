@@ -113,7 +113,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
             DOWNTIME_URL,
             f"{SITE_URL}/",
             f"{SITE_URL}/og.png",
-            f"{SITE_URL}/airports/index.html",
+            f"{SITE_URL}/airports/",
             "https://schema.org",
             "https://www.openstreetmap.org",
             "https://www.openstreetmap.org/",
@@ -125,7 +125,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
         from tools.build_airport_pages import FLIGHT_STATUS  # AN35: each airline's own status page
         cls.allowed_urls.update(u for _n, _c, u in FLIGHT_STATUS.values())
         for code, entry in cls.guide["airports"].items():
-            cls.allowed_urls.add(f"{SITE_URL}/airports/{code}.html")
+            cls.allowed_urls.add(f"{SITE_URL}/airports/{code}")
             for item in entry.get("links") or []:
                 if item.get("url"):
                     cls.allowed_urls.add(item["url"])
@@ -244,7 +244,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 self.assertIn("Live refresh needs JavaScript. The status above is from the last site build", p.visible_text, fname)
                 self.assertIn("About this page", p.visible_text, fname)
                 self.assertIn("independent and not affiliated with the airport, the faa or any airline", vis_lower, fname)
-                self.assertIn('href="../about.html"', text, fname)
+                self.assertIn('href="/about"', text, fname)
                 self.assertIn('class="stuck-note"', text, fname)
                 self.assertIn('class="guide-pills"', text, fname)
 
@@ -387,8 +387,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
             sm_text = sm1.read_text(encoding="utf-8")
             self.assertEqual(sm_text.count("<!-- airports:begin -->"), 1)
             self.assertEqual(sm_text.count("<!-- airports:end -->"), 1)
-            self.assertIn(f"{SITE_URL}/airports/index.html", sm_text)
-            self.assertIn(f"{SITE_URL}/airports/SFO.html", sm_text)
+            self.assertIn(f"{SITE_URL}/airports/", sm_text)
+            self.assertIn(f"{SITE_URL}/airports/SFO", sm_text)
 
 
 class TestPartBWiringAndWording(unittest.TestCase):
@@ -414,7 +414,7 @@ class TestPartBWiringAndWording(unittest.TestCase):
         app_js = (ROOT / "app.js").read_text(encoding="utf-8")
         self.assertIn("· official pages", app_js)
         self.assertIn("Open the full ", app_js)
-        self.assertIn('"airports/"', app_js)
+        self.assertIn('"/airports/"', app_js)
 
         css = (ROOT / "style.css").read_text(encoding="utf-8")
         self.assertIn("/* AN16 airport pages */", css)
@@ -422,10 +422,10 @@ class TestPartBWiringAndWording(unittest.TestCase):
         for name in ("index.html", "about.html"):
             _, p = (_inspect((ROOT / name).read_text(encoding="utf-8")), None)
             text = (ROOT / name).read_text(encoding="utf-8")
-            self.assertIn('href="airports/index.html">Airports</a>', text, name)
+            self.assertIn('href="/airports/">Airports</a>', text, name)
 
         sw_js = (ROOT / "sw.js").read_text(encoding="utf-8")
-        self.assertIn("./airports/index.html", sw_js)
+        self.assertIn('"./airports/"', sw_js)
         self.assertNotIn("./airports/SFO.html", sw_js)
 
         yml = (ROOT / ".github" / "workflows" / "status.yml").read_text(encoding="utf-8")
@@ -435,7 +435,7 @@ class TestPartBWiringAndWording(unittest.TestCase):
         sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
         self.assertIn("<!-- airports:begin -->", sitemap)
         self.assertIn("<!-- airports:end -->", sitemap)
-        self.assertIn(f"{SITE_URL}/airports/index.html", sitemap)
+        self.assertIn(f"{SITE_URL}/airports/", sitemap)
 
 
 if __name__ == "__main__":
