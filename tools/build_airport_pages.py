@@ -298,6 +298,22 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
     ]
 
 
+def _what_to_do(chip_class: str, live: dict[str, Any]) -> list[str]:
+    """Two or three plain lines for the traveler. Wording follows kits/desk/CHARTER.md: 'possibly owed', never 'must cover'."""
+    if not live.get("has") or live.get("stale"):
+        return []
+    if "badge--stop" in chip_class:
+        lines = ["Flights are held or the airport is shut right now. Check your airline's app or text alerts before you leave for the airport.",
+                 "Your airline decides how to rebook you. The stuck guide lists what each airline has committed to."]
+    elif "badge--delay" in chip_class:
+        lines = ["Expect late departures. Check your airline's app for your flight's new time before you leave for the airport.",
+                 "Ask before you pay for a meal or a hotel; some airlines have committed to cover them."]
+    else:
+        lines = ["No FAA program is listed for this airport now. A flight can still be late for airline reasons, so check your airline's app.",
+                 "Leave for the airport as you normally would."]
+    return ['        <ul class="ap-do" aria-label="What to do now">', *[f"          <li>{_esc(x)}</li>" for x in lines], "        </ul>"]
+
+
 def _render_head(
     *,
     title: str,
@@ -927,6 +943,7 @@ def render_airport_page(
             if live["has"] and not live["stale"] and (live_entry or {}).get("reason")
             else ""
         ),
+        *_what_to_do(live["chip_class"], live),
         '        <div class="airport-summary-actions">',
         '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
         "        </div>",

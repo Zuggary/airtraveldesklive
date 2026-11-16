@@ -898,3 +898,9 @@ main > section { margin-top: 36px; }
 .fold[open] > summary { margin-bottom: 8px; }
 #compare .compare-grid { border-top: 0; }
 @media (max-width: 759px) { .summary { font-size: clamp(1.7rem, 7vw, 2.2rem); } }
+
+.ap-do { margin: 6px 0 4px; padding: 0 0 0 20px; display: grid; gap: 6px; max-width: 52ch; font-size: 1.05rem; }
+.ap-do li::marker { color: var(--text-muted); }
+.tile-trend { font-size: 0.8125rem; font-weight: 500; color: var(--text-muted); }
+.airport-summary-actions .btn { background: var(--accent); color: var(--on-accent); padding: 0 18px; text-decoration: none; border-radius: 2px; }
+.glance-ontime-num { font-size: 2.2rem; }

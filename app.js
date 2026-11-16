@@ -373,7 +373,7 @@
       var top = el("span", "tile-top");
       top.appendChild(el("span", "tile-code", a.code));
       var right = el("span", "tile-level", word);
-      if (tv && tv.trendMark) { right.appendChild(el("span", "tile-trend", " " + tv.trendMark)); }
+      if (tv && tv.trendMark) { right.appendChild(el("span", "tile-trend", { "\u2191": "worse", "\u2193": "better", "\u2192": "steady" }[tv.trendMark] || "")); }
       top.appendChild(right);
       b.appendChild(top);
       b.appendChild(el("span", "tile-name", a.short || a.name || a.code));
