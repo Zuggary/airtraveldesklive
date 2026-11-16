@@ -1,0 +1,19 @@
+{
+ "id": "ual-20261116",
+ "active": false,
+ "level": "warning",
+ "label": "Resolved, per United",
+ "headline": "United Airlines technology issue that delayed departures is resolved, per United",
+ "status_line": "United says it has resolved the technology issue that delayed flight departures. Some delays may continue.",
+ "updated_utc": "2026-11-16T23:27:00Z",
+ "expires_utc": "2026-11-17T03:00:00Z",
+ "points": [
+  "United's statement, reported by CBS News on Monday evening: \"We have resolved a technology issue that delayed flight departures.\""
+ ],
+ "sources": [
+  {
+   "name": "CBS News",
+   "url": "https://www.cbsnews.com/news/united-airlines-system-outage-departing-flights/"
+  }
+ ]
+}
