@@ -538,10 +538,52 @@
     if (!wrap || !box) { return; }
     var l = getMine(), last = getLast();
     if (last && l.indexOf(last) < 0) { l = [last].concat(l).slice(0, 8); }
-    wrap.hidden = !l.length;
+    var undoOn = !$("mine-undo").hidden;
+    wrap.hidden = !l.length && !undoOn;                     // after "Clear" the section stays for the undo notice
+    $("mine-clear").hidden = !l.length;
     box.textContent = "";
-    l.forEach(function (c) { box.appendChild(makeTile(allByCode[c], tiles)); });
+    l.forEach(function (c) {
+      var item = el("div", "mine-item");
+      item.appendChild(makeTile(allByCode[c], tiles));
+      var x = el("button", "mine-x", "\u00d7");
+      x.type = "button";
+      x.setAttribute("aria-label", "Remove " + c + " from your airports");
+      x.addEventListener("click", function () { removeMine(c); });
+      item.appendChild(x);
+      box.appendChild(item);
+    });
   }
+  // Remove one airport: it leaves the starred list and, if it is the last opened one, "atd.last" is cleared too.
+  function removeMine(code) {
+    var l = getMine(), i = l.indexOf(code);
+    if (i >= 0) { l.splice(i, 1); setMine(l); }
+    if (getLast() === code) { try { window.localStorage.removeItem("atd.last"); } catch (e) { /* storage blocked */ } }
+    renderBoard();
+    renderCardLive();
+  }
+  var mineUndoTimer = null, mineUndoData = null;
+  function hideMineUndo() { var u = $("mine-undo"); if (u) { u.hidden = true; u.textContent = ""; } mineUndoData = null; if (mineUndoTimer) { window.clearTimeout(mineUndoTimer); mineUndoTimer = null; } }
+  function clearMine() {
+    mineUndoData = { mine: getMine(), last: getLast() };
+    setMine([]);
+    try { window.localStorage.removeItem("atd.last"); } catch (e) { /* storage blocked */ }
+    var u = $("mine-undo");
+    u.textContent = "";
+    u.appendChild(document.createTextNode("Cleared. "));
+    var b = el("button", "mine-undo-btn", "Undo");
+    b.type = "button";
+    b.addEventListener("click", function () {
+      var d = mineUndoData; hideMineUndo();
+      if (d) { setMine(d.mine); if (d.last) { setLast(d.last); } renderBoard(); renderCardLive(); }
+    });
+    u.appendChild(b);
+    u.hidden = false;
+    if (mineUndoTimer) { window.clearTimeout(mineUndoTimer); }
+    mineUndoTimer = window.setTimeout(function () { hideMineUndo(); renderBoard(); }, 6000);
+    renderBoard();
+    renderCardLive();
+  }
+  (function () { var b = $("mine-clear"); if (b) { b.addEventListener("click", clearMine); } })();
 
   function histTrouble(code) {
     var row = D.hist && D.hist.airports && D.hist.airports[code];

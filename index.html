@@ -106,9 +106,13 @@
     <div id="airport-card-slot" class="card-slot" tabindex="-1"></div>
 
     <div id="mine" class="mine" hidden>
-      <h3 class="sub-heading">Your airports</h3>
+      <div class="mine-head">
+        <h3 class="sub-heading">Your airports</h3>
+        <button type="button" id="mine-clear" class="mine-clear">Clear</button>
+        <span id="mine-undo" class="mine-undo" hidden aria-live="polite"></span>
+      </div>
       <div id="mine-list" class="board-grid board-grid--mine"></div>
-      <p class="board-note">Saved in this browser only. No account.</p>
+      <p class="board-note">Airports you star or open show here. Saved in this browser only.</p>
     </div>
 
     <section id="trouble" class="sec" aria-labelledby="trouble-heading">
