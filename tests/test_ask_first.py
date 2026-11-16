@@ -184,7 +184,7 @@ class TestStaticSection(unittest.TestCase):
         for needle in ("initAskFirst", "ask-copy-btn", "navigator.clipboard", "execCommand", "box.select()"):
             self.assertIn(needle, self.js)
         scripts = re.findall(r'<script[^>]*\bsrc="([^"]+)"', self.html)
-        self.assertEqual(scripts, ["stuck.js"])  # no library, no network
+        self.assertEqual(scripts, ["stuck.js", "/count.js"])  # no library, no network
 
     def test_slots_message_is_short(self):
         m = re.search(r'<textarea id="ask-message"[^>]*>(.*?)</textarea>', self.sec, flags=re.S)

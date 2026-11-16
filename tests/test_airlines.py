@@ -228,9 +228,9 @@ class TestEachPage(_Base):
         for name in [a["id"] for a in self.dot["airlines"]] + ["index"]:
             html_text = self.page(name)
             p = parse(html_text)
-            self.assertEqual([s for s in p.scripts if s.get("type") != "application/ld+json"], [], name)
+            self.assertEqual([s for s in p.scripts if s.get("type") != "application/ld+json" and s.get("src") != "/count.js"], [], name)
             for s in p.scripts:
-                self.assertNotIn("src", s)
+                self.assertIn(s.get("src"), (None, "/count.js"))
             for img in p.imgs:
                 self.assertFalse(re.match(r"https?:", img.get("src", "")), name)
                 self.assertEqual(img.get("src"), "../brand/logo.svg")   # only the site's own logo

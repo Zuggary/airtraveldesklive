@@ -102,9 +102,9 @@ class TestSourcesPage(unittest.TestCase):
 
     def test_script_files_exist(self) -> None:
         srcs = [s.get("src") for s in self.p.scripts if s.get("src")]
-        self.assertEqual(srcs, ["lib.js", "sources.js"])
+        self.assertEqual(srcs, ["lib.js", "sources.js", "/count.js"])
         for f in srcs:
-            self.assertTrue((ROOT / f).is_file())
+            self.assertTrue((ROOT / f.lstrip("/")).is_file())
         js_text = (ROOT / "sources.js").read_text(encoding="utf-8")
         self.assertIn("data/sources.json", js_text)
         self.assertNotIn("http", js_text)

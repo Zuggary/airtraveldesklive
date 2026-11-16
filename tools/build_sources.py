@@ -97,7 +97,7 @@ NOT_USED: list[str] = [
     "Paid flight-tracking sites (FlightAware, Flightradar24): their terms do not allow this use.",
     "FAA SWIM and other login-only aviation feeds: not used.",
     "Reader reports, social posts and news articles: never copied or used for a status.",
-    "Ad scripts, analytics and tracking pixels: none on this site.",
+    "Ad scripts and tracking pixels: none on this site. The only analytics is Cloudflare Web Analytics, which counts visits without cookies (see the privacy page).",
 ]
 
 
