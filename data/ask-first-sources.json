@@ -97,6 +97,30 @@
         "Each airline has its own policies about what it will do for delayed passengers waiting at the airport; there are no federal requirements."
       ],
       "note": "Archived by DOT. The site does not link it or use it as a rule source. It only agrees with the current dashboard page that the airline's own policy decides."
+    },
+    {
+      "id": "fr-2024-refunds",
+      "url": "https://www.govinfo.gov/content/pkg/FR-2024-04-26/pdf/2024-07177.pdf",
+      "title": "DOT final rule: Refunds and Other Consumer Protections, 89 FR 32760 (April 26, 2024)",
+      "read": "2026-11-16",
+      "cited": true,
+      "quotes": [
+        "the passenger is scheduled to depart from the origination airport three hours or more (for domestic itineraries) or six hours or more (for international itineraries) earlier than the original scheduled departure time",
+        "Airlines and ticket agents provide refunds for tickets purchased with credit cards within 7 business days of refunds becoming due",
+        "For domestic itineraries, a refund of baggage fee is due when an airline fails to deliver the checked bag within 12 hours of the consumer's flight arriving at the gate and the consumer has filed a Mishandled Baggage Report.",
+        "to issue travel credits or vouchers, valid for at least five years from the date of issuance and transferrable"
+      ]
+    },
+    {
+      "id": "fr-2026-renumbered",
+      "url": "https://www.govinfo.gov/content/pkg/FR-2026-07-07/pdf/2026-13675.pdf",
+      "title": "DOT notification of enforcement discretion on renumbered flights (July 7, 2026)",
+      "read": "2026-11-16",
+      "cited": true,
+      "quotes": [
+        "The Department is extending its discretion to not enforce these requirements for renumbered flights, provided that the passenger is rebooked on a flight with a new number and the flight operates without any “significant change or delay” as defined in its regulations.",
+        "the Department is extending the enforcement pause for an additional 1-year period from the date of this"
+      ]
     }
   ]
 }

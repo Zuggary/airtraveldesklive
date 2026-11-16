@@ -31,7 +31,8 @@ URL_RE = re.compile(r"https?://[^\s'\"<>`]+", re.IGNORECASE)
 
 def is_official(host: str) -> bool:
     """U.S. DOT's own site is transportation.gov; the complaint form is on dot.gov; the rule text is on ecfr.gov."""
-    return any(host == h or host.endswith("." + h) for h in ("transportation.gov", "dot.gov", "ecfr.gov"))
+    # AN43: govinfo.gov is the Government Publishing Office, which publishes the official Federal Register (the rule text).
+    return any(host == h or host.endswith("." + h) for h in ("transportation.gov", "dot.gov", "ecfr.gov", "govinfo.gov"))
 
 
 def read_text(rel: str) -> str:
@@ -71,7 +72,7 @@ class TestSourcesFile(unittest.TestCase):
         for s in self.doc["sources"]:
             host = urlparse(s["url"]).hostname or ""
             self.assertTrue(is_official(host), s["url"])
-            self.assertEqual(s["read"], READ, s["id"])
+            self.assertGreaterEqual(s["read"], READ, s["id"])     # AN43: later entries may carry a later read date
             if s.get("cited"):
                 self.assertTrue(s["quotes"], s["id"])
                 for q in s["quotes"]:

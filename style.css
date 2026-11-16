@@ -1206,3 +1206,16 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
   .header-in { position: relative; }
   .theme-toggle { position: absolute; top: 0.35rem; right: 0; margin: 0; }
 }
+
+/* AN43: DOT refund matrix on the stuck guide (after the .an43-table rules, so its left alignment wins) */
+.refund-matrix { margin: var(--space-5) 0; }
+.refund-matrix h3 { margin: 0 0 8px; }
+.table-scroll { overflow-x: auto; }
+.an43-table.refund-table th, .an43-table.refund-table td, .an43-table.refund-table thead th:not(:first-child) { text-align: left; vertical-align: top; }
+.an43-table.refund-table tbody th { font-weight: 600; }
+@media (max-width: 599px) {
+  .an43-table.refund-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .an43-table.refund-table tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .an43-table.refund-table th, .an43-table.refund-table td { display: block; border: 0; padding: 2px 0; }
+  .an43-table.refund-table td::before { content: attr(data-label) ": "; font-weight: 600; color: var(--text-muted); }
+}
