@@ -256,7 +256,7 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
     except Exception:  # unknown zone name
         zone = timezone.utc
     seen = [c for c in row if c != "-"]
-    if not seen:
+    if len(seen) < 24:
         return []
     n_stop, n_delay = seen.count("s"), seen.count("d")
     n_prog = n_stop + n_delay
@@ -272,7 +272,7 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
     for h, c in zip(hours, row):
         dt = pt.parse_utc(h)
         label = f"{day_hour(dt)} local: {word[c]}" if dt else word[c]
-        cells.append(f'<li class="hh hh--{ {"c": "clear", "d": "delay", "s": "stop", "-": "none"}[c] }" title="{_esc(label)}"><span class="sr-only">{_esc(label)}</span></li>')
+        cells.append(f'<li class="hh hh--{ {"c": "clear", "d": "delay", "s": "stop", "-": "none"}[c] }" title="{_esc(label)}"></li>')
     if n_prog == 0:
         head = f"No FAA delay program in any of the {len(seen)} hours we have a reading for."
     else:
@@ -289,7 +289,7 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
         '      <section class="airport-section" aria-labelledby="history-heading">',
         '        <h2 id="history-heading">The last 3 days here</h2>',
         f'        <p class="hist-lead">{_esc(head)}</p>',
-        f'        <ol class="hist-strip" aria-label="One cell per hour, oldest first, newest on the right">{"".join(cells)}</ol>',
+        f'        <ol class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</ol>',
         '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure <span class="hh hh--none"></span>no reading</p>',
         f'        <p class="small">Source: our hourly record of the FAA NAS status feed, readings {_esc(span)}'
         + (f", copied {_esc(age)}" if age else "")
@@ -646,7 +646,7 @@ def _render_place_ul(items: list[dict[str, Any]], extra_cls: str = "") -> str:
     for item in items:
         name = str(item.get("name") or "").strip()
         km = item.get("km")
-        dist = f"{km} km" if km is not None else "Within 5 km"
+        dist = f"{float(km) * 0.621371:.1f} mi" if km is not None else "Within 3 miles"
         website = _safe_http_url(item.get("website"))
         lines.append('            <li class="place-row">')
         lines.append(f'              <span class="place-name">{_esc(name)}</span>')
@@ -774,7 +774,7 @@ def render_airport_page(
         comp_text = _bts_comparison_text(bts_entry["ontime"], bts_entry.get("ly_ontime"), bts_ly_month)
         ontime_lines = [
             '          <div class="glance-ontime">',
-            f'            <p class="glance-ontime-num">{_esc(bts_entry["ontime"])}%</p>',
+            f'            <p class="glance-ontime-num">{_esc(round(float(bts_entry["ontime"])))}%</p>',
             f'            <p class="glance-ontime-label">On-time arrivals, {_esc(bts_month)}, BTS</p>',
         ]
         if comp_text:
@@ -846,7 +846,7 @@ def render_airport_page(
             f'        <p class="small">Fewer than 4 official links were available for {_esc(code)} when checked on {_esc(guide_checked_date or build_date)}.</p>'
         )
 
-    # Places within 5 km
+    # Places within 3 miles
     hotels = list((places_entry or {}).get("hotels") or [])
     cars = list((places_entry or {}).get("cars") or [])
     places_credit_date = places_fetched_date or "unknown date"
@@ -863,7 +863,7 @@ def render_airport_page(
         source_items.append(f"BTS ({bts_month}) — monthly on-time arrival data (no entry for {code}).")
     if has_places:
         source_items.append(
-            f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 5 km, fetched {places_credit_date}."
+            f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 3 miles, fetched {places_credit_date}."
         )
     if guide_entry.get("origin") == "ourairports":
         source_items.append("OurAirports (public domain) — the address of the airport's website.")
@@ -878,20 +878,20 @@ def render_airport_page(
     if has_places:
         places_html = [
             '      <section class="airport-section" aria-labelledby="places-heading">',
-            '        <h2 id="places-heading">Hotels and car rental within 5 km</h2>',
+            '        <h2 id="places-heading">Hotels and car rental within 3 miles</h2>',
             '        <div class="places-columns">',
             '          <div class="places-col">',
             "            <h3>Hotels</h3>",
-            _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 5 km.", "hotels"),
+            _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 3 miles.", "hotels"),
             "          </div>",
             '          <div class="places-col">',
             "            <h3>Car rental</h3>",
-            _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 5 km.", "car rental places"),
+            _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 3 miles.", "car rental places"),
             "          </div>",
             "        </div>",
             (
                 f'        <p class="credit">&copy; OpenStreetMap contributors. Data from {_esc(places_credit_date)}. '
-                "Distances are straight-line. We show no prices and do not know what is available.</p>"
+                "Distances are in a straight line. We show no prices and do not know what is available.</p>"
             ),
             "      </section>",
         ]
@@ -944,10 +944,6 @@ def render_airport_page(
         "        </noscript>",
         "      </section>",
         *_render_history(code, tz, history),
-        *ontime_html,
-        *places_html,
-        "      </div>",
-        '      <div class="ap-col ap-col--side">',
         '      <section class="airport-section" aria-labelledby="stuck-heading">',
         '        <h2 id="stuck-heading">If you are stuck here</h2>',
         '        <div class="stuck-note">',
@@ -961,10 +957,14 @@ def render_airport_page(
         ),
         "        </div>",
         "      </section>",
+        *ontime_html,
+        "      </div>",
+        '      <div class="ap-col ap-col--side">',
         '      <section class="airport-section" aria-labelledby="official-heading">',
         '        <h2 id="official-heading">Official pages</h2>',
         *official_lines,
         "      </section>",
+        *places_html,
         *glance_html,
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',

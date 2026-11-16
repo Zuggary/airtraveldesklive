@@ -156,7 +156,7 @@ class TestHomeCard(unittest.TestCase):
         self.assertNotIn("utm", m.group(1).lower())
         self.assertIn("noopener", m.group(2))
         self.assertIn("While you wait: play Lantern Drift", self.idx)
-        self.assertIn("A calm, free game. No ads. Nothing is tracked.", self.idx)
+        self.assertIn("A free game from us. No ads, no tracking.", self.idx)
 
     def test_card_sits_low_after_the_data_sections(self) -> None:
         i = self.idx.index('id="while-you-wait"')

@@ -884,3 +884,17 @@ main > section { margin-top: 36px; }
 .hist-box, .map-wrap { border: 0; border-radius: 0; background: transparent; padding: 0; }
 .map-wrap { background: var(--surface); }
 .hist-box { border-top: 2px solid var(--text); padding-top: 12px; }
+
+/* AN32 pass 3: tighter status rows, trends folded */
+.event-card { padding-top: 10px; padding-bottom: 10px; gap: 2px 14px; }
+.event-card::before { top: 10px; bottom: 10px; }
+.event-card .event-meta { display: none; }
+.event-impact { font-size: 0.97rem; }
+.event-card .btn { min-height: 40px; }
+.ev-code { font-size: 2rem; }
+#changed .summary { font-family: var(--font-text); font-size: 1.05rem; font-weight: 600; max-width: none; line-height: 1.35; }
+.fold { border-top: 2px solid var(--text); }
+.fold > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; font-weight: 600; color: var(--link); }
+.fold[open] > summary { margin-bottom: 8px; }
+#compare .compare-grid { border-top: 0; }
+@media (max-width: 759px) { .summary { font-size: clamp(1.7rem, 7vw, 2.2rem); } }

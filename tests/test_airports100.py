@@ -155,7 +155,7 @@ class TestPagesFromFixtures(unittest.TestCase):
                 self.assertNotIn(bad, html, code)
 
     def test_places_list_only_where_there_is_data(self) -> None:
-        self.assertIn("Hotels and car rental within 5 km", self.pages["SFO"])
+        self.assertIn("Hotels and car rental within 3 miles", self.pages["SFO"])
         self.assertIn("Test Hotel", self.pages["SFO"])
         self.assertIn("Fixture Inn", self.pages["PDX"])
         self.assertIn("fetched 2026-11-12", self.pages["PDX"])

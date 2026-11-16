@@ -222,8 +222,8 @@ class TestAirportOrder(_Built):
     def test_status_first_then_bts_then_help(self):
         page = self.pages["SFO"]
         order = [page.index(x) for x in (
-            "<h1", 'id="status-chip"', 'id="right-now-heading"', 'aria-label="On-time arrivals"',
-            'id="stuck-heading"', 'id="official-heading"', 'id="glance-heading"')]
+            "<h1", 'id="status-chip"', 'id="right-now-heading"', 'id="stuck-heading"',
+            'aria-label="On-time arrivals"', 'id="official-heading"', 'id="glance-heading"')]
         self.assertEqual(order, sorted(order))
 
     def test_illustration_keeps_caption_and_tag(self):
