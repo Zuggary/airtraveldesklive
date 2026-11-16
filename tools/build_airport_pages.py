@@ -293,7 +293,7 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
         '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure <span class="hh hh--none"></span>no reading</p>',
         f'        <p class="small">Source: our hourly record of the FAA NAS status feed, readings {_esc(span)}'
         + (f", copied {_esc(age)}" if age else "")
-        + '. The record is short and still growing. When it holds enough weeks we will show what usually happens at this hour of the week; we will not guess before then.</p>',
+        + '. The record only goes back a few days. Once it covers several weeks, this page will show what usually happens at this hour of the week.</p>',
         "      </section>",
     ]
 
@@ -480,7 +480,7 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '    var statusChip = document.getElementById("status-chip");',
         '    var wxChip = document.getElementById("weather-chip");',
         "    if (!box) { return; }",
-        '    var LEVEL_TEXT = { clear: "Clear — no FAA delay or ground stop listed.", delay: "Delays — FAA delay program in effect.", stop: "Ground stop — FAA ground stop in effect.", closed: "Closed — FAA airport closure in effect." };',
+        '    var LEVEL_TEXT = { clear: "Clear: no FAA delay or ground stop listed.", delay: "Delays: FAA delay program in effect.", stop: "Ground stop: FAA ground stop in effect.", closed: "Closed: FAA airport closure in effect." };',
         '    var BADGE_CLASS = { clear: "badge badge--clear", delay: "badge badge--delay", stop: "badge badge--stop", closed: "badge badge--stop" };',
         '    var BADGE_LABEL = { clear: "No FAA delays reported", delay: "Delays", stop: "Ground stop", closed: "Closed" };',
         "    function badgeLabel(a, lvl) {",
@@ -913,24 +913,24 @@ def render_airport_page(
     # Sources section
     op_label = f"{operator}'s website" if operator else "The airport operator's website"
     source_items = [
-        f"FAA NAS status — {'' if live['stale'] else 'live '}airport delays, ground delays, ground stops and closures.",
-        f"aviationweather.gov — {'' if live['stale'] else 'live '}airport weather observations (METAR) and 3-hour forecasts (TAF).",
+        f"FAA NAS status: {'' if live['stale'] else 'live '}airport delays, ground delays, ground stops and closures.",
+        f"aviationweather.gov: {'' if live['stale'] else 'live '}airport weather observations (METAR) and 3-hour forecasts (TAF).",
     ]
     if has_bts:
-        source_items.append(f"BTS ({bts_month}) — monthly on-time arrival rate and flight count.")
+        source_items.append(f"BTS ({bts_month}): monthly on-time arrival rate and flight count.")
     elif bts_month:
-        source_items.append(f"BTS ({bts_month}) — monthly on-time arrival data (no entry for {code}).")
+        source_items.append(f"BTS ({bts_month}): monthly on-time arrival data (no entry for {code}).")
     if has_places:
         source_items.append(
-            f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 3.1 miles, fetched {places_credit_date}."
+            f"OpenStreetMap (&copy; OpenStreetMap contributors): hotels and car rental within 3.1 miles, fetched {places_credit_date}."
         )
     if guide_entry.get("origin") == "ourairports":
-        source_items.append("OurAirports (public domain) — the address of the airport's website.")
+        source_items.append("OurAirports (public domain): the address of the airport's website.")
     if has_blocked_links:
-        source_items.append(f"{_esc(op_label)} — {_esc(LINKS_NOT_ALL_CHECKED)}")
+        source_items.append(f"{_esc(op_label)}: {_esc(LINKS_NOT_ALL_CHECKED)}")
     else:
         source_items.append(
-            f"{_esc(op_label)} — {_esc(LINKS_ALL_CHECKED.format(date=guide_checked_date or build_date))}"
+            f"{_esc(op_label)}: {_esc(LINKS_ALL_CHECKED.format(date=guide_checked_date or build_date))}"
         )
 
     places_html: list[str] = []
@@ -995,7 +995,7 @@ def render_airport_page(
         (
             '        <p class="ap-alt">Other airports nearby, straight-line miles: '
             + ", ".join(f'<a class="tap" href="{_esc(c)}.html">{_esc(c)}</a> ({m} mi{", " + w if w else ""})' for c, _n, m, w in (alternates or []))
-            + ". We cannot tell you about fares or seats there; ask your airline what it can rebook.</p>"
+            + ". Status is from the FAA feed, checked as shown above. We know nothing about fares or seats there; ask your airline what it can rebook.</p>"
             if alternates and live["has"] and not live["stale"] and "badge--stop" in live["chip_class"]
             else ""
         ),
@@ -1147,11 +1147,11 @@ def render_index_page(
         sections.append("        </ul>")
 
     source_items = [
-        "FAA NAS status and aviationweather.gov — live delays and weather on each airport page.",
-        f"BTS ({bts_month or 'monthly'}) — monthly on-time arrival rate where available.",
-        f"OpenStreetMap (&copy; OpenStreetMap contributors) — nearby hotels and car rental where we have them, fetched {places_fetched_date or 'unknown date'}.",
-        "Airport operators' own websites — official airport links. Some sites block automatic checks, so not every link is verified by script.",
-        "OurAirports (public domain) — the website address for airports outside the first 30.",
+        "FAA NAS status and aviationweather.gov: live delays and weather on each airport page.",
+        f"BTS ({bts_month or 'monthly'}): monthly on-time arrival rate where available.",
+        f"OpenStreetMap (&copy; OpenStreetMap contributors): nearby hotels and car rental where we have them, fetched {places_fetched_date or 'unknown date'}.",
+        "Airport operators' own websites: official airport links. Some sites block automatic checks, so not every link is verified by script.",
+        "OurAirports (public domain): the website address for airports outside the first 30.",
     ]
 
     parts = [

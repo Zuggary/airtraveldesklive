@@ -916,3 +916,7 @@ main > section { margin-top: 36px; }
 .ap-alt .tap { display: inline; min-height: 0; font-weight: 700; }
 .board-grid > .clear-fold { grid-column: 1 / -1; border-top: 0; }
 .clear-fold .board-grid { border-top: 0; }
+#mine { margin: 12px 0 18px; }
+#mine .sub-heading { margin: 0 0 6px; font-size: 1.1rem; }
+.fold > summary::marker { color: var(--text-muted); }
+#watch .section-heading, #history .section-heading { font-size: 1.3rem; }

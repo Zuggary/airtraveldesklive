@@ -356,6 +356,9 @@
   function getMine() {
     try { var v = JSON.parse(window.localStorage.getItem(MINE_KEY) || "[]"); return Array.isArray(v) ? v.filter(function (c) { return allByCode[c]; }).slice(0, 8) : []; } catch (e) { return []; }
   }
+  // The airport the visitor opened last, so the top of the page can show it again (this browser only).
+  function getLast() { try { var c = window.localStorage.getItem("atd.last"); return c && allByCode[c] ? c : ""; } catch (e) { return ""; } }
+  function setLast(code) { try { window.localStorage.setItem("atd.last", code); } catch (e) { /* storage blocked */ } }
   function setMine(list) { try { window.localStorage.setItem(MINE_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) { /* storage blocked: the list lasts until the page closes */ } }
   function toggleMine(code) {
     var l = getMine(), i = l.indexOf(code);
@@ -367,7 +370,8 @@
   function renderMine(tiles) {
     var wrap = $("mine"), box = $("mine-list");
     if (!wrap || !box) { return; }
-    var l = getMine();
+    var l = getMine(), last = getLast();
+    if (last && l.indexOf(last) < 0) { l = [last].concat(l).slice(0, 8); }
     wrap.hidden = !l.length;
     box.textContent = "";
     l.forEach(function (c) { box.appendChild(makeTile(allByCode[c], tiles)); });
@@ -765,6 +769,7 @@
 
   function openAirport(code, scroll) {
     var a = byCode[code];
+    if (allByCode[code]) { setLast(code); }
     if (!a) {
       // An airport after the first 30 has no card on this page: open its own page.
       if (/^[A-Z]{3}$/.test(code || "") && allByCode[code]) { window.location.href = "airports/" + code + ".html"; }

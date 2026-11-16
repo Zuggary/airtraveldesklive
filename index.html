@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Air Travel Desk — Live US Flight Delays &amp; Ground Stops</title>
+  <title>Air Travel Desk: Live US Flight Delays &amp; Ground Stops</title>
   <meta name="description" content="Live US airport delays and ground stops, a map with radar, airport search, and what to do if you are stuck at the airport.">
   <link rel="canonical" href="https://www.airtraveldesklive.com/">
-  <meta property="og:title" content="Air Travel Desk — Live US Flight Delays &amp; Ground Stops">
+  <meta property="og:title" content="Air Travel Desk: Live US Flight Delays &amp; Ground Stops">
   <meta property="og:description" content="Live US airport delays and ground stops, a map with radar, airport search, and what to do if you are stuck at the airport.">
   <meta property="og:image" content="https://www.airtraveldesklive.com/og.png">
   <meta property="og:url" content="https://www.airtraveldesklive.com/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Air Travel Desk — Live US Flight Delays &amp; Ground Stops">
+  <meta name="twitter:title" content="Air Travel Desk: Live US Flight Delays &amp; Ground Stops">
   <meta name="twitter:description" content="Live US airport delays and ground stops, a map with radar, airport search, and what to do if you are stuck at the airport.">
   <meta name="twitter:image" content="https://www.airtraveldesklive.com/og.png">
   <meta name="theme-color" content="#0d1722">
@@ -61,6 +61,12 @@
         <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
         <p id="summary" class="summary" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></p>
         <p id="updated-line" class="updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
+        <div id="mine" class="mine" hidden>
+          <h3 class="sub-heading">Your airports</h3>
+          <div id="mine-list" class="board-grid"></div>
+          <p class="board-note">Saved in this browser only. No account.</p>
+        </div>
+
         <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
       </section>
 
@@ -73,11 +79,6 @@
         <ul id="search-results" class="search-results" aria-label="Search results" hidden></ul>
         <p id="search-empty" class="search-empty" hidden>No match among the 100 busiest airports.</p>
 
-        <div id="mine" class="mine" hidden>
-          <h3 class="sub-heading">Your airports</h3>
-          <div id="mine-list" class="board-grid"></div>
-          <p class="board-note">Saved in this browser only. No account.</p>
-        </div>
 
         <div id="airport-card-slot" class="card-slot" tabindex="-1"></div>
       </section>
@@ -98,10 +99,11 @@
 
       <section id="history" aria-labelledby="history-heading">
         <h2 id="history-heading" class="section-heading">Last 24 hours</h2>
-        <p class="map-help">How many of the 30 airports were not clear, by hour.</p>
+        <details class="fold" id="hist-fold"><summary>How many of the 30 busiest airports were not clear, by hour</summary>
         <div class="hist-box" id="hist-box">
           <p id="hist-empty" class="empty-state">The hourly readings load here.</p>
         </div>
+        </details>
       </section>
 
       <section id="map-section" aria-labelledby="map-heading">
@@ -136,6 +138,7 @@
 
       <section id="watch" class="watch-section" aria-labelledby="watch-heading">
         <h2 id="watch-heading" class="section-heading">Watch live with voice</h2>
+        <details class="fold" id="watch-fold"><summary>Twitch and TV mode links</summary>
         <nav class="watch-bar" aria-label="Watch live with voice">
           <a class="chip" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>
           <!-- YouTube link goes here when the channel is live (AN5). -->
@@ -146,6 +149,7 @@
           <p class="live-note">The video plays from Twitch. Loading it contacts Twitch, which sets its own cookies. Nothing loads from Twitch until you press the button.</p>
           <div class="live-frame" id="live-frame"></div>
         </div>
+        </details>
       </section>
 
       <section id="while-you-wait" class="wait-card" aria-labelledby="wait-heading">

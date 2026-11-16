@@ -27,10 +27,10 @@ WORD_DELAY = "Delays"
 WORD_CLOSED = "Closed"
 
 LEVEL_TEXT = {
-    "clear": "Clear — no FAA delay or ground stop listed.",
-    "delay": "Delays — FAA delay program in effect.",
-    "stop": "Ground stop — FAA ground stop in effect.",
-    "closed": "Closed — FAA airport closure in effect.",
+    "clear": "Clear: no FAA delay or ground stop listed.",
+    "delay": "Delays: FAA delay program in effect.",
+    "stop": "Ground stop: FAA ground stop in effect.",
+    "closed": "Closed: FAA airport closure in effect.",
 }
 BADGE_CLASS = {
     "clear": "badge badge--clear",
