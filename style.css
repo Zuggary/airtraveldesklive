@@ -980,6 +980,12 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
     linear-gradient(90deg, rgba(7, 10, 14, 0.82) 0%, rgba(7, 10, 14, 0.5) 50%, rgba(7, 10, 14, 0.12) 100%),
     linear-gradient(0deg, rgba(7, 10, 14, 0.55) 0%, transparent 40%);
 }
+/* AN38 day art is brighter: a stronger veil behind the text column keeps small text at AA (4.5:1) */
+.ap-hero .band-art[data-art$="-day"]::after {
+  background:
+    linear-gradient(90deg, rgba(7, 10, 14, 0.9) 0%, rgba(7, 10, 14, 0.66) 50%, rgba(7, 10, 14, 0.18) 100%),
+    linear-gradient(0deg, rgba(7, 10, 14, 0.62) 0%, transparent 45%);
+}
 .ap-name span { display: block; }
 @media (min-width: 1000px) {
   .ap-hero.band { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); padding: var(--space-6) var(--space-6) var(--space-6) var(--space-7); align-items: center; }
