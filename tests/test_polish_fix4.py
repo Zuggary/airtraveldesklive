@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-NAV_LABELS = ["Live board", "Airports", "About", "Privacy"]
+NAV_LABELS = ["Live board", "Airports", "Airlines", "Stuck?", "About"]  # AN34: one nav on every page
 
 
 def nav_block(text: str) -> str:
@@ -108,8 +108,8 @@ class TestNavRound4(unittest.TestCase):
             text = read(name)
             self.assertEqual(re.findall(r">([^<]+)</a>", nav_block(text)), NAV_LABELS, name)
             self.assertNotIn("Back to live board", text, name)
-        self.assertIn('href="privacy.html" aria-current="page">Privacy<', nav_block(read("privacy.html")))
-        self.assertNotIn("aria-current", nav_block(read("stuck.html")))
+        self.assertNotIn("aria-current", nav_block(read("privacy.html")))  # privacy moved to the footer (AN34)
+        self.assertIn('href="stuck.html" aria-current="page">Stuck?<', nav_block(read("stuck.html")))
 
 
 if __name__ == "__main__":

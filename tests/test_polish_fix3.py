@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-NAV_LABELS = ["Live board", "Airports", "About", "Privacy"]
+NAV_LABELS = ["Live board", "Airports", "Airlines", "Stuck?", "About"]  # AN34: one nav on every page
 
 
 def nav_block(text: str) -> str:

@@ -245,7 +245,7 @@ class TestEachPage(_Base):
         for name in [a["id"] for a in self.dot["airlines"]] + ["index"]:
             html_text = self.page(name)
             p = parse(html_text)
-            self.assertEqual(p.chips, ["Live board", "Airports", "About", "Privacy"], name)
+            self.assertEqual(p.chips, ["Live board", "Airports", "Airlines", "Stuck?", "About"], name)  # AN34 nav
             hrefs = [a.get("href") for a in p.anchors]
             for want in ("../index.html", "../airports/index.html", "../about.html", "../privacy.html",
                          "../sources.html", "mailto:hello@airtraveldesklive.com", "index.html", "../stuck.html"):
