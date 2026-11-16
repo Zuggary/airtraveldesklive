@@ -125,6 +125,21 @@ def impact_text(ev: dict[str, Any], place: str, stale: bool = False) -> str:
     return text + "."
 
 
+_REASON_PREFIX = {"WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway",
+                  "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other"}
+
+
+def reason_text(reason: Any) -> str:
+    """Turn a raw FAA reason such as 'WX:Wind' into plain words ('weather, wind')."""
+    text = str(reason or "").strip()
+    m = re.match(r"^([A-Za-z/]+):\s*(.*)$", text)
+    if not m or m.group(1).upper() not in _REASON_PREFIX:
+        return text
+    prefix = _REASON_PREFIX[m.group(1).upper()]
+    rest = m.group(2).lower()
+    return prefix if (not rest or rest in (prefix, "volume")) else f"{prefix}, {rest}"
+
+
 def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: str, now: datetime, stale: bool = False) -> str:
     events = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA" and e.get("kind") in KIND_RANK]
     if not state:
@@ -136,8 +151,12 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
     events.sort(key=lambda e: (-KIND_RANK[e["kind"]], -(minutes_of((e.get("fields") or {}).get("avg")) or 0)))
     age = pt.ago_text(pt.age_minutes(updated_utc, now))
     out = []
+    seen: set[str] = set()  # AN32: one row per airport, the worst program first
     for ev in events:
         code = str(ev.get("airport") or "").upper()
+        if code in seen:
+            continue
+        seen.add(code)
         a = by_code.get(code) or {}
         place = a.get("short") or ev.get("display") or code
         stop = ev.get("kind") in ("ground_stop", "closure")
@@ -145,12 +164,12 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
         badge = "badge badge--stop" if stop else "badge badge--delay"
         lines = [
             f'<article class="{cls}">',
-            f'<div class="event-header"><h3 class="event-title">{_esc(place)} ({_esc(code)})</h3>'
+            f'<div class="event-header"><h3 class="event-title"><span class="ev-code">{_esc(code)}</span><span class="ev-place">{_esc(place)}</span></h3>'
             f'<span class="{badge}">{_esc(KIND_LABEL.get(ev["kind"], "Disruption"))}</span></div>',
             f'<p class="event-impact">{_esc(impact_text(ev, str(place), stale))}</p>',
         ]
-        if ev.get("reason"):
-            lines.append(f'<p class="event-reason">Reason: {_esc(ev["reason"])}</p>')
+        if ev.get("reason") and str(ev["reason"]).strip().lower() != "closed":
+            lines.append(f'<p class="event-reason">Reason: {_esc(reason_text(ev["reason"]))}</p>')
         sources = ", ".join(str(x) for x in (ev.get("sources") or [])) or "FAA"
         lines.append(f'<p class="event-meta">Sources: {_esc(sources)} · Checked {_esc(age)}</p>')
         lines.append("</article>")

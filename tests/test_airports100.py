@@ -195,8 +195,9 @@ class TestPagesFromFixtures(unittest.TestCase):
         self.assertIn(f"{SITE}/", locs)
 
     def test_hero_type_for_new_airports(self) -> None:
-        self.assertIn("Illustration of a coastal airport. It does not show HNL.", self.pages["HNL"])
-        self.assertIn("Illustration of a hub airport. It does not show BHM.", self.pages["BHM"])
+        # AN32: no hero drawing on airport pages
+        self.assertNotIn("Illustration of a", self.pages["HNL"])
+        self.assertNotIn("Illustration of a", self.pages["BHM"])
 
 
 class TestStaleStillHonest(unittest.TestCase):

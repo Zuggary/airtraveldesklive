@@ -11,6 +11,7 @@ import re
 import sys
 import urllib.parse
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
@@ -64,6 +65,7 @@ def pick_hero_illustration(code: str, library: dict[str, Any]) -> dict[str, Any]
 
 def _render_hero_illustration(code: str) -> list[str]:
     """Hero figure for an airport page. A missing library or image gives no figure."""
+    return []  # AN32: a generic drawing that says "it does not show this airport" does not help a traveler
     library = _load_json(ILLUS_DIR / "library.json")
     img = pick_hero_illustration(code, library)
     if not img or not (ILLUS_DIR / img["file"]).is_file():
@@ -193,7 +195,7 @@ def _render_live(
         status_line,
     ]
     if entry.get("reason"):
-        box.append(f'          <p class="event-reason">Reason: {_esc(entry["reason"])}</p>')
+        box.append(f'          <p class="event-reason">Reason: {_esc(pt.reason_plain(entry["reason"]))}</p>')
     if wx.get("now_text"):
         wind = pt.wind_text(wx)
         obs = pt.clock_label(wx.get("obs_utc"), tz)
@@ -241,6 +243,59 @@ def _render_live(
         "clock": clock,
         "as_of": pt.as_of_text(updated_utc, tz, now),
     }
+
+
+def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[str]:
+    """Past hours at this airport, from data/history-summary.json (a copy of our own hourly archive). Past facts only."""
+    row = ((history or {}).get("airports") or {}).get(code)
+    hours = (history or {}).get("hours") or []
+    if not row or len(row) != len(hours):
+        return []
+    try:
+        zone = ZoneInfo(tz) if tz else timezone.utc
+    except Exception:  # unknown zone name
+        zone = timezone.utc
+    seen = [c for c in row if c != "-"]
+    if not seen:
+        return []
+    n_stop, n_delay = seen.count("s"), seen.count("d")
+    n_prog = n_stop + n_delay
+    first = pt.parse_utc(str((history or {}).get("first_reading_utc") or ""))
+    last = pt.parse_utc(str((history or {}).get("last_reading_utc") or ""))
+
+    def day_hour(dt: Any) -> str:
+        local = dt.astimezone(zone)
+        return local.strftime("%a %b ") + str(local.day) + local.strftime(" %-I %p").replace(" 0", " ")
+
+    word = {"c": "no program", "d": "delay", "s": "ground stop or closure", "-": "no reading"}
+    cells = []
+    for h, c in zip(hours, row):
+        dt = pt.parse_utc(h)
+        label = f"{day_hour(dt)} local: {word[c]}" if dt else word[c]
+        cells.append(f'<li class="hh hh--{ {"c": "clear", "d": "delay", "s": "stop", "-": "none"}[c] }" title="{_esc(label)}"><span class="sr-only">{_esc(label)}</span></li>')
+    if n_prog == 0:
+        head = f"No FAA delay program in any of the {len(seen)} hours we have a reading for."
+    else:
+        parts = []
+        if n_stop:
+            parts.append(f"{n_stop} with a ground stop or closure")
+        if n_delay:
+            parts.append(f"{n_delay} with a delay")
+        head = f"An FAA program was on in {n_prog} of the last {len(seen)} hours we have a reading for ({', '.join(parts)})."
+    span = f"from {day_hour(first)} to {day_hour(last)} local time" if first and last else ""
+    gen = pt.parse_utc(str((history or {}).get("generated_utc") or ""))
+    age = pt.ago_text(pt.age_minutes(str((history or {}).get("generated_utc") or ""), pt.now_utc())) if gen else ""
+    return [
+        '      <section class="airport-section" aria-labelledby="history-heading">',
+        '        <h2 id="history-heading">The last 3 days here</h2>',
+        f'        <p class="hist-lead">{_esc(head)}</p>',
+        f'        <ol class="hist-strip" aria-label="One cell per hour, oldest first, newest on the right">{"".join(cells)}</ol>',
+        '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure <span class="hh hh--none"></span>no reading</p>',
+        f'        <p class="small">Source: our hourly record of the FAA NAS status feed, readings {_esc(span)}'
+        + (f", copied {_esc(age)}" if age else "")
+        + '. The record is short and still growing. When it holds enough weeks we will show what usually happens at this hour of the week; we will not guess before then.</p>',
+        "      </section>",
+    ]
 
 
 def _render_head(
@@ -374,6 +429,14 @@ def _right_now_script(code: str, tz: str = "") -> str:
         "      if (lvl === \"delay\" && Array.isArray(a.events) && a.events.some(function (ev) { return ev && ev.kind === \"ground_delay\"; })) { return \"Ground delay program\"; }",
         "      return BADGE_LABEL[lvl];",
         "    }",
+        '    var RP = { WX: "weather", VOLUME: "traffic volume", "RWY/TWY": "runway or taxiway", EQUIPMENT: "equipment", STAFFING: "staffing", OTHER: "other" };',
+        '    function reasonPlain(r) {',
+        '      return String(r || "").split(";").map(function (x) {',
+        '        x = x.trim(); var m = /^([A-Za-z/]+):\\s*(.*)$/.exec(x); var p = m && RP[m[1].toUpperCase()];',
+        '        if (!p) { return x; }',
+        '        var rest = m[2].toLowerCase(); return !rest || rest === p || rest === "volume" ? p : p + ", " + rest;',
+        '      }).filter(Boolean).join("; ");',
+        '    }',
         "    function el(tag, cls, text) {",
         "      var n = document.createElement(tag);",
         "      if (cls) { n.className = cls; }",
@@ -539,7 +602,7 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '        box.appendChild(srcLine(null, LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
         '      }',
         '      if (a.reason) {',
-        '        box.appendChild(el("p", "event-reason", "Reason: " + a.reason));',
+        '        box.appendChild(el("p", "event-reason", "Reason: " + reasonPlain(a.reason)));',
         '      }',
         '      if (w && w.now_text) {',
         '        var wxText = (stale ? "Last weather report: " : "Weather now: ") + w.now_text;',
@@ -638,6 +701,7 @@ def render_airport_page(
     live_entry: dict[str, Any] | None = None,
     live_updated_utc: str = "",
     now: Any = None,
+    history: dict[str, Any] | None = None,
 ) -> str:
     """Render HTML for a single airport page.
 
@@ -858,10 +922,17 @@ def render_airport_page(
             if live["has"]
             else f'        <p id="checked-line" class="last-checked">{_esc(live["checked"])}</p>'
         ),
+        (
+            f'        <p class="ap-why">Why: {_esc(pt.reason_plain((live_entry or {}).get("reason")))}. <a class="tap" href="../stuck.html">What to do if your flight is hit</a></p>'
+            if live["has"] and not live["stale"] and (live_entry or {}).get("reason")
+            else ""
+        ),
         '        <div class="airport-summary-actions">',
         '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
         "        </div>",
         "      </div>",
+        '    <div class="ap-cols">',
+        '      <div class="ap-col ap-col--main">',
         '      <section class="airport-section" aria-labelledby="right-now-heading">',
         f'        <h2 id="right-now-heading">{"Last known status" if live["stale"] else "Right now"}</h2>',
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}"{prerendered_attr}>',
@@ -872,14 +943,11 @@ def render_airport_page(
         f'          <p class="noscript-note">{"Refreshing" if live["stale"] else "Live refresh"} needs JavaScript. The status above is from the last site build; for the FAA\'s own page, see nasstatus.faa.gov.</p>',
         "        </noscript>",
         "      </section>",
+        *_render_history(code, tz, history),
         *ontime_html,
-        *_render_hero_illustration(code),
-        *glance_html,
-        '      <section class="airport-section" aria-labelledby="official-heading">',
-        '        <h2 id="official-heading">Official pages</h2>',
-        *official_lines,
-        "      </section>",
         *places_html,
+        "      </div>",
+        '      <div class="ap-col ap-col--side">',
         '      <section class="airport-section" aria-labelledby="stuck-heading">',
         '        <h2 id="stuck-heading">If you are stuck here</h2>',
         '        <div class="stuck-note">',
@@ -893,6 +961,11 @@ def render_airport_page(
         ),
         "        </div>",
         "      </section>",
+        '      <section class="airport-section" aria-labelledby="official-heading">',
+        '        <h2 id="official-heading">Official pages</h2>',
+        *official_lines,
+        "      </section>",
+        *glance_html,
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',
         '        <ul class="airport-sources">',
@@ -903,6 +976,8 @@ def render_airport_page(
         '        <h2 id="about-page-heading">About this page</h2>',
         '        <p class="small">This page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="../about.html">About Air Travel Desk</a> for how these pages are made.</p>',
         "      </section>",
+        "      </div>",
+        "    </div>",
         "    </main>",
         _render_footer(),
         _sun_now_script() if tz else "",
@@ -1092,6 +1167,7 @@ def build_pages(
     airports_data = _load_json(data_dir / "airports.json")
     places_data = _load_json(data_dir / "places.json")
     bts_data = _load_json(data_dir / "bts.json")
+    history_data = _load_json(data_dir / "history-summary.json")
 
     live_updated = str(airports_data.get("updated_utc") or "")
     guide_airports = dict(guide_data.get("airports") or {})
@@ -1153,6 +1229,7 @@ def build_pages(
             live_entry=live_card if isinstance(live_card, dict) else None,
             live_updated_utc=live_updated,
             now=now,
+            history=history_data,
         )
         dest = out_dir / f"{code}.html"
         dest.write_text(page_html, encoding="utf-8")

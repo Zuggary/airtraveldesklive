@@ -5,28 +5,32 @@
   color-scheme: dark;
 
   /* Palette */
-  --navy: #0d1722;
-  --surface: #142233;
-  --surface-alt: #1b2f46;
-  --border: #2d4560;
-  --text: #eef3f7;
-  --text-muted: #b9c8d6;
-  --link: #9fd3ff;
-  --red: #ef4444;
-  --red-text: #fecaca;
+  --navy: #0b0f14;
+  --surface: #10161e;
+  --surface-alt: #18212c;
+  --border: #2a3544;
+  --text: #e9edf2;
+  --text-muted: #9fadbc;
+  --link: #8fcbff;
+  --red: #ff4d3d;
+  --red-text: #ffb4ab;
   --red-soft: rgba(239, 68, 68, 0.2);
-  --green: #34d399;
+  --green: #3ccf91;
   --green-text: #a7f3d0;
   --green-soft: rgba(52, 211, 153, 0.15);
-  --amber: #f2b33d;
-  --amber-text: #ffd98a;
+  --amber: #f5b301;
+  --amber-text: #ffd45c;
   --amber-soft: rgba(242, 179, 61, 0.16);
 
   /* Accent block: the only part that changes per desk */
-  --accent: #4cc3ff;
-  --accent-hover: #7dd3ff;
+  --accent: #7cc4ff;
+  --accent-hover: #a6d8ff;
   --accent-soft: rgba(76, 195, 255, 0.16);
-  --on-accent: #0d1722;
+  --on-accent: #0b0f14;
+
+  /* Type: Barlow Condensed for codes and the answer, Public Sans for text (files in fonts/) */
+  --font-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-text: "Public Sans", Arial, sans-serif;
 
   /* Type scale */
   --fs-xs: 0.8125rem;
@@ -45,7 +49,7 @@
   --space-6: 32px;
 
   /* Shape and layout */
-  --radius: 10px;
+  --radius: 4px;
   --gutter: 16px;
 
   /* Focus ring */

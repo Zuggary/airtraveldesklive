@@ -130,20 +130,11 @@ class TestPages(unittest.TestCase):
         cls._tmp.cleanup()
 
     def test_airport_pages_hero(self) -> None:
+        # AN32: the generic hero drawing is gone from airport pages.
         pages = [p for p in self.out.glob("*.html") if p.name != "index.html"]
         self.assertEqual(len(pages), 100)
         for page in pages:
-            code = page.stem
-            imgs = scan(page.read_text(encoding="utf-8"))
-            self.assertEqual(len(imgs), 1, code)
-            check_img(self, imgs[0], code)
-            name = imgs[0]["src"].rsplit("/", 1)[-1]
-            self.assertIn(name, BY_FILE, code)
-            self.assertEqual(BY_FILE[name]["role"], "meaning", f"{code} uses a decoration image")
-            self.assertEqual(BY_FILE[name]["category"], "airport-" + bap.airport_type(code), code)
-            self.assertEqual(imgs[0]["alt"], BY_FILE[name]["alt"], code)
-            self.assertEqual((imgs[0]["width"], imgs[0]["height"]), ("1280", "720"))
-            self.assertIn(f"Illustration of a {bap.airport_type(code)} airport", page.read_text(encoding="utf-8"))
+            self.assertEqual(scan(page.read_text(encoding="utf-8")), [], page.stem)
 
     def test_airport_types(self) -> None:
         first30 = set("ATL DFW DEN ORD LAX JFK LAS MCO MIA CLT SEA PHX EWR SFO IAH BOS FLL MSP LGA DTW PHL SLC BWI IAD SAN DCA TPA BNA AUS MDW".split())

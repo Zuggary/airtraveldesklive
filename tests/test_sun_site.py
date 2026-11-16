@@ -56,9 +56,7 @@ class TestTvSun(unittest.TestCase):
 
     def test_label_and_accent(self) -> None:
         self.assertIn("Sun position: computed", self.tv)
-        tokens = read("tokens.css")
-        accent = re.search(r"--accent:\s*(#[0-9a-fA-F]{6})", tokens).group(1)
-        self.assertEqual(accent.lower(), "#4cc3ff")
+        # AN32: the site accent moved to #7cc4ff; the TV page keeps its own accent for the stream.
         self.assertRegex(self.tv, r"--sun-accent:\s*" + re.escape("#4CC3FF"))
 
     def test_layer_is_per_minute_and_phones_use_flat_bands(self) -> None:
@@ -179,7 +177,7 @@ class TestSiteWiring(unittest.TestCase):
     def test_service_worker_caches_sun_js_and_cache_name_bumped(self) -> None:
         sw = read("sw.js")
         self.assertIn('"./sun.js"', sw)
-        self.assertIn('CACHE_NAME = "atd-offline-v5"', sw)
+        self.assertIn('CACHE_NAME = "atd-offline-v6"', sw)
 
     def test_workflow_publishes_sun_js(self) -> None:
         yml = read(".github/workflows/status.yml")

@@ -232,3 +232,22 @@ def stale_chip_text(entry: dict[str, Any], iso: Any, tz: str) -> str:
     word = status_word(entry)
     word = word[0].lower() + word[1:]
     return f"As of {clock}: {word}" if clock else f"As of an unknown time: {word}"
+
+
+_REASON_PREFIX = {"WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway",
+                  "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other"}
+
+
+def reason_plain(reason: Any) -> str:
+    """Plain words for a raw FAA reason: 'low ceilings; WX:Wind' becomes 'low ceilings; weather, wind'."""
+    out = []
+    for part in str(reason or "").split(";"):
+        part = part.strip()
+        m = re.match(r"^([A-Za-z/]+):\s*(.*)$", part)
+        if m and m.group(1).upper() in _REASON_PREFIX:
+            prefix = _REASON_PREFIX[m.group(1).upper()]
+            rest = m.group(2).lower()
+            part = prefix if (not rest or rest in (prefix, "volume")) else f"{prefix}, {rest}"
+        if part:
+            out.append(part)
+    return "; ".join(out)

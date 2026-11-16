@@ -109,11 +109,13 @@
   function faaEvents() {
     var evs = (D.state && Array.isArray(D.state.events)) ? D.state.events : [];
     var rank = { ground_stop: 4, closure: 4, ground_delay: 3, delay: 2 };
-    return evs.filter(function (e) { return e.source === "FAA" && rank[e.kind]; }).sort(function (a, b) {
+    var sorted = evs.filter(function (e) { return e.source === "FAA" && rank[e.kind]; }).sort(function (a, b) {
       var d = rank[b.kind] - rank[a.kind];
       if (d) { return d; }
       return (A.minutesOf(b.fields && b.fields.avg) || 0) - (A.minutesOf(a.fields && a.fields.avg) || 0);
     });
+    var seen = {}; // AN32: one row per airport, the worst program first
+    return sorted.filter(function (e) { var c = String(e.airport || ""); if (seen[c]) { return false; } seen[c] = true; return true; });
   }
 
   // ---------- header: live video ----------
@@ -191,6 +193,18 @@
     s.textContent = A.nationalSummary(airports, isStaleIso(upd) ? asOfText(upd) : "");
   }
 
+  var REASON_PREFIX = { "WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway", "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other" };
+  function reasonText(r) {
+    return String(r || "").split(";").map(function (part) {
+      part = part.trim();
+      var m = /^([A-Za-z/]+):\s*(.*)$/.exec(part);
+      var p = m && REASON_PREFIX[m[1].toUpperCase()];
+      if (!p) { return part; }
+      var rest = m[2].toLowerCase();
+      return !rest || rest === p || rest === "volume" ? p : p + ", " + rest;
+    }).filter(Boolean).join("; ");
+  }
+
   function eventCard(ev) {
     var code = String(ev.airport || "").toUpperCase();
     var a = byCode[code] || {};
@@ -198,11 +212,14 @@
     var stop = ev.kind === "ground_stop" || ev.kind === "closure";
     var card = el("article", "event-card" + (stop ? " event-card--stop" : ""));
     var head = el("div", "event-header");
-    head.appendChild(el("h3", "event-title", place + " (" + code + ")"));
+    var h3 = el("h3", "event-title");
+    h3.appendChild(el("span", "ev-code", code));
+    h3.appendChild(el("span", "ev-place", place));
+    head.appendChild(h3);
     head.appendChild(el("span", "badge " + (stop ? "badge--stop" : "badge--delay"), A.kindLabel(ev.kind)));
     card.appendChild(head);
     card.appendChild(el("p", "event-impact", A.impactText(ev, place, isStaleIso(D.state.updated_utc))));
-    if (ev.reason) { card.appendChild(el("p", "event-reason", "Reason: " + ev.reason)); }
+    if (ev.reason && String(ev.reason).toLowerCase() !== "closed") { card.appendChild(el("p", "event-reason", "Reason: " + reasonText(ev.reason))); }
     var f = ev.fields || {};
     var endMs = ev.end_utc ? Date.parse(ev.end_utc) : null;
     if (ev.kind === "ground_stop" && (endMs != null || f.end_time)) {
@@ -218,7 +235,7 @@
     parts.push("Checked " + ageText(D.state.updated_utc));
     meta.textContent = parts.join(" · ");
     card.appendChild(meta);
-    var b = el("button", "btn btn-secondary", "Open " + code + " card: stuck at the airport?");
+    var b = el("button", "btn btn-secondary", "Open " + code + ": what to do");
     b.type = "button";
     b.addEventListener("click", function () { openAirport(code, true); });
     card.appendChild(b);
@@ -260,6 +277,7 @@
 
   // A figure with a lazy 16:9 image and a visible "Illustration" tag. w/h are the display size in pixels.
   function illustrationFigure(cat, extraClass, w, h) {
+    return null; // AN32: generic drawings are gone from the pages; the map above is kept for the tests
     var info = ILLUSTRATIONS[cat];
     if (!info) { return null; }
     var fig = el("figure", "illus " + extraClass);
@@ -278,7 +296,8 @@
   }
 
   function renderLatest() {
-    var box = $("latest-box"), list = $("latest-list");
+    var box = document.getElementById("latest-box"), list = document.getElementById("latest-list");
+    if (!box || !list) { return; } // AN32: the home page no longer shows the Latest feed
     list.textContent = "";
     var items = D.state ? A.latestItems(D.state.ticker, 6, Date.now()) : [];
     box.hidden = !items.length;
@@ -313,7 +332,36 @@
     box.textContent = "";
     var tiles = {};
     ((D.state && D.state.board) || []).forEach(function (t) { tiles[t.code] = t; });
-    airports.forEach(function (a) {
+    airports.forEach(function (a) { box.appendChild(makeTile(a, tiles)); });
+    renderMine(tiles);
+    var note = $("board-note");
+    if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. Arrow compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }
+  }
+
+  // AN32: airports saved in this browser only (localStorage, no account).
+  var MINE_KEY = "atd.mine";
+  function getMine() {
+    try { var v = JSON.parse(window.localStorage.getItem(MINE_KEY) || "[]"); return Array.isArray(v) ? v.filter(function (c) { return allByCode[c]; }).slice(0, 8) : []; } catch (e) { return []; }
+  }
+  function setMine(list) { try { window.localStorage.setItem(MINE_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) { /* storage blocked: the list lasts until the page closes */ } }
+  function toggleMine(code) {
+    var l = getMine(), i = l.indexOf(code);
+    if (i >= 0) { l.splice(i, 1); } else { l.push(code); }
+    setMine(l);
+    renderBoard();
+    renderCardLive();
+  }
+  function renderMine(tiles) {
+    var wrap = $("mine"), box = $("mine-list");
+    if (!wrap || !box) { return; }
+    var l = getMine();
+    wrap.hidden = !l.length;
+    box.textContent = "";
+    l.forEach(function (c) { box.appendChild(makeTile(allByCode[c], tiles)); });
+  }
+
+  function makeTile(a, tiles) {
+    {
       var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
       var tv = tiles[a.code] ? A.tileView(tiles[a.code]) : null;
       var b = el("button", "tile tile--" + lvl + (tv ? " tile--" + tv.status : ""));
@@ -340,10 +388,8 @@
         if (tv.detail) { b.appendChild(el("span", "tile-detail", tv.detail)); }
       }
       b.addEventListener("click", function () { openAirport(a.code, true); });
-      box.appendChild(b);
-    });
-    var note = $("board-note");
-    if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. Arrow compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }
+      return b;
+    }
   }
 
   function initSearch() {
@@ -416,7 +462,7 @@
         box.appendChild(el("p", "event-end", "Listed end: " + fmtTime(new Date(endMs), a.tz) + (cd ? " (" + cd + ")" : "")));
       }
     });
-    if (a.reason) { box.appendChild(el("p", "event-reason", "Reason: " + a.reason)); }
+    if (a.reason) { box.appendChild(el("p", "event-reason", "Reason: " + reasonText(a.reason))); }
   }
 
   function wxLines(a) {
@@ -626,6 +672,10 @@
     titles.appendChild(el("h3", "card-title", (a.name || a.short) + " (" + code + ")"));
     if (a.city) { titles.appendChild(el("p", "card-city", a.city)); }
     head.appendChild(titles);
+    var save = el("button", "btn btn-secondary btn-save", getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports");
+    save.type = "button";
+    save.addEventListener("click", function () { toggleMine(code); save.textContent = getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports"; });
+    head.appendChild(save);
     var close = el("button", "btn btn-secondary btn-close", "Close");
     close.type = "button";
     close.addEventListener("click", closeAirport);

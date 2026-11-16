@@ -219,11 +219,11 @@ class TestAirportPrerender(_Built):
 
 
 class TestAirportOrder(_Built):
-    def test_status_first_then_bts_then_illustration(self):
+    def test_status_first_then_bts_then_help(self):
         page = self.pages["SFO"]
         order = [page.index(x) for x in (
             "<h1", 'id="status-chip"', 'id="right-now-heading"', 'aria-label="On-time arrivals"',
-            'class="illus-card"', 'id="glance-heading"', 'id="official-heading"')]
+            'id="stuck-heading"', 'id="official-heading"', 'id="glance-heading"')]
         self.assertEqual(order, sorted(order))
 
     def test_illustration_keeps_caption_and_tag(self):
@@ -338,13 +338,13 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
             self.assertIn(f"<!--/pr:{slot}-->", self.tpl)
 
     def test_main_column_order(self):
-        ids = ["airport-search", 'id="now"', 'id="changed"', 'id="board-section"', 'id="history"', 'id="map-section"',
+        ids = ['id="now"', "airport-search", 'id="changed"', 'id="board-section"', 'id="history"', 'id="map-section"',
                'id="owed"', 'id="compare"', 'id="watch"', 'id="while-you-wait"']
         pos = [self.tpl.index(i) for i in ids]
         self.assertEqual(pos, sorted(pos))
         sections = re.findall(r'<section id="([a-z-]+)"', self.tpl)
-        self.assertEqual(sections[0], "airports")  # search first
-        self.assertEqual(sections[1], "now")  # live status next
+        self.assertEqual(sections[0], "now")  # AN32: the national answer first
+        self.assertEqual(sections[1], "airports")  # search next
         self.assertEqual(sections[-1], "while-you-wait")  # Lantern Drift last
         self.assertEqual(sections[-2], "watch")  # Twitch block just above it
 

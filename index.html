@@ -37,10 +37,16 @@
         <span class="live-dot" aria-hidden="true"></span>
         <h1 class="brand-title">Air Travel Desk</h1>
       </div>
+      <nav class="header-nav" aria-label="Site navigation">
+        <a class="chip" href="airports/index.html">Airports</a>
+        <a class="chip" href="airlines/index.html">Airlines</a>
+        <a class="chip" href="stuck.html">Stuck?</a>
+        <a class="chip" href="about.html">About</a>
+      </nav>
       <p class="watch-link-row"><a class="tap" href="#watch">Watch live</a> (video with voice, on Twitch)</p>
     </header>
 
-    <a class="owed-shortcut" href="#owed" id="owed-shortcut">Delayed? What you may be owed <span aria-hidden="true">&darr;</span></a>
+    <a class="owed-shortcut" href="#owed" id="owed-shortcut">Delayed? What you may be owed</a>
     <div class="stuck-cta-bar">
       <a class="btn btn-secondary stuck-cta-btn" href="stuck.html">I'm stuck at the airport</a>
     </div>
@@ -50,8 +56,16 @@
     </noscript>
 
     <main id="main-content">
+      <section id="now" aria-labelledby="now-heading">
+        <h2 id="now-heading" class="section-heading"><!--pr:nowtitle-->Right now<!--/pr:nowtitle--></h2>
+        <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
+        <p id="summary" class="summary" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></p>
+        <p id="updated-line" class="updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
+        <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
+      </section>
+
       <section id="airports" aria-labelledby="airports-heading">
-        <h2 id="airports-heading" class="section-heading">Find your airport</h2>
+        <h2 id="airports-heading" class="section-heading">Your airport</h2>
         <div class="search-box">
           <label for="airport-search">Airport code, city or name</label>
           <input id="airport-search" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="SFO, san fran, newark">
@@ -59,20 +73,13 @@
         <ul id="search-results" class="search-results" aria-label="Search results" hidden></ul>
         <p id="search-empty" class="search-empty" hidden>No match among the 100 busiest airports.</p>
 
-        <div id="airport-card-slot" class="card-slot" tabindex="-1"></div>
-      </section>
-
-      <section id="now" aria-labelledby="now-heading">
-        <h2 id="now-heading" class="section-heading"><!--pr:nowtitle-->Right now<!--/pr:nowtitle--></h2>
-        <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
-        <p id="summary" class="summary" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></p>
-        <p id="updated-line" class="updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
-        <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
-        <div id="latest-box" class="latest" hidden>
-          <h3 class="sub-heading">Latest</h3>
-          <ul id="latest-list" class="latest-list"></ul>
-          <p class="latest-note">Changes, ground stop end times, weather in the next 3 hours and aircraft that look to be holding. Each line names its source and age.</p>
+        <div id="mine" class="mine" hidden>
+          <h3 class="sub-heading">Your airports</h3>
+          <div id="mine-list" class="board-grid"></div>
+          <p class="board-note">Saved in this browser only. No account.</p>
         </div>
+
+        <div id="airport-card-slot" class="card-slot" tabindex="-1"></div>
       </section>
 
       <section id="changed" aria-labelledby="changed-heading">
