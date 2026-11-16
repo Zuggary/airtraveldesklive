@@ -570,6 +570,16 @@ def hero_art_key(kind: str, lvl: str, is_day: bool) -> str:
     return "ap-clear-day" if is_day else f"airport-{kind}"
 
 
+def hero_preload(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../") -> str:
+    """AN38 LCP fix: the hero picture is the largest thing on the first screen, so it is the LCP element. Fetch its small
+    AVIF (3 to 9 KB) early from the head instead of late (fetchpriority low), so LCP lands with the text."""
+    key = hero_art_key(kind, lvl, is_day)
+    base = f"{prefix}assets/art/{key}"
+    sizes = ART_SIZES if key.startswith("airport-") else ART_STATE_SIZES
+    avif = ", ".join(f"{base}-{w}.avif {w}w" for w in sizes)
+    return f'  <link rel="preload" as="image" type="image/avif" imagesrcset="{avif}" imagesizes="100vw" fetchpriority="high">'
+
+
 def _hero_art(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../") -> list[str]:
     """AN34 r2 and AN38: the GPU-made airfield picture behind a hero band. It follows the airport's state (clear, delay,
     ground stop, closed, closed overnight) and the time of day; airport-type night art is the clear-night picture
@@ -583,7 +593,7 @@ def _hero_art(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str =
         f'        <div class="band-art" aria-hidden="true" data-art="{key}"><picture>',
         f'          <source type="image/avif" srcset="{avif}" sizes="100vw">',
         f'          <img src="{base}-{sizes[0]}.jpg" srcset="{jpg}" sizes="100vw" alt="" '
-        'width="1440" height="810" decoding="async" fetchpriority="low">',
+        'width="1440" height="810" decoding="async" fetchpriority="high">',
         "        </picture></div>",
     ]
 
@@ -804,6 +814,7 @@ def _render_head(
     description: str,
     canonical: str,
     breadcrumb: dict[str, Any],
+    preload: str = "",
 ) -> str:
     return "\n".join([
         "<!doctype html>",
@@ -827,6 +838,7 @@ def _render_head(
         '  <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">',
         '  <link rel="icon" href="../favicon.svg" type="image/svg+xml">',
         '  <link rel="icon" href="../favicon.png" type="image/png">',
+        *([preload] if preload else []),
         '  ' + THEME_SNIPPET,
         '  <script src="../theme.js" defer></script>',
         '  <link rel="stylesheet" href="../tokens.css">',
@@ -1651,7 +1663,8 @@ def render_airport_page(
         regional = []
 
     parts = [
-        _render_head(title=title, description=description, canonical=canonical, breadcrumb=breadcrumb),
+        _render_head(title=title, description=description, canonical=canonical, breadcrumb=breadcrumb,
+                     preload=hero_preload(airport_type(code), lvl, _hero_is_day(airport_info, now))),
         f'<body class="page-airport">',
         _render_header(),
         f'    <main id="main-content" class="airport-main">',
