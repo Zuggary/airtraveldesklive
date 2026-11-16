@@ -983,7 +983,7 @@ def render_airport_page(
         ),
         (
             f'        <p class="ap-why">Why: {_esc(pt.reason_plain((live_entry or {}).get("reason")))}. <a class="tap" href="../stuck.html">What to do if your flight is hit</a></p>'
-            if live["has"] and not live["stale"] and (live_entry or {}).get("reason")
+            if live["has"] and not live["stale"] and (live_entry or {}).get("reason") and str((live_entry or {}).get("reason")).strip().lower() != "closed"
             else ""
         ),
         (
