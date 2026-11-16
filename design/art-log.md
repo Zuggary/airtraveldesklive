@@ -29,3 +29,11 @@ Plan: GPU stills from the render queue (88 jobs queued as `AN38-*`, outputs in d
 
 Light page: each step and head picture has a pale painting (`-light`) that stuck.js picks by the theme switch or the system setting. The airport hero is a dark band in both themes (AN34 rule).
 Honest labelling: one footer line on every page type that carries art (`Pictures on this site are generated illustrations, not photos of real events or airports.`) and one line under the stuck card head. No pill on a picture.
+
+## AN38 day stills, batch 1 (2026-11-16)
+| Asset | Source render | Pick | Encode |
+|---|---|---|---|
+| assets/art/ap-clear-day-{720,1440} | demo/an38/art/raw/clear-day-v8.png (5090, AN38-clear-day-v8) | blind Gemini panel median 8.5 of 8 variants | demo/an38/encode.sh crf 42 (AVIF 2.6 / 5.1 KB) |
+| assets/art/ap-delay-day-{720,1440} | demo/an38/art/raw/delay-day-v8.png (AN38-delay-day-v8) | panel median 8.0 | crf 42 (AVIF 2.8 / 5.4 KB) |
+Not used: stop-day-v8 (median 8.5, but it shows a "CLOSED" text sign) and closed-day-v8 (6.5, a red X glyph). Those two keep their placeholders until re-renders land.
+Checks: AA contrast on ATL, BWI, SFO at 375 and 1440 (small text 5.4:1 or more); Lighthouse mobile vs live ATL +6 ms, BWI +73 ms LCP, perf equal.
