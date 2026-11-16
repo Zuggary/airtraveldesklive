@@ -675,7 +675,7 @@ def _render_place_ul(items: list[dict[str, Any]], extra_cls: str = "") -> str:
     for item in items:
         name = str(item.get("name") or "").strip()
         km = item.get("km")
-        dist = f"{float(km) * 0.621371:.1f} mi" if km is not None else "Within 3 miles"
+        dist = f"{float(km) * 0.621371:.1f} mi" if km is not None else "Within 3.1 miles"
         website = _safe_http_url(item.get("website"))
         lines.append('            <li class="place-row">')
         lines.append(f'              <span class="place-name">{_esc(name)}</span>')
@@ -875,7 +875,7 @@ def render_airport_page(
             f'        <p class="small">Fewer than 4 official links were available for {_esc(code)} when checked on {_esc(guide_checked_date or build_date)}.</p>'
         )
 
-    # Places within 3 miles
+    # Places within 3.1 miles
     hotels = list((places_entry or {}).get("hotels") or [])
     cars = list((places_entry or {}).get("cars") or [])
     places_credit_date = places_fetched_date or "unknown date"
@@ -892,7 +892,7 @@ def render_airport_page(
         source_items.append(f"BTS ({bts_month}) — monthly on-time arrival data (no entry for {code}).")
     if has_places:
         source_items.append(
-            f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 3 miles, fetched {places_credit_date}."
+            f"OpenStreetMap (&copy; OpenStreetMap contributors) — hotels and car rental within 3.1 miles, fetched {places_credit_date}."
         )
     if guide_entry.get("origin") == "ourairports":
         source_items.append("OurAirports (public domain) — the address of the airport's website.")
@@ -907,15 +907,15 @@ def render_airport_page(
     if has_places:
         places_html = [
             '      <section class="airport-section" aria-labelledby="places-heading">',
-            '        <h2 id="places-heading">Hotels and car rental within 3 miles</h2>',
+            '        <h2 id="places-heading">Hotels and car rental within 3.1 miles</h2>',
             '        <div class="places-columns">',
             '          <div class="places-col">',
             "            <h3>Hotels</h3>",
-            _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 3 miles.", "hotels"),
+            _render_place_list(hotels, "No hotels with a name are listed in OpenStreetMap within 3.1 miles.", "hotels"),
             "          </div>",
             '          <div class="places-col">',
             "            <h3>Car rental</h3>",
-            _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 3 miles.", "car rental places"),
+            _render_place_list(cars, "No car rental places are listed in OpenStreetMap within 3.1 miles.", "car rental places"),
             "          </div>",
             "        </div>",
             (

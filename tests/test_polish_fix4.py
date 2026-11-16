@@ -59,7 +59,7 @@ class TestAirportRound4(unittest.TestCase):
         self.assertIn("check what you may be owed</a>. This is plain-language help", self.sfo)
 
     def test_one_places_hierarchy(self) -> None:
-        self.assertEqual(self.sfo.count("within 3 miles</h"), 1)
+        self.assertEqual(self.sfo.count("within 3.1 miles</h"), 1)
         self.assertIn("<h3>Hotels</h3>", self.sfo)
         self.assertIn("<h3>Car rental</h3>", self.sfo)
 
