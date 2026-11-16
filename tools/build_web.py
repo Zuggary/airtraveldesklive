@@ -317,7 +317,7 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
         }
         w = wx_hubs.get(code)
         if w:
-            cards[code]["wx"] = {k: w.get(k) for k in ("cat", "now_text", "obs_utc", "wind_kt", "gust_kt", "next3h_text", "next3h_cat", "next3h_storms", "taf_issue_utc", "alert")}
+            cards[code]["wx"] = {k: w.get(k) for k in ("cat", "now_text", "obs_utc", "wind_kt", "gust_kt", "temp_f", "next3h_text", "next3h_cat", "next3h_storms", "taf_issue_utc", "alert")}
             cards[code]["wx"]["source"] = wx_src
         if code in notes:
             cards[code]["storm"] = notes[code]

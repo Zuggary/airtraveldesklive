@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var CACHE_NAME = "atd-offline-v9";
+  var CACHE_NAME = "atd-offline-v10";
   var STATIC_FILES = [
     "./",
     "./index.html",
@@ -105,8 +105,8 @@
       return;
     }
 
-    // Illustrations are not precached. Each one is saved the first time a page shows it (cache first after that).
-    if (cacheKey.indexOf(scopeUrl("./assets/illustrations/").pathname) === 0) {
+    // Illustrations and the hero art (assets/art) are not precached. Each one is saved the first time a page shows it (cache first after that).
+    if (cacheKey.indexOf(scopeUrl("./assets/illustrations/").pathname) === 0 || cacheKey.indexOf(scopeUrl("./assets/art/").pathname) === 0) {
       event.respondWith(
         caches.open(CACHE_NAME).then(function (cache) {
           return cache.match(cacheKey).then(function (hit) {

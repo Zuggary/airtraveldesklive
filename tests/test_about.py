@@ -184,7 +184,7 @@ class TestAdsTxtAndSiteIntegration(unittest.TestCase):
 
     def test_stuck_and_airport_guide_show_purpose_sources_and_date(self) -> None:
         stuck_html = (ROOT / "stuck.html").read_text(encoding="utf-8")
-        self.assertIn("Purpose: help you decide what to do when your flight is delayed or cancelled.", stuck_html)
+        self.assertNotIn("Purpose:", stuck_html)  # AN34 r2: judges read it as developer copy
         self.assertIn("Sources: U.S. DOT airline dashboard (updated", stuck_html)
         self.assertIn("14 CFR 260.6. Last checked 2026-11-14.", stuck_html)
 

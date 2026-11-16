@@ -46,6 +46,21 @@
   }
 }
 
+/* AN34 r2: the hero band is the dark board in both themes (rules for it are near the end of this file). */
+.band, .page-home .site-header {
+  --navy: #080b0f; --surface: rgba(14, 19, 25, 0.86); --surface-alt: rgba(21, 28, 37, 0.9); --surface-3: #1b2430;
+  --line: rgba(255, 255, 255, 0.1); --border: rgba(255, 255, 255, 0.2);
+  --text: #eef1f5; --board-text: #f6f1e3; --text-muted: #b6c0cc; --text-faint: #96a3b3; --link: #8fcbff;
+  --map-land: rgba(24, 33, 45, 0.78); --map-sea: transparent; --map-edge: rgba(150, 170, 195, 0.42);
+  --red: #ff5a47; --red-text: #ff9b8f; --red-soft: rgba(255, 90, 71, 0.16); --red-ink: #1d0503;
+  --green: #3ccf91; --green-text: #7fe3b7; --green-soft: rgba(60, 207, 145, 0.14);
+  --amber: #f5b301; --amber-text: #ffd45c; --amber-soft: rgba(245, 179, 1, 0.14); --amber-ink: #1b1400;
+  --none: #2a333f; --accent: #8fcbff; --accent-hover: #b5dcff; --accent-soft: rgba(143, 203, 255, 0.14); --on-accent: #080b0f;
+  color-scheme: dark;
+}
+.page-home .site-header { --header-bg: rgba(7, 10, 14, 0.9); color: var(--text); }
+.band { position: relative; isolation: isolate; overflow: hidden; background: rgb(7, 10, 14); color: var(--text); }
+
 /* ---------- base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -157,10 +172,7 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 @media (max-width: 699px) { .lede-about { display: none; } }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; font: 600 var(--fs-sm)/1.2 var(--font-text); color: var(--text-muted); }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
-@media (prefers-reduced-motion: no-preference) {
-  .pulse { animation: pulse 2.4s ease-in-out infinite; }
-  @keyframes pulse { 50% { box-shadow: 0 0 0 7px transparent; } }
-}
+/* AN34 r2: the live dot is still (a pulsing ring is on the FA7 slop list). */
 .verdict { margin: 0; font: 700 var(--fs-display)/1.02 var(--font-display); letter-spacing: -0.005em; max-width: 17ch; color: var(--board-text); }
 .verdict em { font-style: normal; color: var(--green); }
 .lede { margin: var(--space-4) 0 0; font-size: var(--fs-lg); color: var(--text-muted); max-width: 48ch; }
@@ -814,4 +826,149 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 
 @media (prefers-reduced-motion: no-preference) {
   .br, .pick, .guide-pill, .airport-index-card, .event-card, .chip, .btn { transition: background-color 120ms, border-color 120ms, opacity 120ms; }
+}
+
+/* ---------- AN34 round 2 (r2): a night-airfield hero band, one state per board row, a shorter phone page ---------- */
+/* The band is always the dark board, in both themes: it redefines the dark tokens for everything inside it,
+   so the map, the search and the chips draw themselves dark on the GPU-made night airfield (design/art-log.md). */
+.band-art { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.band-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 68% 60%; }
+.band-art::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 10, 14, 0.55) 0%, rgba(7, 10, 14, 0.35) 30%, rgba(7, 10, 14, 0.88) 100%),
+    linear-gradient(90deg, rgba(7, 10, 14, 0.92) 0%, rgba(7, 10, 14, 0.7) 45%, rgba(7, 10, 14, 0.25) 100%);
+}
+.band .stale-notice { background: rgba(245, 179, 1, 0.16); }
+.band .pick { background: rgba(14, 19, 25, 0.72); }
+.band .field { background: rgba(21, 28, 37, 0.82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.page-home .hero { padding: var(--space-6) 0 var(--space-6); }
+.page-home .hero-grid { gap: var(--space-5); }
+@media (min-width: 1000px) {
+  .page-home .hero { padding: var(--space-8) 0 var(--space-7); }
+  .page-home .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: var(--space-6); align-items: center; }
+  .page-home .hero-grid .mapcard { margin-top: 0; }
+  .page-home .verdict { font-size: clamp(2.8rem, 1.4rem + 2.6vw, 3.9rem); }
+}
+.page-home .mapcard figcaption { color: var(--text-faint); }
+@media (max-width: 699px) {
+  .page-home .verdict { font-size: clamp(2.3rem, 1.6rem + 3.2vw, 2.9rem); }
+  .page-home .mapcard figcaption .credit, .page-home .map-help { display: none; }
+}
+
+/* captions read at 13 px or more */
+.qt-name, .bh, .bar7 small, .tile-trend { font-size: var(--fs-xs); }
+.badge { font-size: var(--fs-xs); }
+
+/* the board: one state per row (FAA now), with a small 24 h strip on phones too */
+.tile-ok { display: inline; }
+@media (max-width: 639px) {
+  .br { grid-template-columns: minmax(0, 1fr) 76px auto; grid-template-areas: "c h s" "n h s"; gap: 0 12px; }
+  .hist24 { display: grid; grid-area: h; height: 14px; align-self: center; }
+}
+.board-quiet > summary { list-style: none; cursor: pointer; min-height: 48px; margin: 0; flex-wrap: wrap; font-size: var(--fs-sm); }
+.board-quiet > summary::-webkit-details-marker { display: none; }
+.board-quiet > summary::after { content: ""; width: 9px; height: 9px; margin-left: auto; border-right: 2px solid var(--text-faint); border-bottom: 2px solid var(--text-faint); transform: rotate(45deg) translateY(-3px); flex: none; }
+.board-quiet[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
+.board-quiet[open] > summary { margin-bottom: 10px; }
+.board-quiet[open] .quiet-codes { display: none; }
+.quiet-n { font: 700 1.15rem/1 var(--font-display); color: var(--board-text); }
+.quiet-codes { flex-basis: 100%; padding-left: 16px; font: 600 0.95rem/1.3 var(--font-display); letter-spacing: 0.04em; color: var(--text-faint); }
+
+/* events: the state leads */
+.event-big small { font-size: var(--fs-xs); line-height: 1.35; max-width: 32ch; }
+
+/* a shorter phone page: tighter sections and smaller charts */
+@media (max-width: 699px) {
+  .sec { padding-top: var(--space-6); }
+  .compare-card { padding: 14px 16px; }
+  .bars { height: 72px; gap: 6px; }
+  .tsa-num { font-size: 2.6rem; }
+  .hol-bars { height: 64px; }
+  .compare-card--bts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .compare-card--bts .compare-title, .compare-card--bts .compare-source { grid-column: 1 / -1; }
+  .compare-card--bts .bts-stat + .bts-stat { padding-top: 0; border-top: 0; padding-left: 16px; border-left: 1px solid var(--line); }
+  .compare-card--bts .compare-big { font-size: 2rem; }
+  .hist-box { padding: 12px; }
+  .hist-svg { max-height: 170px; }
+  .owed-panel { padding: var(--space-4); }
+  .owed-panel .small { display: none; }
+}
+
+/* the stale notice fits one line on a phone */
+.sn-short { display: none; }
+@media (max-width: 699px) {
+  .stale-notice { padding: 5px 10px; }
+  .sn-long, .sn-wide { display: none; }
+  .sn-short { display: inline; }
+}
+
+/* ---------- AN34 r2 airport pages: the hero is a dark band on the airport-type night art ---------- */
+.ap-hero.band { background: rgb(7, 10, 14); border: 0; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, var(--shadow); }
+.ap-hero.band::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--text-faint); z-index: 1; }
+.ap-hero.band.ap-hero--clear::before { background: var(--green); }
+.ap-hero.band.ap-hero--delay::before { background: var(--amber); }
+.ap-hero.band.ap-hero--stop::before, .ap-hero.band.ap-hero--closed::before { background: var(--red); }
+.ap-hero .band-art img { object-position: 78% 55%; }
+.ap-hero .band-art::after {
+  background:
+    linear-gradient(90deg, rgba(7, 10, 14, 0.9) 0%, rgba(7, 10, 14, 0.62) 50%, rgba(7, 10, 14, 0.3) 100%),
+    linear-gradient(0deg, rgba(7, 10, 14, 0.7) 0%, transparent 45%);
+}
+.ap-name span { display: block; }
+@media (min-width: 1000px) {
+  .ap-hero.band { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); padding: var(--space-6) var(--space-6) var(--space-6) var(--space-7); align-items: center; }
+}
+/* the regional map shows on phones too, under the answer */
+.ap-map:not([hidden]) { display: block; }
+.ap-map canvas { border-color: rgba(255, 255, 255, 0.12); }
+@media (max-width: 699px) { .ap-map canvas { aspect-ratio: 1.7; } }
+
+/* one action strip: the stuck guide, and where your own flight's time lives */
+.ap-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-top: var(--space-5); }
+.ap-actions .btn { min-height: 48px; }
+.btn-ghost { background: rgba(255, 255, 255, 0.06); color: var(--text); border-color: var(--border); }
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.12); }
+.flight-check > summary { list-style: none; cursor: pointer; }
+.flight-check > summary::-webkit-details-marker { display: none; }
+.flight-check[open] { flex-basis: 100%; }
+.flight-check[open] > summary { background: rgba(255, 255, 255, 0.14); }
+.flight-pop { margin-top: 10px; padding: 14px 16px; border-radius: var(--radius); background: rgba(14, 19, 25, 0.9); border: 1px solid var(--line); }
+.flight-pop p { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); max-width: 60ch; }
+.airline-links { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.airline-links .tap { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); text-decoration: none; color: var(--text); font-size: var(--fs-sm); }
+.airline-links .tap:hover { background: rgba(255, 255, 255, 0.08); }
+@media (max-width: 699px) {
+  .ap-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .ap-actions .btn, .flight-check > summary { width: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) { .btn:active { transform: scale(0.96); } }
+
+/* the record right under the status: the last 3 days and a typical month, side by side on wide screens */
+.ap-record { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--space-6); }
+.ap-record > * { min-width: 0; }
+.ap-record .airport-section { margin-top: var(--space-5); padding: var(--space-4) var(--space-5); border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.ap-record h2 { font-size: var(--fs-lg) !important; }
+.ap-record .glance-ontime { padding: 0; border: 0; background: none; }
+.ap-tip { margin: 10px 0 0; font-size: var(--fs-sm); color: var(--text-muted); }
+@media (min-width: 900px) { .ap-record { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+.airport-about-note .glance-details { margin-top: 10px; }
+
+/* AN34 r2 stuck page: the airline list folds (the wizard already lists the airlines); no jump link beside the panel it jumps to */
+details.airline-links > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-height: 48px; }
+details.airline-links > summary::-webkit-details-marker { display: none; }
+details.airline-links > summary h2 { margin: 0; }
+details.airline-links > summary .cnt { color: var(--text-faint); font-size: var(--fs-sm); }
+details.airline-links[open] > summary { margin-bottom: 12px; }
+@media (min-width: 1100px) { .ask-first-jump { display: none; } }
+.ap-hero.band { --map-land: rgba(19, 27, 37, 0.94); --map-sea: rgba(9, 13, 18, 0.78); }
+.stuck-band { padding: var(--space-6) 0; }
+.stuck-band .band-art img { object-position: 75% 45%; }
+.stuck-band .stuck-page-title { margin: 0; color: var(--board-text); }
+.stuck-band .stuck-page-intro { margin: 10px 0 0; color: var(--text-muted); max-width: 60ch; }
+@media (min-width: 1000px) { .stuck-band { padding: var(--space-8) 0 var(--space-7); } }
+.event-header .badge { order: -1; }
+@media (max-width: 699px) { .hist-box > .hist-note ~ .hist-note { display: none; } }
+@media (max-width: 699px) {
+  .ap-hero .band-art::after, .stuck-band .band-art::after { background: linear-gradient(180deg, rgba(7, 10, 14, 0.72) 0%, rgba(7, 10, 14, 0.84) 45%, rgba(7, 10, 14, 0.94) 100%); }
 }

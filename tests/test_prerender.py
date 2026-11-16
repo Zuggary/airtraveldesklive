@@ -146,16 +146,16 @@ class TestAirportPrerender(_Built):
 
     def test_weather_summary_source_and_age_as_text(self):
         atl = visible_text(self.pages["ATL"])
-        self.assertIn("Weather now: clear, wind 9 kt", atl)
+        self.assertIn("Weather now: clear, wind 10 mph", atl)  # AN34 r2: mph for travelers
         self.assertIn("aviationweather.gov METAR", atl)
         self.assertIn("FAA NAS status, checked 4:50 AM EST (8 min ago)", atl)
         den = visible_text(self.pages["DEN"])
-        self.assertIn("Weather now: thunderstorms, wind 24 kt gusting 35 kt", den)
+        self.assertIn("Weather now: thunderstorms, wind 28 mph gusting 40 mph", den)
         self.assertIn("FAA NAS status, checked 2:50 AM MST (8 min ago)", den)
         # AN34 round 3: the reason is in the lead under the H1, not in a repeat FAA tile.
         self.assertIn("because of thunderstorms", den)
         ord_text = visible_text(self.pages["ORD"])
-        self.assertIn("wind calm (0 kt)", ord_text)
+        self.assertIn("wind calm", ord_text)
 
     def test_values_come_only_from_data(self):
         # An airport with no weather in the data shows no weather line and no invented value.
@@ -221,10 +221,11 @@ class TestAirportPrerender(_Built):
 
 class TestAirportOrder(_Built):
     def test_status_first_then_bts_then_help(self):
+        # AN34 r2: the record (on-time month) sits right under the status; the facts fold into the about note.
         page = self.pages["SFO"]
         order = [page.index(x) for x in (
-            "<h1", 'id="status-chip"', 'id="right-now-heading"', 'id="stuck-heading"',
-            'id="official-heading"', 'aria-label="On-time arrivals"', 'id="glance-heading"')]
+            "<h1", 'id="status-chip"', 'aria-label="On-time arrivals"', 'id="right-now-heading"', 'id="stuck-heading"',
+            'id="official-heading"', 'id="about-page-heading"', 'class="glance-details"')]
         self.assertEqual(order, sorted(order))
 
     def test_illustration_keeps_caption_and_tag(self):
@@ -602,7 +603,7 @@ class TestStaleHonesty(unittest.TestCase):
     def test_fresh_pages_keep_live_words(self):
         atl = visible_text(self.fresh["ATL"])
         self.assertIn("Right now", atl)
-        self.assertIn("Weather now: clear, wind 9 kt", atl)
+        self.assertIn("Weather now: clear, wind 10 mph", atl)
         self.assertIn("Next 3 hours:", atl)
         self.assertIn("badge badge--clear status-chip", self.fresh["ATL"])
         self.assertNotIn("badge--stale", self.fresh["ATL"].split("<script>")[0])

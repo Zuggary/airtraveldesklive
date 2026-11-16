@@ -303,7 +303,15 @@
   function millions(n) { return n == null || !isFinite(n) ? "" : (n / 1e6).toFixed(2); }
 
   // Thanksgiving card rows from state.holiday. A day with no count yet keeps count null (drawn as an empty outline, never zero).
-  function holidayView(h) {
+  // AN34 r2: days to a "YYYY-MM-DD" date, counted from the visitor's own calendar day (not the data's day).
+  function daysUntil(isoDate, nowMs) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate || "");
+    if (!m || nowMs == null) { return null; }
+    var n = new Date(nowMs);
+    return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
+  }
+
+  function holidayView(h, nowMs) {
     if (!h || !h.days || !h.days.length) { return null; }
     var max = 0, rows = h.days.map(function (d) {
       if (d.count != null && d.count > max) { max = d.count; }
@@ -317,7 +325,8 @@
         isBusiest: !!d.is_busiest, isRecord: !!d.is_record, isThanksgiving: !!d.is_thanksgiving
       };
     });
-    return { rows: rows, max: max, daysTo: h.days_to, thanksgiving: h.thanksgiving, busiest: h.busiest_date, busiestCount: h.busiest_count,
+    var dTo = daysUntil(h.thanksgiving, nowMs);
+    return { rows: rows, max: max, daysTo: dTo != null ? dTo : h.days_to, thanksgiving: h.thanksgiving, busiest: h.busiest_date, busiestCount: h.busiest_count,
              record: h.record || null, latest: h.latest || null, counted: h.counted_days || 0, fetched: h.fetched_utc };
   }
 
@@ -411,7 +420,7 @@
     fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, troubleLine: troubleLine,
     kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
-    tileView: tileView, holidayView: holidayView, latestItems: latestItems, millions: millions,
+    tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,
     changedLastHour: changedLastHour, historySeries: historySeries, checkedView: checkedView,
     STALE_MIN: STALE_MIN, isStale: isStale, durText: durText, agoText: agoText, oldText: oldText,
     forecastEnd: forecastEnd, forecastExpired: forecastExpired,

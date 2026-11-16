@@ -55,6 +55,13 @@
     return m ? MONTHS[parseInt(m[2], 10) - 1] + " " + parseInt(m[3], 10) + ", " + m[1] : "";
   }
 
+  // AN34 r2: a timestamp's day in the visitor's own time zone ("updated Nov 15"), never the UTC date.
+  function fmtLocalDay(iso) {
+    var ms = Date.parse(iso || "");
+    if (!isFinite(ms)) { return fmtDay(iso); }
+    try { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(ms)); } catch (e) { return fmtDay(iso); }
+  }
+
   function million(n) { return (n / 1e6).toFixed(2) + " million"; }
 
   function ageMin(iso) {
@@ -146,13 +153,17 @@
 
   // ---------- 1: right now ----------
   function setStale(stale, text) {
-    stale.textContent = text + " ";
+    // AN34 r2: one line on a phone: "FAA's own page:" and the long link text hide below 700 px.
+    var tail = / FAA's own page:$/.test(text);
+    stale.textContent = (tail ? text.replace(/ FAA's own page:$/, "") : text) + " ";
+    if (tail) { stale.appendChild(el("span", "sn-long", "FAA's own page: ")); }
     var a = document.createElement("a");
     a.className = "stale-link";
     a.href = "https://nasstatus.faa.gov";
     a.target = "_blank";
     a.rel = "noopener noreferrer";
-    a.textContent = "nasstatus.faa.gov";
+    a.appendChild(el("span", "sn-wide", "nasstatus.faa.gov"));
+    a.appendChild(el("span", "sn-short", "FAA status"));
     stale.appendChild(a);
     stale.hidden = false;
   }
@@ -270,14 +281,17 @@
         if (MONTH_IX[mt[1]] < now.getUTCMonth() - 6) { y++; }
         var d = new Date(Date.UTC(y, MONTH_IX[mt[1]], +mt[2], +mt[3], +mt[4]));
         var day = "";
-        try { day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: tz || undefined }).format(d); } catch (e) { day = mt[1] + " " + mt[2]; }
-        return { big: day, small: "listed reopening, " + fmtTime(d, tz) };
+        try { day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d); } catch (e) { day = mt[1] + " " + mt[2]; }
+        // AN34 r2: the big word is the state; the date sits in the small line, in the visitor's zone like every clock here.
+        if (d.getTime() <= Date.now()) { return { big: "Closed", small: "listed to reopen " + day + ", " + fmtTime(d) + "; that time has passed, so it may have reopened" }; }
+        return { big: "Closed", small: "listed to reopen " + day + ", " + fmtTime(d) };
       }
       return { big: "Closed", small: "no reopening time listed" };
     }
     if (ev.kind === "ground_stop") {
       var endMs = ev.end_utc ? Date.parse(ev.end_utc) : NaN;
-      if (isFinite(endMs)) { var cd = A.countdown(endMs, Date.now()); return { big: fmtTime(new Date(endMs), tz), small: "listed end" + (cd ? ", " + cd : "") }; }
+      if (isFinite(endMs) && endMs <= Date.now()) { return { big: "Stop", small: "listed to end " + fmtTime(new Date(endMs)) + "; that time has passed, so it may have lifted" }; }
+      if (isFinite(endMs)) { var cd = A.countdown(endMs, Date.now()); return { big: fmtTime(new Date(endMs)), small: "listed end" + (cd ? ", " + cd : "") }; }
       if (f.end_time) { return { big: String(f.end_time).replace(/\.$/, ""), small: "listed end" }; }
       return { big: "Stop", small: "no end time listed" };
     }
@@ -311,8 +325,6 @@
     card.appendChild(big);
     var meta = el("p", "event-meta");
     var parts = [];
-    var t = fmtTime(new Date(), ev.tz || a.tz);
-    if (t) { parts.push("Local time " + t); }
     parts.push("Sources: " + ((ev.sources && ev.sources.length) ? ev.sources.join(", ") : "FAA"));
     parts.push("Checked " + ageText(D.state.updated_utc));
     meta.textContent = parts.join(" · ");
@@ -407,7 +419,7 @@
   // ---------- 2: search and board ----------
   // Three columns on wide screens, two below 1000 px (the CSS grid matches).
   var BOARD_MQ = window.matchMedia ? window.matchMedia("(min-width: 1000px)") : null;
-  var boardOpen = false, BOARD_FOLD = 10;
+  var boardOpen = false, BOARD_FOLD = 8, quietOpen = null;
   function boardCols() { return BOARD_MQ && BOARD_MQ.matches ? 3 : 2; }
   if (BOARD_MQ) { try { BOARD_MQ.addEventListener("change", function () { renderBoard(); }); } catch (e) { /* old browser: keep the first layout */ } }
 
@@ -451,8 +463,15 @@
       }
     }
     if (quiet.length) {
-      var qw = el("div", "board-quiet" + (busy.length ? "" : " board-quiet--only"));
-      qw.appendChild(el("p", "quiet-head", (busy.length ? "Normal now and all of the last 24 hours" : "All normal now and all of the last 24 hours") + " (" + quiet.length + ")"));
+      // AN34 r2: on phones the calm airports fold behind one line; wide screens open it.
+      var qw = el("details", "board-quiet" + (busy.length ? "" : " board-quiet--only"));
+      qw.open = quietOpen != null ? quietOpen : !!(BOARD_MQ && BOARD_MQ.matches);
+      qw.addEventListener("toggle", function () { quietOpen = qw.open; });
+      var qs = el("summary", "quiet-head");
+      qs.appendChild(el("span", "quiet-n", String(quiet.length)));
+      qs.appendChild(document.createTextNode(busy.length ? " more airports normal all day" : " airports, all normal all day"));
+      qs.appendChild(el("span", "quiet-codes", quiet.slice(0, 8).map(function (o) { return o.a.code; }).join(" ") + (quiet.length > 8 ? " \u2026" : "")));
+      qw.appendChild(qs);
       var qg = el("div", "quiet-grid");
       quiet.forEach(function (o) {
         var q = el("a", "tile qt");
@@ -537,8 +556,6 @@
     b.appendChild(h);
     var st = el("span", "tile-level");
     if (lvl === "clear") {
-      // AN34 round 3: phones have no 24 h strip, so say in words that this airport had trouble earlier.
-      if (histTrouble(a.code)) { st.appendChild(el("span", "tile-was", "Delays earlier")); }
       st.appendChild(el("span", "dot dot--clear"));
       st.appendChild(el("span", "tile-ok", "Normal"));
     } else {
@@ -1038,7 +1055,7 @@
     });
     table.appendChild(tb);
     c.appendChild(table);
-    c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtDay((hv.fetched || "").slice(0, 10)) + ". Last year lined up by days to Thanksgiving."));
+    c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtLocalDay(hv.fetched) + ". Last year lined up by days to Thanksgiving."));
     return c;
   }
 
@@ -1049,7 +1066,7 @@
     box.textContent = "";
     var t = D.tsa;
     if (t && t.latest_count) {
-      var src = "Source: TSA checkpoint numbers, updated " + fmtDay((t.fetched_utc || "").slice(0, 10));
+      var src = "Source: TSA checkpoint numbers, updated " + fmtLocalDay(t.fetched_utc);
       var pctDay = t.ly_count ? (t.latest_count / t.ly_count - 1) * 100 : null;
       // AN34: one big number, the same day last year, then the last 7 days as bars with last year's marks.
       var c = el("article", "compare-card tsa-card");
@@ -1090,7 +1107,7 @@
       c.appendChild(el("p", "compare-source", src));
       box.appendChild(c);
       var th = t.thanksgiving;
-      var hv = A.holidayView(D.state && D.state.holiday);
+      var hv = A.holidayView(D.state && D.state.holiday, Date.now());
       if (hv) {
         box.appendChild(holidayCard(hv));
       } else if (th && th.days_to != null) {
@@ -1219,7 +1236,7 @@
 
   // AN34: colours come from the theme tokens, so the map matches dark and light.
   function cssVar(name, fallback) {
-    try { var v = window.getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; } catch (e) { return fallback; }
+    try { var v = window.getComputedStyle($("map") || document.documentElement).getPropertyValue(name).trim(); return v || fallback; } catch (e) { return fallback; }
   }
   var MARK_R = { clear: 4.5, delay: 8, stop: 8.5 };
 
@@ -1272,6 +1289,12 @@
     }
     airports.forEach(add);
     allAirports.forEach(function (a) { if (a.level === "stop" || a.level === "delay") { add(a); } });
+    // AN34 r2: an FAA program at an airport with no card (the headline may lead with it) still gets a ringed, labelled dot.
+    faaEvents().forEach(function (e) {
+      var c = String(e.airport || "");
+      if (!/^[A-Z]{3}$/.test(c) || seen[c] || typeof e.lat !== "number" || typeof e.lon !== "number") { return; }
+      add({ code: c, lat: e.lat, lon: e.lon, level: e.kind === "closure" || e.kind === "ground_stop" ? "stop" : "delay", events: [{ kind: e.kind, avg: (e.fields || {}).avg }] });
+    });
     canvas.setAttribute("data-markers", mapMarkers.map(function (m) { return m.code + ":" + Math.round(m.x) + ":" + Math.round(m.y); }).join(","));
     var order = { clear: 0, delay: 1, stop: 2 };
     mapMarkers.sort(function (x, y) { return (order[x.level] || 0) - (order[y.level] || 0); });
@@ -1323,6 +1346,7 @@
       var rect = canvas.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
       var best = null, bd = 24;
       mapMarkers.forEach(function (m) { var d = Math.hypot(m.x - x, m.y - y); if (d <= bd) { bd = d; best = m; } });
+      if (best && !byCode[best.code] && !allByCode[best.code]) { window.location.href = "airports/" + best.code + ".html"; return; }
       if (best) { openAirport(best.code, true); }
     });
     canvas.addEventListener("pointermove", function (e) {
@@ -1358,6 +1382,9 @@
     // AN34: on a quiet hour the block shrinks to one line and the 24 h chart takes the full width.
     var split = sum.closest ? sum.closest(".split") : null;
     if (split) { split.classList.toggle("split--quiet", !r.ok || !r.changes.length); }
+    // AN34 r2: an empty "changed" block is noise; it shows only when an airport changed level.
+    var csec = $("changed");
+    if (csec) { csec.hidden = !r.ok || !r.changes.length; }
     if (!r.ok) {
       sum.textContent = "Not enough readings yet to compare with an hour ago.";
       note.textContent = "The site keeps one FAA reading per hour. This fills in after the next hourly reading. Source: FAA NAS status, " + ageText(D.state.updated_utc) + ".";

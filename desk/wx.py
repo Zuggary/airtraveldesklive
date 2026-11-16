@@ -154,6 +154,8 @@ def parse_metar(m: dict[str, Any], now_ts: float) -> Optional[dict[str, Any]]:
     return {
         "cat": cat, "obs_utc": _iso(obs), "wind_kt": _num(m.get("wspd")), "gust_kt": _num(m.get("wgst")),
         "vis_sm": vis, "ceiling_ft": ceil, "now_text": describe(cat, ceil, vis, words),
+        # AN34 r2: the METAR temperature (deg C in the feed) in deg F for travelers; None when not reported.
+        "temp_f": None if _num(m.get("temp")) is None else round(_num(m.get("temp")) * 9 / 5 + 32),
     }
 
 

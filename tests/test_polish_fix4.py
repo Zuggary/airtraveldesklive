@@ -48,7 +48,7 @@ class TestAirportRound4(unittest.TestCase):
         cls._tmp.cleanup()
 
     def test_facts_open_by_default_with_chevron_css(self) -> None:
-        self.assertIn('<details class="glance-details" open>', self.sfo)
+        self.assertIn('<details class="glance-details">', self.sfo)  # AN34 r2: folded inside the about note
         css = read("style.css")
         self.assertIn(".glance-details summary::before", css)
         self.assertRegex(css, r"\.glance-details\[open\] > summary::before\s*\{[^}]*rotate\(45deg\)")
@@ -69,7 +69,8 @@ class TestAirportRound4(unittest.TestCase):
         self.assertIn('class="stale-notice" role="status"', self.sfo)
         self.assertIn("var STALE_MIN = 30;", self.sfo)
         self.assertIn("https://nasstatus.faa.gov", self.sfo)
-        self.assertIn(", not live. FAA's own page:", self.sfo)
+        self.assertIn(", not live. ", self.sfo)
+        self.assertIn('"sn-long"', self.sfo)  # AN34 r2: "FAA's own page:" hides on phones so the notice is one line
 
     def test_one_age_format(self) -> None:
         script = self.sfo.split("<script>")[-1]

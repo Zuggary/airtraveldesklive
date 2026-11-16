@@ -44,9 +44,11 @@ class TestAirportPolish(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls._tmp.cleanup()
 
-    def test_ontime_figure_comes_before_at_a_glance(self) -> None:
+    def test_ontime_figure_comes_before_the_tiles(self) -> None:
+        # AN34 r2: the on-time figure moved up beside the 3-day record; "At a glance" is gone.
         self.assertIn('class="glance-ontime"', self.sfo)
-        self.assertLess(self.sfo.index('class="glance-ontime"'), self.sfo.index("At a glance"))
+        self.assertLess(self.sfo.index('class="glance-ontime"'), self.sfo.index('class="ap-cols"'))
+        self.assertNotIn("At a glance", self.sfo)
 
     def test_facts_do_not_repeat_the_code(self) -> None:
         m = re.search(r'<details class="glance-details"(?: open)?>(.*?)</details>', self.sfo, re.S)
@@ -72,7 +74,7 @@ class TestAirportPolish(unittest.TestCase):
         self.assertIn('a.href = "../sources.html"', self.sfo)
         self.assertIn('"FAA NAS status"', self.sfo)
         self.assertIn('"aviationweather.gov METAR"', self.sfo)
-        self.assertIn('"calm (0 kt)"', self.sfo)
+        self.assertIn('return "calm"', self.sfo)
         self.assertNotIn('" (FAA NAS status)"', self.sfo)
 
 

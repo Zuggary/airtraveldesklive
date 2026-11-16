@@ -221,15 +221,22 @@ def event_figure(ev: dict[str, Any], tz: str, now: datetime) -> tuple[str, str]:
                 year += 1
             try:
                 when = datetime(year, month, int(m.group(2)), int(m.group(3)), int(m.group(4)), tzinfo=_tz.utc)
-                zone = pt.ZoneInfo(tz) if tz else _tz.utc
-                local = when.astimezone(zone)
-                return f"{MONTHS[local.month - 1]} {local.day}", "listed reopening, " + pt.clock_label(when.isoformat().replace("+00:00", "Z"), tz)
+                # AN34 r2: the big word is the state; the date goes in the small line, in the one zone the home page uses.
+                local = when.astimezone(pt.ZoneInfo(HOME_TZ))
+                day = f"{MONTHS[local.month - 1]} {local.day}"
+                clock = pt.clock_label(when.isoformat().replace("+00:00", "Z"), HOME_TZ)
+                if when <= now:
+                    return "Closed", f"listed to reopen {day}, {clock}; that time has passed, so it may have reopened"
+                return "Closed", f"listed to reopen {day}, {clock}"
             except Exception:  # unknown zone or bad date
                 pass
         return "Closed", "no reopening time listed"
     if kind == "ground_stop":
         end = str(ev.get("end_utc") or "")
-        clock = pt.clock_label(end, tz) if end else ""
+        clock = pt.clock_label(end, HOME_TZ) if end else ""
+        end_dt = pt.parse_utc(end) if end else None
+        if clock and end_dt and end_dt <= now:
+            return "Stop", f"listed to end {clock}; that time has passed, so it may have lifted"
         if clock:
             return clock, "listed end"
         if f.get("end_time"):
@@ -305,7 +312,9 @@ def render_tsa(tsa: dict[str, Any]) -> str:
         lines.append(
             f"Same weekday last year ({_fmt_day(tsa.get('ly_date'))}): {ly / 1e6:.2f} million ({sign}{pct:.1f}%)"
         )
-    source = f"Source: TSA checkpoint numbers, updated {_fmt_day(str(tsa.get('fetched_utc') or '')[:10])}"
+    fetched = pt.parse_utc(str(tsa.get("fetched_utc") or ""))
+    day = _fmt_day(fetched.astimezone(pt.ZoneInfo(HOME_TZ)).date().isoformat()) if fetched else _fmt_day(str(tsa.get("fetched_utc") or "")[:10])
+    source = f"Source: TSA checkpoint numbers, updated {day}"
     body = "".join(f'<p class="compare-line">{_esc(x)}</p>' for x in lines)
     return (
         '<article class="compare-card">'
@@ -351,14 +360,11 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     events_html = render_events(state, by_code, state_utc, now, stale) if state else ""
     page = _slot(page, "events", events_html)
     page = _slot(page, "tsa", render_tsa(tsa))
-    notice = pt.stale_text(state_utc, now) if state_utc else ""
+    notice = pt.stale_notice_html(state_utc, now) if state_utc else ""
     if notice:
-        link = (
-            ' <a class="stale-link" href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">nasstatus.faa.gov</a>'
-        )
         page = page.replace(
             'role="status" hidden><!--pr:stale--><!--/pr:stale--></p>',
-            f'role="status">{_esc(notice)}{link}</p>',
+            f'role="status">{notice}</p>',
             1,
         )
     page = re.sub(r"<!--/?pr:stale-->", "", page)

@@ -8,6 +8,8 @@ Stdlib only. No network.
 """
 from __future__ import annotations
 
+from html import escape
+
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -127,6 +129,22 @@ def stale_text(iso: Any, now: datetime) -> str:
     return f"This data is {old_text(m)}, not live. FAA's own page:"
 
 
+STALE_LINK_HTML = (
+    '<a class="stale-link" href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">'
+    '<span class="sn-wide">nasstatus.faa.gov</span><span class="sn-short">FAA status</span></a>'
+)
+
+
+def stale_notice_html(iso: Any, now: datetime) -> str:
+    """AN34 r2: the stale notice as HTML that fits one line on a phone: the long words and the long link text
+    hide below 700 px (CSS .sn-long, .sn-wide), the short link text shows instead. '' when fresh."""
+    text = stale_text(iso, now)
+    if not text:
+        return ""
+    main = text.removesuffix(" FAA's own page:")
+    return f'{escape(main)} <span class="sn-long">FAA\'s own page:</span> {STALE_LINK_HTML}'
+
+
 def as_of_text(iso: Any, tz: str, now: datetime) -> str:
     """'as of 1:50 AM PST (12 hours ago)', or 'as of an unknown time'."""
     clock = clock_label(iso, tz)
@@ -198,19 +216,34 @@ def status_word(entry: dict[str, Any]) -> str:
     return WORD_GDP if "ground_delay" in kinds else WORD_DELAY
 
 
+def mph(kt: Any) -> int:
+    """Knots to whole miles per hour."""
+    return round(float(kt) * 1.15078)
+
+
 def wind_text(wx: dict[str, Any], gusts: bool = True) -> str:
-    """'calm (0 kt)' or '9 kt gusting 20 kt'. '' when the wind is not in the data."""
+    """'calm' or '10 mph gusting 23 mph' (AN34 r2: miles per hour for travelers). '' when the wind is not in the data."""
     wind = wx.get("wind_kt")
     if wind is None:
         return ""
-    kt = round(float(wind))
-    if kt == 0:
-        return "calm (0 kt)"
-    out = f"{kt} kt"
+    if round(float(wind)) == 0:
+        return "calm"
+    out = f"{mph(wind)} mph"
     gust = wx.get("gust_kt")
     if gusts and gust:
-        out += f" gusting {round(float(gust))} kt"
+        out += f" gusting {mph(gust)} mph"
     return out
+
+
+def temp_text(wx: dict[str, Any]) -> str:
+    """'54°F' from the METAR temperature, or '' when the feed had none."""
+    t = wx.get("temp_f")
+    if t is None:
+        return ""
+    try:
+        return f"{round(float(t))}\u00b0F"
+    except (TypeError, ValueError):
+        return ""
 
 
 def weather_summary(wx: dict[str, Any] | None) -> str:
@@ -218,6 +251,9 @@ def weather_summary(wx: dict[str, Any] | None) -> str:
     if not isinstance(wx, dict) or not wx.get("now_text"):
         return ""
     out = str(wx["now_text"])
+    temp = temp_text(wx)
+    if temp:
+        out += f", {temp}"
     wind = wind_text(wx)
     return f"{out}, wind {wind}" if wind else out
 

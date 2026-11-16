@@ -16,7 +16,7 @@
     return fetch(url, { cache: "no-store" }).then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); }).catch(function () { return null; });
   }
   function cssVar(name, fb) {
-    try { return window.getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb; } catch (e) { return fb; }
+    try { return window.getComputedStyle(canvas).getPropertyValue(name).trim() || fb; } catch (e) { return fb; }
   }
   function level(a) {
     if ((a.events || []).some(function (e) { return e && e.kind === "closure"; })) { return "stop"; }

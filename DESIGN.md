@@ -30,6 +30,15 @@ delays, status chips, source line) with a regional radar map on wide screens (ap
 (quiet when clear, three steps when delayed or closed; sticky right rail on wide screens), the last 3 days,
 a typical month (BTS), official pages as an icon grid, hotels folded, facts, sources folded.
 
+## Round 2 (AN34 r2, CoS default, open for Zach)
+- The hero is a dark band in both themes (style.css `.band` redefines the dark tokens inside it), on GPU-made
+  night-airfield art: home band full width; airport heroes by airport type (hub, coastal, mountain, desert);
+  the stuck page title band reuses the hub picture. Art is decoration only; files and prompts in design/art-log.md.
+- Airport page order: hero (lockup, answer, one action strip: "I'm stuck guide" and "Check my flight"), then the
+  record (last 3 days beside a typical month), then weather and daylight, help, official pages, hotels, sources, about (facts fold here).
+- Every clock and date on the home page is in the visitor's own zone; the pre-render uses Eastern.
+- Wind in mph, temperature in deg F (METAR). Captions 13 px or more.
+
 ## Copy rules (unchanged)
 Every number carries its source and age. "May be owed" / "possibly owed", never "must cover"; the airline decides
 each claim. Arrivals and departures are kept apart for ground delays.
