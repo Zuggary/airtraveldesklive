@@ -270,9 +270,10 @@ class TestHomePrerender(_Built):
     def test_text_with_js_off(self):
         text = visible_text(self.home)
         self.assertIn("FAA NAS status, checked 4:50 AM EST (8 min ago)", text)
-        self.assertIn("1 airport with a ground stop", text)
-        self.assertIn("1 airport with delays", text)
-        self.assertIn("longest: Chicago, avg 1 h 20 min", text)
+        # AN34: the headline is a verdict over every airport; one plain line names the exceptions.
+        self.assertIn("3 of the 5 busiest US airports have no FAA delays right now", text)
+        self.assertIn("Denver (DEN) has a ground stop.", text)
+        self.assertIn("Flights to Chicago (ORD) are held about 1 h 20 min.", text)
         self.assertIn("Ground stop", text)
         self.assertIn("Ground delay", text)
         self.assertIn("People screened, Nov 12", text)
@@ -338,23 +339,22 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
             self.assertIn(f"<!--/pr:{slot}-->", self.tpl)
 
     def test_main_column_order(self):
-        ids = ['id="now"', "airport-search", 'id="changed"', 'id="board-section"', 'id="history"', 'id="map-section"',
-               'id="owed"', 'id="compare"', 'id="watch"', 'id="while-you-wait"']
+        # AN34: verdict, search and map first; then the programs, the board, the changes and travel volume, then help.
+        ids = ['id="now"', "airport-search", 'id="map-section"', 'id="trouble"', 'id="board-section"', 'id="changed"',
+               'id="history"', 'id="compare"', 'id="owed"', 'id="while-you-wait"', "</main>", 'id="watch"']
         pos = [self.tpl.index(i) for i in ids]
         self.assertEqual(pos, sorted(pos))
-        sections = re.findall(r'<section id="([a-z-]+)"', self.tpl)
+        sections = re.findall(r'<section id="([a-z-]+)"', self.tpl.split("</main>")[0])
         self.assertEqual(sections[0], "now")  # AN32: the national answer first
-        self.assertEqual(sections[1], "airports")  # search next
-        self.assertEqual(sections[-1], "while-you-wait")  # Lantern Drift last
-        self.assertEqual(sections[-2], "watch")  # Twitch block just above it
+        self.assertEqual(sections[-1], "while-you-wait")  # Lantern Drift last in the page body
 
-    def test_watch_live_text_link_near_top(self):
-        link = self.tpl.index('<a class="tap" href="#watch">Watch live</a>')
-        self.assertLess(link, self.tpl.index('id="airport-search"'))
-        self.assertLess(link, self.tpl.index('<main'))
-        # The Twitch chip and the embed button now live in the lower block.
+    def test_watch_live_moved_to_the_footer(self):
+        # AN34: the Twitch links left the top of the page; they sit in the footer, after the data.
+        self.assertNotIn('href="#watch">Watch live</a>', self.tpl)
+        footer = self.tpl[self.tpl.index('<footer'):]
+        self.assertIn('id="load-live"', footer)
+        self.assertIn("twitch.tv/airtraveldesklive", footer)
         self.assertGreater(self.tpl.index('id="load-live"'), self.tpl.index('id="compare"'))
-        self.assertGreater(self.tpl.index("twitch.tv/airtraveldesklive"), self.tpl.index('id="compare"'))
 
     def test_every_script_id_still_exists(self):
         app = (ROOT / "app.js").read_text(encoding="utf-8")

@@ -145,28 +145,41 @@
     return end == null || end <= (nowMs == null ? Date.now() : nowMs);
   }
 
+  // AN34: the home headline is a verdict over all the airports we cover, not a list of counts.
+  // "98 of the 100 busiest US airports have no FAA delays right now". troubleLine names the exceptions.
+  function isClosedAirport(a) { return a.level === "stop" && (a.events || []).some(function (e) { return e && e.kind === "closure"; }); }
   function nationalSummary(airports, asOf) {
-    var stops = 0, delays = 0, closed = 0, best = null;
-    for (var i = 0; i < airports.length; i++) {
-      var a = airports[i];
-      var isClosure = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
-      if (a.level === "stop" && isClosure) { closed++; }
-      else if (a.level === "stop") { stops++; }
-      else if (a.level === "delay") { delays++; }
-      var evs = a.events || [];
-      for (var j = 0; j < evs.length; j++) {
-        var mins = minutesOf(evs[j].avg);
-        if (mins != null && (!best || mins > best.mins)) { best = { mins: mins, name: a.short || a.code }; }
-      }
-    }
-    if (!stops && !delays && !closed) { return "No delays or ground stops at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports " + (asOf || "right now"); }
-    var parts = [];
-    if (closed) { parts.push(closed + (closed === 1 ? " airport closed" : " airports closed")); }
-    if (stops) { parts.push(stops + (stops === 1 ? " airport with a ground stop" : " airports with ground stops")); }
-    if (delays) { parts.push(delays + (delays === 1 ? " airport with delays" : " airports with delays")); }
-    var line = parts.join(" · ");
-    if (best) { line += " · longest: " + best.name + ", avg " + fmtMinutes(best.mins); }
-    return asOf ? line + " \u00B7 " + asOf : line;
+    var bad = 0;
+    for (var i = 0; i < airports.length; i++) { if (airports[i].level === "stop" || airports[i].level === "delay") { bad++; } }
+    if (!bad) { return "No delays or ground stops at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports " + (asOf || "right now"); }
+    var ok = airports.length - bad;
+    return ok + " of the " + airports.length + " busiest US airports " + (ok === 1 ? "has" : "have") + " no FAA delays " + (asOf || "right now");
+  }
+
+  // One plain sentence per airport with an FAA program, worst first (closed, stop, then the longest delay). Max 3.
+  function troubleRank(a) {
+    var avg = 0;
+    (a.events || []).forEach(function (e) { var m = minutesOf(e && e.avg); if (m != null && m > avg) { avg = m; } });
+    return (isClosedAirport(a) ? 30000 : a.level === "stop" ? 20000 : 10000) + avg;
+  }
+  function troubleLine(airports, stale) {
+    var list = airports.filter(function (a) { return a.level === "stop" || a.level === "delay"; });
+    list.sort(function (x, y) { return troubleRank(y) - troubleRank(x); });
+    var out = list.slice(0, 3).map(function (a) {
+      var name = (a.short || a.name || a.code) + " (" + a.code + ")";
+      if (isClosedAirport(a)) { return stale ? name + " was listed as closed." : name + " is closed."; }
+      if (a.level === "stop") { return stale ? name + " had a ground stop." : name + " has a ground stop."; }
+      var gd = null, avg = null;
+      (a.events || []).forEach(function (e) {
+        if (!e) { return; }
+        if (e.kind === "ground_delay") { gd = e; }
+        var m = minutesOf(e.avg); if (m != null && (avg == null || m > avg)) { avg = m; }
+      });
+      if (gd) { return "Flights to " + name + (stale ? " were" : " are") + " held" + (avg != null ? " about " + fmtMinutes(avg) : "") + "."; }
+      return name + (stale ? " had" : " has") + " delays" + (avg != null ? " of about " + fmtMinutes(avg) : "") + ".";
+    });
+    if (list.length > 3) { out.push((list.length - 3) + (list.length - 3 === 1 ? " more airport has" : " more airports have") + " an FAA program."); }
+    return out.join(" ");
   }
 
   function kindLabel(kind) {
@@ -181,7 +194,7 @@
     if (ev.kind === "ground_stop") { return "Flights bound for " + place + " are held at their departure airports until the stop ends."; }
     if (ev.kind === "closure") { return stale ? place + " was listed as closed to flights." : place + " is closed to flights right now."; }
     if (ev.kind === "ground_delay") {
-      var s = "Flights bound for " + place + " are leaving late";
+      var s = "Flights bound for " + place + " are held at their departure airports";
       if (avg) { s += ", about " + avg + " on average"; }
       if (max) { s += " and up to " + max; }
       return s + ".";
@@ -380,7 +393,7 @@
 
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
-    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary,
+    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, troubleLine: troubleLine,
     kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, latestItems: latestItems, millions: millions,

@@ -12,7 +12,7 @@
   var LEVEL_WORD = { clear: "Clear", delay: "Delay", stop: "Ground stop" };
   var FALLBACK_LEVEL = { green: "clear", amber: "delay", red: "stop" };
 
-  var D = { history: null, state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
+  var D = { hist: null, history: null, state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
   var airports = [];       // [{code, name, short, city, level, ...}] the board airports (the first 30), in board order
   var allAirports = [];    // all 100 busiest airports, for the search box
   var byCode = {};
@@ -173,7 +173,7 @@
     }
     var clock = m == null ? "" : fmtTime(new Date(Date.parse(upd)));
     var stale0 = A.isStale(m);
-    $("now-heading").textContent = stale0 ? "Last known status" : "Right now";
+    ($("now-title") || $("now-heading")).textContent = stale0 ? "Last known status" : "Right now";
     line.textContent = (m == null ? "Update time unavailable" : "FAA NAS status, " + (stale0 ? "last checked " : "checked ") + (clock ? clock + " " : "") + "(" + ageText(upd) + ")") + " · updates about every 5 minutes";
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
@@ -186,11 +186,61 @@
     }
   }
 
+  function nbspUnits(t) { return String(t || "").replace(/(\d) (h|min)\b/g, "$1\u00a0$2").replace(/\bh (\d)/g, "h\u00a0$1"); }
+
+  // AN34: the verdict headline, with the count in the status colour, and one plain line on the exceptions.
   function renderSummary() {
-    var s = $("summary");
+    var s = $("summary"), tl = $("trouble-line");
     if (!D.state) { s.textContent = "Unable to load the latest FAA status."; return; }
-    var upd = D.state.updated_utc;
-    s.textContent = A.nationalSummary(allAirports.length ? allAirports : airports, isStaleIso(upd) ? asOfText(upd) : "");
+    var upd = D.state.updated_utc, stale = isStaleIso(upd);
+    var list = allAirports.length ? allAirports : airports;
+    var text = A.nationalSummary(list, stale ? asOfText(upd) : "");
+    var m = /^(\d+ of the \d+)(.*)$/.exec(text);
+    s.textContent = "";
+    if (m) { s.appendChild(el("em", "ok", m[1])); s.appendChild(document.createTextNode(m[2])); } else { s.textContent = text; }
+    if (tl) { tl.textContent = nbspUnits(A.troubleLine(list, stale)); }
+    renderChips();
+  }
+
+  // Quick picks under the search: this browser's airports first, then the airports with trouble, else the biggest hubs.
+  function chipFor(a) {
+    var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
+    var c = el("a", "pick pick--" + lvl);
+    c.href = "airports/" + a.code + ".html";
+    c.appendChild(el("span", "dot dot--" + lvl));
+    c.appendChild(el("span", "pick-code", a.code));
+    var tail = "Normal";
+    if (lvl !== "clear") {
+      var closed = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
+      var mins = null;
+      (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });
+      tail = closed ? "Closed" : lvl === "stop" ? "Ground stop" : mins != null ? nbspUnits(A.fmtMinutes(mins)) : "Delays";
+    }
+    c.appendChild(el("span", "pick-tail", tail));
+    return c;
+  }
+  function renderChips() {
+    var box = $("chips");
+    if (!box) { return; }
+    box.textContent = "";
+    var mine = getMine(), last = getLast();
+    if (last && mine.indexOf(last) < 0) { mine = [last].concat(mine); }
+    mine = mine.slice(0, 4);
+    var trouble = allAirports.filter(function (a) { return (a.level === "stop" || a.level === "delay") && mine.indexOf(a.code) < 0; });
+    trouble.sort(function (x, y) { return (y.level === "stop" ? 1 : 0) - (x.level === "stop" ? 1 : 0); });
+    trouble = trouble.slice(0, 4);
+    if (mine.length) {
+      box.appendChild(el("span", "picks-label", "Yours"));
+      mine.forEach(function (c) { if (allByCode[c]) { box.appendChild(chipFor(allByCode[c])); } });
+    }
+    if (trouble.length) {
+      box.appendChild(el("span", "picks-label", "Trouble now"));
+      trouble.forEach(function (a) { box.appendChild(chipFor(a)); });
+    }
+    if (!mine.length && !trouble.length) {
+      box.appendChild(el("span", "picks-label", "Busiest"));
+      ["ATL", "DFW", "DEN", "ORD"].forEach(function (c) { if (allByCode[c]) { box.appendChild(chipFor(allByCode[c])); } });
+    }
   }
 
   var REASON_PREFIX = { "WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway", "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other" };
@@ -205,28 +255,57 @@
     }).filter(Boolean).join("; ");
   }
 
+  var MONTH_IX = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+  function shortDur(min) { var h = Math.floor(min / 60), m = min % 60; return !h ? m + " min" : h + " h" + (m ? " " + m : ""); }
+  // The big number on a program row and its small label. Same rule as prerender_home.event_figure.
+  function eventFigure(ev, tz) {
+    var f = ev.fields || {};
+    if (ev.kind === "closure") {
+      var mt = /([A-Z][a-z]{2}) (\d{1,2}) at (\d{2}):(\d{2}) UTC/.exec(String(f.reopen || ""));
+      if (mt && MONTH_IX.hasOwnProperty(mt[1])) {
+        var now = new Date(), y = now.getUTCFullYear();
+        if (MONTH_IX[mt[1]] < now.getUTCMonth() - 6) { y++; }
+        var d = new Date(Date.UTC(y, MONTH_IX[mt[1]], +mt[2], +mt[3], +mt[4]));
+        var day = "";
+        try { day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: tz || undefined }).format(d); } catch (e) { day = mt[1] + " " + mt[2]; }
+        return { big: day, small: "listed reopening, " + fmtTime(d, tz) };
+      }
+      return { big: "Closed", small: "no reopening time listed" };
+    }
+    if (ev.kind === "ground_stop") {
+      var endMs = ev.end_utc ? Date.parse(ev.end_utc) : NaN;
+      if (isFinite(endMs)) { var cd = A.countdown(endMs, Date.now()); return { big: fmtTime(new Date(endMs), tz), small: "listed end" + (cd ? ", " + cd : "") }; }
+      if (f.end_time) { return { big: String(f.end_time).replace(/\.$/, ""), small: "listed end" }; }
+      return { big: "Stop", small: "no end time listed" };
+    }
+    var avg = A.minutesOf(f.avg || ev.avg), mx = A.minutesOf(f.max || ev.max);
+    if (avg != null) { return { big: shortDur(avg), small: (ev.kind === "ground_delay" ? "average hold" : "average delay") + (mx != null ? " \u00B7 longest " + A.fmtMinutes(mx) : "") }; }
+    return { big: "Delays", small: "no size listed" };
+  }
+
   function eventCard(ev) {
     var code = String(ev.airport || "").toUpperCase();
-    var a = byCode[code] || {};
+    var a = allByCode[code] || byCode[code] || {};
     var place = a.short || ev.display || code;
     var stop = ev.kind === "ground_stop" || ev.kind === "closure";
     var card = el("article", "event-card" + (stop ? " event-card--stop" : ""));
     var head = el("div", "event-header");
     var h3 = el("h3", "event-title");
-    h3.appendChild(el("span", "ev-code", code));
-    h3.appendChild(el("span", "ev-place", place));
+    var lk = el("a", "ev-link");
+    lk.href = /^[A-Z]{3}$/.test(code) ? "airports/" + code + ".html" : "airports/index.html";
+    lk.appendChild(el("span", "ev-code", code));
+    lk.appendChild(el("span", "ev-place", a.name || ev.display || place));
+    h3.appendChild(lk);
     head.appendChild(h3);
     head.appendChild(el("span", "badge " + (stop ? "badge--stop" : "badge--delay"), A.kindLabel(ev.kind)));
     card.appendChild(head);
-    card.appendChild(el("p", "event-impact", A.impactText(ev, place, isStaleIso(D.state.updated_utc))));
+    card.appendChild(el("p", "event-impact", nbspUnits(A.impactText(ev, place, isStaleIso(D.state.updated_utc)))));
     if (ev.reason && String(ev.reason).toLowerCase() !== "closed") { card.appendChild(el("p", "event-reason", "Reason: " + reasonText(ev.reason))); }
-    var f = ev.fields || {};
-    var endMs = ev.end_utc ? Date.parse(ev.end_utc) : null;
-    if (ev.kind === "ground_stop" && (endMs != null || f.end_time)) {
-      var cd = endMs != null ? A.countdown(endMs, Date.now()) : "";
-      var when = endMs != null ? "Listed end: " + fmtTime(new Date(endMs), ev.tz) : "Listed end: " + String(f.end_time).replace(/\.$/, "");
-      card.appendChild(el("p", "event-end", when + (cd ? " (" + cd + ")" : "")));
-    }
+    var fig = eventFigure(ev, ev.tz || a.tz);
+    var big = el("p", "event-big");
+    big.appendChild(el("b", null, nbspUnits(fig.big)));
+    big.appendChild(el("small", null, fig.small));
+    card.appendChild(big);
     var meta = el("p", "event-meta");
     var parts = [];
     var t = fmtTime(new Date(), ev.tz || a.tz);
@@ -235,10 +314,6 @@
     parts.push("Checked " + ageText(D.state.updated_utc));
     meta.textContent = parts.join(" · ");
     card.appendChild(meta);
-    var b = el("button", "btn btn-secondary", "Open " + code + ": what to do");
-    b.type = "button";
-    b.addEventListener("click", function () { openAirport(code, true); });
-    card.appendChild(b);
     return card;
   }
 
@@ -327,28 +402,45 @@
   }
 
   // ---------- 2: search and board ----------
+  // Three columns on wide screens, two below 1000 px (the CSS grid matches).
+  var BOARD_MQ = window.matchMedia ? window.matchMedia("(min-width: 1000px)") : null;
+  function boardCols() { return BOARD_MQ && BOARD_MQ.matches ? 3 : 2; }
+  if (BOARD_MQ) { try { BOARD_MQ.addEventListener("change", function () { renderBoard(); }); } catch (e) { /* old browser: keep the first layout */ } }
+
+  // AN34: the board is rows of links: code, city, the last 24 hours, FAA status now. Trouble first, then traffic order.
   function renderBoard() {
     var box = $("board");
     box.textContent = "";
     var tiles = {};
     ((D.state && D.state.board) || []).forEach(function (t) { tiles[t.code] = t; });
     var weight = { red: 3, orange: 2, yellow: 1 };
-    var ordered = airports.map(function (a, i) { return { a: a, i: i, w: (tiles[a.code] && weight[tiles[a.code].status]) || 0 }; });
+    var ordered = airports.map(function (a, i) { return { a: a, i: i, w: (tiles[a.code] && weight[tiles[a.code].status]) || (a.level === "stop" ? 3 : a.level === "delay" ? 1 : 0) }; });
     ordered.sort(function (x, y) { return (y.w - x.w) || (x.i - y.i); }); // worst first, then the usual order
-    var clearRows = [];
-    ordered.forEach(function (o) { if (o.w) { box.appendChild(makeTile(o.a, tiles)); } else { clearRows.push(o.a); } });
-    if (clearRows.length) {
-      var fold = el("details", "fold clear-fold");
-      if (clearRows.length === ordered.length) { fold.open = true; }
-      fold.appendChild(el("summary", null, clearRows.length + (clearRows.length === 1 ? " airport is clear" : " airports are clear") + (clearRows.length === ordered.length ? "" : ": show them")));
-      var inner = el("div", "board-grid");
-      clearRows.forEach(function (a) { inner.appendChild(makeTile(a, tiles)); });
-      fold.appendChild(inner);
-      box.appendChild(fold);
+    var head = el("div", "bh");
+    head.setAttribute("aria-hidden", "true");
+    ["Code", "City", "Last 24 h", "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
+    var cols = el("div", "board-cols");
+    var ncol = boardCols();
+    var per = Math.ceil(ordered.length / ncol) || 1;
+    for (var c = 0; c < ncol; c++) {
+      var col = el("div", "board-col");
+      col.appendChild(head.cloneNode(true));
+      ordered.slice(c * per, (c + 1) * per).forEach(function (o) { col.appendChild(makeTile(o.a, tiles)); });
+      if (col.childNodes.length > 1) { cols.appendChild(col); }
     }
+    box.appendChild(cols);
     renderMine(tiles);
     var note = $("board-note");
-    if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. The word after the status (better, worse, steady) compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }
+    if (note) {
+      note.textContent = "";
+      [["clear", "no FAA program"], ["delay", "delay"], ["stop", "ground stop or closure"], ["none", "no reading"]].forEach(function (k) {
+        var key = el("span", "key");
+        key.appendChild(el("i", "hh hh--" + k[0]));
+        key.appendChild(document.createTextNode(k[1]));
+        note.appendChild(key);
+      });
+      note.appendChild(el("span", "key-src", "Status: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + ". Last 24 h: our hourly copy of the FAA feed" + (D.hist && D.hist.generated_utc ? ", " + ageText(D.hist.generated_utc) : "") + "."));
+    }
   }
 
   // AN32: airports saved in this browser only (localStorage, no account).
@@ -377,67 +469,87 @@
     l.forEach(function (c) { box.appendChild(makeTile(allByCode[c], tiles)); });
   }
 
+  function histCells(code) {
+    var row = D.hist && D.hist.airports && D.hist.airports[code];
+    var strip = el("span", "hist24");
+    if (typeof row !== "string" || !row.length) { strip.classList.add("hist24--empty"); return strip; }
+    var word = { c: "clear", d: "delay", s: "stop", "-": "none" };
+    row.slice(-24).split("").forEach(function (ch) { strip.appendChild(el("i", "hh hh--" + (word[ch] || "none"))); });
+    return strip;
+  }
+
   function makeTile(a, tiles) {
-    {
-      var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
-      var tv = tiles[a.code] ? A.tileView(tiles[a.code]) : null;
-      var b = el("button", "tile tile--" + lvl + (tv ? " tile--" + tv.status : ""));
-      b.type = "button";
-      b.setAttribute("data-code", a.code);
-      var word = tv ? tv.word : LEVEL_WORD[lvl];
-      b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + word + (tv && tv.detail ? ", " + tv.detail : "") + (tv && tv.trendWord ? ", " + tv.trendWord : "") + ". Open airport card.");
-      if (a.code === currentCode) { b.setAttribute("aria-current", "true"); }
-      var top = el("span", "tile-top");
-      top.appendChild(el("span", "tile-code", a.code));
-      var right = el("span", "tile-level", word);
-      if (tv && tv.trendMark) { right.appendChild(el("span", "tile-trend", { "\u2191": "worse", "\u2193": "better", "\u2192": "steady" }[tv.trendMark] || "")); }
-      top.appendChild(right);
-      b.appendChild(top);
-      b.appendChild(el("span", "tile-name", a.short || a.name || a.code));
-      if (tv) {
-        // Delay bar: full width = 2 h of FAA average delay. Clear is an empty green outline.
-        var bar = el("span", "bar bar--" + tv.status);
-        bar.setAttribute("aria-hidden", "true");
-        var fillEl = el("span", "bar-fill");
-        fillEl.style.width = tv.fillPct + "%";
-        bar.appendChild(fillEl);
-        b.appendChild(bar);
-        if (tv.detail) { b.appendChild(el("span", "tile-detail", tv.detail)); }
-      }
-      b.addEventListener("click", function () { openAirport(a.code, true); });
-      return b;
+    var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
+    var tv = tiles[a.code] ? A.tileView(tiles[a.code]) : null;
+    var b = el("a", "tile br tile--" + lvl + (tv ? " tile--" + tv.status : ""));
+    b.href = "airports/" + a.code + ".html";
+    b.setAttribute("data-code", a.code);
+    var word = tv ? tv.word : LEVEL_WORD[lvl];
+    b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + (lvl === "clear" ? "normal" : word) + (tv && tv.detail ? ", " + tv.detail : "") + (tv && tv.trendWord ? ", " + tv.trendWord : "") + ". Open airport page.");
+    if (a.code === currentCode) { b.setAttribute("aria-current", "true"); }
+    b.appendChild(el("span", "tile-code", a.code));
+    b.appendChild(el("span", "tile-name", a.short || a.name || a.code));
+    var h = histCells(a.code);
+    h.setAttribute("aria-hidden", "true");
+    b.appendChild(h);
+    var st = el("span", "tile-level");
+    if (lvl === "clear") {
+      st.appendChild(el("span", "dot dot--clear"));
+      st.appendChild(el("span", "tile-ok", "Normal"));
+    } else {
+      var mins = null;
+      (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });
+      var closed = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
+      st.appendChild(el("span", "badge badge--" + lvl, closed ? "Closed" : mins != null ? nbspUnits(shortDur(mins)) : word));
     }
+    if (tv && tv.trendMark && lvl !== "clear") { st.appendChild(el("span", "tile-trend", { "\u2191": "worse", "\u2193": "better", "\u2192": "steady" }[tv.trendMark] || "")); }
+    b.appendChild(st);
+    return b;
   }
 
   function initSearch() {
     var input = $("airport-search"), list = $("search-results"), empty = $("search-empty");
-    function run() {
-      var q = input.value;
+    var res = [], active = 0;
+    function go(a) { if (a) { setLast(a.code); window.location.href = "airports/" + a.code + ".html"; } }
+    function draw() {
       list.textContent = "";
-      empty.hidden = true;
-      if (!A.norm(q)) { list.hidden = true; return; }
-      var res = A.searchAirports(allAirports, q).slice(0, 6);
-      if (!res.length) { list.hidden = true; empty.hidden = false; return; }
-      res.forEach(function (a) {
+      res.forEach(function (a, i) {
         var li = el("li");
-        var b = el("button", "result lvl-" + a.level);
-        b.type = "button";
+        var b = el("a", "result lvl-" + a.level + (i === active ? " is-active" : ""));
+        b.href = "airports/" + a.code + ".html";
         b.setAttribute("data-code", a.code);
         b.appendChild(el("span", "result-code", a.code));
         b.appendChild(el("span", "result-name", (a.short || a.name) + (a.city ? ", " + a.city.split(", ").pop() : "")));
-        b.appendChild(el("span", "result-level", LEVEL_WORD[a.level] || "Clear"));
-        b.addEventListener("click", function () { list.hidden = true; openAirport(a.code, true); });
+        b.appendChild(el("span", "result-level", a.level === "clear" ? "Normal" : (LEVEL_WORD[a.level] || "Normal")));
+        b.addEventListener("click", function () { setLast(a.code); });
         li.appendChild(b);
         list.appendChild(li);
       });
+    }
+    function run() {
+      var q = input.value;
+      empty.hidden = true;
+      if (!A.norm(q)) { res = []; list.hidden = true; list.textContent = ""; return; }
+      res = A.searchAirports(allAirports, q).slice(0, 6);
+      active = 0;
+      if (!res.length) { list.hidden = true; list.textContent = ""; empty.hidden = false; return; }
+      draw();
       list.hidden = false;
     }
     input.addEventListener("input", run);
     input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        var res = A.searchAirports(allAirports, input.value);
-        if (res.length) { e.preventDefault(); list.hidden = true; openAirport(res[0].code, true); }
-      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (!res.length) { return; }
+        e.preventDefault();
+        active = (active + (e.key === "ArrowDown" ? 1 : -1) + res.length) % res.length;
+        draw();
+      } else if (e.key === "Enter") {
+        var all = res.length ? res : A.searchAirports(allAirports, input.value);
+        if (all.length) { e.preventDefault(); list.hidden = true; go(all[Math.min(active, all.length - 1)]); }
+      } else if (e.key === "Escape") { input.value = ""; run(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "/" && document.activeElement !== input && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "")) { e.preventDefault(); input.focus(); }
     });
   }
 
@@ -682,26 +794,36 @@
 
   function buildCard(a) {
     var code = a.code;
-    var card = el("article", "airport-card");
+    var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
+    var card = el("article", "airport-card airport-card--" + lvl);
     card.id = "card-" + code;
     var head = el("div", "card-head");
-    var titles = el("div");
+    head.appendChild(el("span", "card-code", code));
+    var titles = el("div", "card-titles");
     titles.appendChild(el("h3", "card-title", (a.name || a.short) + " (" + code + ")"));
     if (a.city) { titles.appendChild(el("p", "card-city", a.city)); }
     head.appendChild(titles);
-    var save = el("button", "btn btn-secondary btn-save", getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports");
-    save.type = "button";
-    save.addEventListener("click", function () { toggleMine(code); save.textContent = getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports"; });
-    head.appendChild(save);
     var close = el("button", "btn btn-secondary btn-close", "Close");
     close.type = "button";
     close.addEventListener("click", closeAirport);
     head.appendChild(close);
     card.appendChild(head);
 
+    var actions = el("p", "card-actions");
+    var full = el("a", "btn btn-primary", "Open the " + code + " page");
+    full.href = "airports/" + code + ".html";
+    actions.appendChild(full);
+    var save = el("button", "btn btn-secondary btn-save", getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports");
+    save.type = "button";
+    save.addEventListener("click", function () { toggleMine(code); save.textContent = getMine().indexOf(code) >= 0 ? "Remove from my airports" : "Save to my airports"; });
+    actions.appendChild(save);
+
     var live = el("div", "card-live");
     card.appendChild(live);
+    card.appendChild(actions);
 
+    var fold = el("details", "card-more");
+    fold.appendChild(el("summary", null, "Stuck at " + code + "? Rebooking, hotels, security lines and airline commitments"));
     var stuck = el("section", "stuck");
     stuck.setAttribute("aria-labelledby", "stuck-" + code);
     stuck.appendChild(el("h4", "stuck-title", "Stuck at the airport")).id = "stuck-" + code;
@@ -754,7 +876,8 @@
 
     stuck.appendChild(el("h5", null, "Owed something?"));
     stuck.appendChild(link(DOWNTIME_URL, "Delayed or cancelled? Check what you may be owed", "btn btn-primary"));
-    card.appendChild(stuck);
+    fold.appendChild(stuck);
+    card.appendChild(fold);
 
     cardRefs = { card: card, live: live, guideNow: guide.nowBox };
     return card;
@@ -808,8 +931,8 @@
   }
 
   // ---------- 4: comparisons ----------
-  function compareCard(title, big, lines, source, illusCat) {
-    var c = el("article", "compare-card");
+  function compareCard(title, big, lines, source, illusCat, extraCls) {
+    var c = el("article", "compare-card" + (extraCls ? " " + extraCls : ""));
     c.appendChild(el("h3", "compare-title", title));
     var fig = illusCat ? illustrationFigure(illusCat, "illus--card", 1280, 720) : null;
     if (fig) { c.appendChild(fig); }
@@ -893,17 +1016,45 @@
     if (t && t.latest_count) {
       var src = "Source: TSA checkpoint numbers, updated " + fmtDay((t.fetched_utc || "").slice(0, 10));
       var pctDay = t.ly_count ? (t.latest_count / t.ly_count - 1) * 100 : null;
-      box.appendChild(compareCard("People screened, " + fmtDay(t.latest_date), million(t.latest_count),
-        [t.ly_count ? "Same weekday last year (" + fmtDay(t.ly_date) + "): " + million(t.ly_count) + (pctDay != null ? " (" + signed(pctDay) + ")" : "") : ""].filter(Boolean), src, "tsa-record"));
-      if (t.total7 && t.ly_total7) {
-        box.appendChild(compareCard("Last 7 days", million(t.total7),
-          ["Same 7 days last year: " + million(t.ly_total7) + (t.pct7 != null ? " (" + signed(t.pct7) + ")" : "")], src));
+      // AN34: one big number, the same day last year, then the last 7 days as bars with last year's marks.
+      var c = el("article", "compare-card tsa-card");
+      c.appendChild(el("h3", "compare-title", "People screened, " + fmtDay(t.latest_date)));
+      var big = el("p", "compare-big tsa-num", (t.latest_count / 1e6).toFixed(2));
+      big.appendChild(el("span", null, " million"));
+      c.appendChild(big);
+      if (t.ly_count) {
+        var ln = el("p", "compare-line", "Same weekday last year (" + fmtDay(t.ly_date) + "): " + million(t.ly_count) + " ");
+        if (pctDay != null) { ln.appendChild(el("span", pctDay >= 0 ? "delta delta--up" : "delta delta--down", "(" + signed(pctDay) + ")")); }
+        c.appendChild(ln);
       }
-      if (t.record && t.record.count) {
-        box.appendChild(compareCard("Record day", million(t.record.count),
-          [fmtDayYear(t.record.date) + (t.latest_pct_of_record != null ? ". " + fmtDay(t.latest_date) + " was " + t.latest_pct_of_record.toFixed(0) + "% of the record." : "")],
-          "Source: TSA checkpoint numbers since 2019, updated " + fmtDay((t.fetched_utc || "").slice(0, 10))));
+      var days = Array.isArray(t.last7) ? t.last7.filter(function (d) { return d && d.count; }) : [];
+      if (days.length >= 3) {
+        var max = 0;
+        days.forEach(function (d) { max = Math.max(max, d.count, d.ly_count || 0); });
+        var bars = el("div", "bars");
+        bars.setAttribute("role", "img");
+        bars.setAttribute("aria-label", "TSA checkpoint counts for the last " + days.length + " days, with the same days last year");
+        days.forEach(function (d, i) {
+          var b = el("div", "bar7" + (i === days.length - 1 ? " bar7--latest" : ""));
+          var fill = el("i");
+          fill.style.height = (d.count / max * 100).toFixed(1) + "%";
+          if (d.ly_count) { var ly = el("span", "ly"); ly.style.bottom = Math.min(100, d.ly_count / d.count * 100).toFixed(1) + "%"; fill.appendChild(ly); }
+          b.appendChild(fill);
+          var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d.date || "");
+          var dow = "";
+          if (m) { try { dow = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12))); } catch (e) { dow = ""; } }
+          b.appendChild(el("small", null, dow));
+          bars.appendChild(b);
+        });
+        c.appendChild(bars);
       }
+      var extra = [];
+      if (t.total7 && t.ly_total7) { extra.push("Last 7 days: " + million(t.total7) + (t.pct7 != null ? " (" + signed(t.pct7) + " on last year)" : "") + "."); }
+      if (t.record && t.record.count) { extra.push("Record day: " + million(t.record.count) + ", " + fmtDayYear(t.record.date) + "."); }
+      extra.push("Dashed line: the same day last year. TSA publishes each count a few days late.");
+      c.appendChild(el("p", "compare-line small", extra.join(" ")));
+      c.appendChild(el("p", "compare-source", src));
+      box.appendChild(c);
       var th = t.thanksgiving;
       var hv = A.holidayView(D.state && D.state.holiday);
       if (hv) {
@@ -919,32 +1070,10 @@
     if (b && b.nation && b.nation.ontime != null) {
       var bsrc = "Source: BTS On-Time Performance, " + b.month_label + ". On time means arriving less than 15 minutes late.";
       box.appendChild(compareCard("On-time arrivals, all US flights", A.pct(b.nation.ontime),
-        [b.nation.ly_ontime != null ? b.ly_month_label + ": " + A.pct(b.nation.ly_ontime) : ""].filter(Boolean), bsrc));
+        [b.nation.ly_ontime != null ? b.ly_month_label + ": " + A.pct(b.nation.ly_ontime) : ""].filter(Boolean), bsrc, null, "compare-card--bts"));
       if (b.nation.cancel != null) {
         box.appendChild(compareCard("Cancelled flights", A.pct(b.nation.cancel),
-          [b.nation.ly_cancel != null ? b.ly_month_label + ": " + A.pct(b.nation.ly_cancel) : ""].filter(Boolean), bsrc));
-      }
-      var cs = (b.carriers || []).filter(function (c) { return c.ontime != null; }).slice(0, 6);
-      if (cs.length) {
-        var c = el("article", "compare-card compare-card--wide");
-        c.appendChild(el("h3", "compare-title", "On-time arrivals by airline"));
-        var table = el("table", "mini-table");
-        table.appendChild(el("caption", "sr-only", "On-time arrivals by airline, " + b.month_label));
-        var thead = el("thead"), hr = el("tr");
-        ["Airline", b.month_label, b.ly_month_label].forEach(function (h) { var th2 = el("th", null, h); th2.setAttribute("scope", "col"); hr.appendChild(th2); });
-        thead.appendChild(hr); table.appendChild(thead);
-        var tb = el("tbody");
-        cs.forEach(function (x) {
-          var tr = el("tr");
-          tr.appendChild(el("th", null, x.name)).setAttribute("scope", "row");
-          tr.appendChild(el("td", null, A.pct(x.ontime)));
-          tr.appendChild(el("td", null, x.ly_ontime != null ? A.pct(x.ly_ontime) : "n/a"));
-          tb.appendChild(tr);
-        });
-        table.appendChild(tb);
-        c.appendChild(table);
-        c.appendChild(el("p", "compare-source", "Source: BTS On-Time Performance, " + b.month_label + ". The six airlines with the most flights."));
-        box.appendChild(c);
+          [b.nation.ly_cancel != null ? b.ly_month_label + ": " + A.pct(b.nation.ly_cancel) : ""].filter(Boolean), bsrc, null, "compare-card--bts"));
       }
     }
     if (!box.childNodes.length) { box.appendChild(el("p", "empty-state", "Comparison numbers are not available right now.")); }
@@ -1046,7 +1175,20 @@
     return clipped;
   }
 
-  var MARK = { clear: { fill: "#34d399", r: 5 }, delay: { fill: "#f2b33d", r: 8 }, stop: { fill: "#ef4444", r: 9 } };
+  // AN34: colours come from the theme tokens, so the map matches dark and light.
+  function cssVar(name, fallback) {
+    try { var v = window.getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; } catch (e) { return fallback; }
+  }
+  var MARK_R = { clear: 4.5, delay: 8, stop: 8.5 };
+
+  function markerLabel(a) {
+    var closed = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
+    if (closed) { return "Closed"; }
+    if (a.level === "stop") { return "Ground stop"; }
+    var mins = null;
+    (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });
+    return mins != null ? shortDur(mins) : "Delays";
+  }
 
   function renderMap() {
     var canvas = $("map");
@@ -1058,49 +1200,79 @@
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     }
+    var col = {
+      land: cssVar("--map-land", "#131b25"), edge: cssVar("--map-edge", "#2a3644"), ground: cssVar("--navy", "#080b0f"),
+      text: cssVar("--board-text", "#f6f1e3"), muted: cssVar("--text-muted", "#a3afbd"),
+      clear: cssVar("--green", "#3ccf91"), delay: cssVar("--amber", "#f5b301"), stop: cssVar("--red", "#ff5a47")
+    };
     var ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     var fit = fitFor(w, h);
-    ctx.fillStyle = "#112240"; ctx.strokeStyle = "#3a5a92"; ctx.lineWidth = 1;
+    ctx.lineJoin = "round";
+    ctx.fillStyle = col.land; ctx.strokeStyle = col.edge; ctx.lineWidth = 1;
     ctx.beginPath(); pathStates(ctx, fit); ctx.fill(); ctx.stroke();
     if (D.radarImg && D.radarImg.naturalWidth) {
       var key = [w, h, D.radarMeta && D.radarMeta.fetched_utc].join("|");
       if (!radarCache || radarCache.key !== key) { radarCache = { key: key, canvas: buildRadar(w, h, fit) }; }
-      ctx.globalAlpha = 0.85; ctx.drawImage(radarCache.canvas, 0, 0, w, h); ctx.globalAlpha = 1;
-      ctx.strokeStyle = "rgba(90, 120, 170, 0.9)"; ctx.lineWidth = 0.8;
+      ctx.globalAlpha = 0.55; ctx.drawImage(radarCache.canvas, 0, 0, w, h); ctx.globalAlpha = 1;
+      ctx.strokeStyle = col.edge; ctx.lineWidth = 0.8;
       ctx.beginPath(); pathStates(ctx, fit); ctx.stroke();
     }
     mapMarkers = [];
-    airports.forEach(function (a) {
-      if (typeof a.lat !== "number" || typeof a.lon !== "number") { return; }
+    var seen = {};
+    function add(a) {
+      if (seen[a.code] || typeof a.lat !== "number" || typeof a.lon !== "number") { return; }
+      if (a.lat < 24 || a.lat > 50 || a.lon < -125.5 || a.lon > -66) { return; } // lower 48 only
+      seen[a.code] = true;
       var p = project(fit, a.lon, a.lat);
       mapMarkers.push({ code: a.code, x: p[0], y: p[1], level: a.level, a: a });
-    });
+    }
+    airports.forEach(add);
+    allAirports.forEach(function (a) { if (a.level === "stop" || a.level === "delay") { add(a); } });
     canvas.setAttribute("data-markers", mapMarkers.map(function (m) { return m.code + ":" + Math.round(m.x) + ":" + Math.round(m.y); }).join(","));
     var order = { clear: 0, delay: 1, stop: 2 };
     mapMarkers.sort(function (x, y) { return (order[x.level] || 0) - (order[y.level] || 0); });
+    var scale = Math.max(0.8, Math.min(1.3, w / 520));
     mapMarkers.forEach(function (m) {
-      var st = MARK[m.level] || MARK.clear;
-      if (m.code === currentCode) {
-        ctx.beginPath(); ctx.arc(m.x, m.y, st.r + 6, 0, Math.PI * 2); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
+      var r = (MARK_R[m.level] || MARK_R.clear) * scale;
+      var c = col[m.level] || col.clear;
+      if (m.level !== "clear") {
+        ctx.beginPath(); ctx.arc(m.x, m.y, r * 2.4, 0, Math.PI * 2); ctx.globalAlpha = 0.18; ctx.fillStyle = c; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(m.x, m.y, r * 1.6, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.stroke();
       }
-      ctx.beginPath(); ctx.arc(m.x, m.y, st.r + 2, 0, Math.PI * 2); ctx.fillStyle = "rgba(7, 14, 28, 0.9)"; ctx.fill();
-      ctx.beginPath(); ctx.arc(m.x, m.y, st.r, 0, Math.PI * 2); ctx.fillStyle = st.fill; ctx.fill();
-      ctx.lineWidth = 1.5; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+      if (m.code === currentCode) {
+        ctx.beginPath(); ctx.arc(m.x, m.y, r + 6, 0, Math.PI * 2); ctx.strokeStyle = col.text; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill();
     });
-    // labels for airports with an event, placed so they avoid each other
-    ctx.font = "700 14px system-ui, sans-serif";
+    // labels for airports with a program (and the open one): code in display type, status after it; they avoid each other
+    var fs = Math.round(22 * scale), fs2 = Math.round(15 * scale);
     var placed = [];
     mapMarkers.filter(function (m) { return m.level !== "clear" || m.code === currentCode; }).reverse().forEach(function (m) {
-      var bw = Math.ceil(ctx.measureText(m.code).width) + 8, bh = 20;
-      var cands = [[14, -10], [-14 - bw, -10], [-bw / 2, -34], [-bw / 2, 16], [14, 8], [-14 - bw, 8], [14, -30], [-14 - bw, -30]];
+      var sub = m.level === "clear" ? "" : markerLabel(m.a);
+      ctx.font = "700 " + fs + "px 'Barlow Condensed', 'Arial Narrow', sans-serif";
+      var w1 = ctx.measureText(m.code).width;
+      ctx.font = "600 " + fs2 + "px 'Public Sans', Arial, sans-serif";
+      var w2 = sub ? ctx.measureText(sub).width + 6 : 0;
+      var bw = Math.ceil(w1 + w2) + 4, bh = fs + 4, off = 16 * scale;
+      var cands = [[off, -bh / 2], [-off - bw, -bh / 2], [-bw / 2, -off - bh], [-bw / 2, off], [off, 6], [-off - bw, 6], [off, -bh - 8], [-off - bw, -bh - 8], [off, bh + 2], [-off - bw, bh + 2]];
       for (var i = 0; i < cands.length; i++) {
         var bx = Math.max(2, Math.min(w - bw - 2, m.x + cands[i][0])), by = Math.max(2, Math.min(h - bh - 2, m.y + cands[i][1]));
         var clash = placed.some(function (o) { return !(bx + bw + 3 <= o.x || o.x + o.w + 3 <= bx || by + bh + 3 <= o.y || o.y + o.h + 3 <= by); });
-        if (!clash) { placed.push({ x: bx, y: by, w: bw, h: bh }); ctx.fillStyle = "rgba(7, 14, 28, 0.92)"; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = "#f8fafc"; ctx.fillText(m.code, bx + 4, by + 15); break; }
+        if (clash) { continue; }
+        placed.push({ x: bx, y: by, w: bw, h: bh });
+        ctx.lineWidth = 4; ctx.strokeStyle = col.ground; ctx.textBaseline = "middle";
+        ctx.font = "700 " + fs + "px 'Barlow Condensed', 'Arial Narrow', sans-serif";
+        ctx.strokeText(m.code, bx + 2, by + bh / 2); ctx.fillStyle = col.text; ctx.fillText(m.code, bx + 2, by + bh / 2);
+        if (sub) {
+          ctx.font = "600 " + fs2 + "px 'Public Sans', Arial, sans-serif";
+          ctx.strokeText(sub, bx + 2 + w1 + 6, by + bh / 2 + 1); ctx.fillStyle = col.muted; ctx.fillText(sub, bx + 2 + w1 + 6, by + bh / 2 + 1);
+        }
+        break;
       }
     });
+    ctx.textBaseline = "alphabetic";
   }
 
   function initMap() {
@@ -1117,6 +1289,7 @@
     });
     if (window.ResizeObserver) { new ResizeObserver(function () { renderMap(); }).observe(canvas); }
     else { window.addEventListener("resize", renderMap); }
+    try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () { renderMap(); }); } catch (e) { /* old browser: keep the first colours */ }
     getJson("us-states.geojson").then(function (g) {
       if (g && g.features) { D.geo = g; bounds = computeBounds(g.features); renderMap(); }
     });
@@ -1275,8 +1448,10 @@
   function loadSlow() {
     return Promise.all([
       getJson("data/places.json"), getJson("data/security-waits.json"), getJson("data/dot-commitments.json"),
-      getJson("data/bts.json", true), getJson("data/tsa.json", true), getJson("data/airport-guide.json")
+      getJson("data/bts.json", true), getJson("data/tsa.json", true), getJson("data/airport-guide.json"),
+      getJson("data/history-summary.json", true)
     ]).then(function (r) {
+      if (r[6] && r[6].airports) { D.hist = r[6]; renderBoard(); }
       D.places = r[0]; D.security = r[1]; D.commit = r[2];
       D.bts = (r[3] && r[3].nation) ? r[3] : null;
       D.tsa = r[4];

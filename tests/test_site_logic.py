@@ -112,7 +112,18 @@ class TestSummaryAndCountdown(unittest.TestCase):
               {"short": "San Diego", "level": "delay", "events": [{"avg": "34 minutes"}]},
               {"short": "Atlanta", "level": "clear", "events": []}]
         self.assertEqual(js("ATD.nationalSummary(DATA.ap)", ap=ap),
-                         "2 airports with delays · longest: San Francisco, avg 2 h 18 min")
+                         "1 of the 3 busiest US airports has no FAA delays right now")
+        ap2 = [{"code": "SFO", "short": "San Francisco", "level": "delay", "events": [{"kind": "ground_delay", "avg": "2 hours and 18 minutes"}]},
+               {"code": "SNA", "short": "John Wayne", "level": "stop", "events": [{"kind": "closure"}]},
+               {"code": "SAN", "short": "San Diego", "level": "delay", "events": [{"kind": "delay", "avg": "34 minutes"}]},
+               {"code": "ATL", "short": "Atlanta", "level": "clear", "events": []}]
+        want = ("John Wayne (SNA) is closed. Flights to San Francisco (SFO) are held about 2 h 18 min. "
+                "San Diego (SAN) has delays of about 34 min.")
+        self.assertEqual(js("ATD.troubleLine(DATA.ap)", ap=ap2), want)
+        sys.path.insert(0, str(ROOT))
+        from tools import prerender_home as ph
+        self.assertEqual(ph.trouble_line(ap2), want)  # the build and the browser say the same
+        self.assertEqual(js("ATD.troubleLine(DATA.ap)", ap=[]), "")
         self.assertIn("No delays", js("ATD.nationalSummary([])"))
 
     def test_countdown(self):
