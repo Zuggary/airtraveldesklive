@@ -725,6 +725,17 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .airport-section h2 { margin: 0 0 12px; font: 700 var(--fs-title)/1.2 var(--font-text); letter-spacing: -0.01em; }
 .airport-section h3 { margin: 0 0 8px; font-size: var(--fs-sm); font-weight: 700; }
 .airport-section > p:last-child { margin-bottom: 0; }
+/* AN43: static "how flights usually run" context */
+.an43-context { max-width: 72ch; }
+.an43-context h3 { margin: var(--space-5) 0 8px; font-size: var(--fs-md); }
+.an43-context p { line-height: 1.6; }
+.an43-table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.an43-table caption { text-align: left; font-weight: 600; padding-bottom: 6px; color: var(--text-muted); }
+.an43-table th, .an43-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+.an43-table td { text-align: right; }
+.an43-table thead th { font-weight: 600; color: var(--text-muted); }
+.an43-table thead th:not(:first-child) { text-align: right; }
+.an43-context a.tap { display: inline; min-height: 0; min-width: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
 
 /* right now: tiles, each with its source and age */
 .facts { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }

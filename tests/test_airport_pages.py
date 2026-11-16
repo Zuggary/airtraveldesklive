@@ -12,6 +12,10 @@ import unittest
 from html.parser import HTMLParser
 from pathlib import Path
 
+from tools.build_airport_pages import airport_js as _an43_airport_js  # noqa: E402
+AIRPORT_JS = _an43_airport_js()
+
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 URL_RE = re.compile(r"https?://[^\s'\"<>`]+", re.IGNORECASE)
@@ -172,7 +176,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
         p = _inspect(text)
         self.assertIn("Pacific Time", p.visible_text)
         self.assertNotIn("America/Los_Angeles", p.visible_text)
-        self.assertIn('var TZ = "America/Los_Angeles";', text)
+        self.assertIn('data-tz="America/Los_Angeles"', text)  # AN43: the airport goes to ../airport.js as data attributes
+        text = text + AIRPORT_JS
         self.assertIn("On-time arrivals, " + self.bts["month_label"] + ", BTS", p.visible_text)
         for needle in ("FAA NAS status", "aviationweather.gov METAR", "checked ", "min ago", "timeZoneName"):
             self.assertIn(needle, text)
@@ -203,7 +208,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 self.assertRegex(p.visible_text, r"FAA data .* old, checked .* Source: FAA NAS status\.|Source: FAA NAS status, last checked ", fname)
                 self.assertEqual(text.count(">Live board<"), 2, f"{fname}: header chip and footer link only")
                 self.assertNotIn("btn-primary", text, fname)
-                self.assertIn("var TZ = ", text, fname)
+                self.assertIn('<script src="../airport.js" data-code="', text, fname)
             self.assertIn("Where this page's data comes from", p.visible_text, fname)
             self.assertIn("Skip to main content", p.visible_text, fname)
 

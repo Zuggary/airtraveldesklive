@@ -10,6 +10,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.build_airport_pages import airport_js as _an43_airport_js  # noqa: E402
+AIRPORT_JS = _an43_airport_js()
+
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 NAV_LABELS = ["Live board", "Airports", "Airlines", "Stuck?", "About"]  # AN34: one nav on every page
@@ -75,6 +79,7 @@ class TestAirportPolish(unittest.TestCase):
         self.assertRegex(css, r'\.chip\[aria-current="page"\][^{]*\{[^}]*var\(--accent\)')
 
     def test_live_text_links_sources_and_calm_wind(self) -> None:
+        self.sfo = self.sfo + AIRPORT_JS  # AN43: the status script lives in ../airport.js
         self.assertIn('a.href = "../sources.html"', self.sfo)
         self.assertIn('"FAA NAS status"', self.sfo)
         self.assertIn('"aviationweather.gov METAR"', self.sfo)

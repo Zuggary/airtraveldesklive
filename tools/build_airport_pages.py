@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from desk import airports as desk_airports  # noqa: E402
+from tools import an43_context  # noqa: E402
 
 SITE_URL = "https://www.airtraveldesklive.com"
 DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive"
@@ -645,7 +646,7 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
     for h, c in zip(hours, row):
         dt = pt.parse_utc(h)
         label = f"{day_hour(dt)} local: {word[c]}" if dt else word[c]
-        cells.append(f'<li class="hh hh--{ {"c": "clear", "d": "delay", "s": "stop", "-": "none"}[c] }" title="{_esc(label)}"></li>')
+        cells.append(f'<span class="hh hh--{ {"c": "clear", "d": "delay", "s": "stop", "-": "none"}[c] }" title="{_esc(label)}"></span>')
     start = pt.parse_utc(hours[0]) if hours else None
     since = day_hour(start) if start else (day_hour(first) if first else "")
     if n_prog == 0:
@@ -667,7 +668,7 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
     ]
     if n_prog:
         out += [
-            f'            <ol class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</ol>',
+            f'            <div class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</div>',
             '            <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure'
             + (' <span class="hh hh--none"></span>no reading' if "-" in row else "") + '</p>',
         ]
@@ -869,10 +870,37 @@ def _sun_now_script() -> str:
         "      } catch (e) { p.hidden = true; if (src) { src.hidden = true; } if (tile) { tile.hidden = true; } }",
         "    }",
         "    paint();",
-        "    setInterval(paint, 60000);",
         "  })();",
         "  </script>",
     ])
+
+
+AIRPORT_JS_NAME = "airport.js"
+AIRPORT_JS_HEAD = ("/* Air Travel Desk airport pages: daylight tile and live status. Built by tools/build_airport_pages.py; do not edit.\n"
+                   "   AN43: one shared, cached, deferred file in place of 26 KB of inline script per page. It reads the airport\n"
+                   "   from its own script tag (data-code, data-tz, data-short). It paints once; no timer refreshes the page. */\n")
+
+
+def _strip_script_tags(block: str) -> str:
+    return "\n".join(ln for ln in block.split("\n") if ln.strip() not in ("<script>", "</script>") and 'src="../sun.js"' not in ln)
+
+
+def airport_js() -> str:
+    """The text of airport.js: the sun tile script, then the live status script with its airport read from data attributes."""
+    sentinel = "\u0000AIRPORT\u0000"
+    live = _strip_script_tags(_right_now_script(sentinel, sentinel + "TZ", sentinel + "SHORT"))
+    live = live.replace(f"    var CODE = {json.dumps(sentinel)};", '    var CODE = (ATD_ME && ATD_ME.getAttribute("data-code")) || "";')
+    live = live.replace(f"    var TZ = {json.dumps(sentinel + 'TZ')};", '    var TZ = (ATD_ME && ATD_ME.getAttribute("data-tz")) || "";')
+    live = live.replace(f"    var SHORT = {json.dumps(sentinel + 'SHORT')};", '    var SHORT = (ATD_ME && ATD_ME.getAttribute("data-short")) || CODE;')
+    if "\u0000" in live or "AIRPORT\u0000" in live:
+        raise ValueError("airport.js: a per-airport value was left in the shared script")
+    sun = _strip_script_tags(_sun_now_script())
+    return AIRPORT_JS_HEAD + "var ATD_ME = document.currentScript;\n" + sun + "\n" + live + "\n"
+
+
+def _airport_js_tag(code: str, tz: str, short: str) -> str:
+    return (f'  <script src="../{AIRPORT_JS_NAME}" data-code="{_esc(code)}" data-tz="{_esc(tz)}" '
+            f'data-short="{_esc(short or code)}" defer></script>')
 
 
 def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
@@ -1319,6 +1347,7 @@ def render_airport_page(
     alternates: list[tuple[str, str, int, str]] | None = None,
     security_entry: dict[str, Any] | None = None,
     airlines: list[dict[str, Any]] | None = None,
+    an43_profile: dict[str, Any] | None = None,
 ) -> str:
     """Render HTML for a single airport page.
 
@@ -1492,6 +1521,8 @@ def render_airport_page(
         source_items.append(f"BTS ({bts_month}): monthly on-time arrival rate and flight count.")
     elif bts_month:
         source_items.append(f"BTS ({bts_month}): monthly on-time arrival data (no entry for {code}).")
+    if an43_profile and code in (an43_profile.get("airports") or {}):
+        source_items.append(f"BTS ({_esc(an43_profile.get('period', ''))}): 12-month departure, cancellation, delay-cause, airline and route figures in \"How flights at {_esc(code)} usually run\".")
     if has_places:
         source_items.append(
             f"OpenStreetMap (&copy; OpenStreetMap contributors): hotels and car rental within 3.1 miles, fetched {places_credit_date}."
@@ -1622,6 +1653,7 @@ def render_airport_page(
         '    <div class="ap-cols">',
         *_help_card(code, lvl),
         "    </div>",
+        *an43_context.render_context(code, short, an43_profile, city),
         '    <div class="ap-folds">',
         *places_html,
         '      <section class="airport-section" aria-labelledby="sources-heading">',
@@ -1640,8 +1672,8 @@ def render_airport_page(
         "    </div>",
         "    </main>",
         _render_footer(),
-        _sun_now_script() if tz else "",
-        _right_now_script(code, tz, short),
+        '  <script src="../sun.js" defer></script>' if tz else "",
+        _airport_js_tag(code, tz, short),
         '  <script src="../apmap.js" defer></script>' if regional else "",
         '<script src="/count.js" defer></script>',
         "</body>",
@@ -1877,6 +1909,8 @@ def build_pages(
     places_data = _load_json(data_dir / "places.json")
     bts_data = _load_json(data_dir / "bts.json")
     history_data = _load_json(data_dir / "history-summary.json")
+    an43_path = data_dir / "an43" / "bts-profile.json"
+    an43_profile = _load_json(an43_path) if an43_path.exists() else None
 
     live_updated = str(airports_data.get("updated_utc") or "")
     guide_airports = dict(guide_data.get("airports") or {})
@@ -1926,6 +1960,7 @@ def build_pages(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     written: list[Path] = []
+    (out_dir.parent / AIRPORT_JS_NAME).write_text(airport_js(), encoding="utf-8")   # AN43: shared script for every airport page
     for code in codes:
         live_card = live_cards.get(code)
         page_html = render_airport_page(
@@ -1944,6 +1979,7 @@ def build_pages(
             alternates=_nearby(code, airports_map, live_cards),
             security_entry=security_data.get(code),
             airlines=airlines_list,
+            an43_profile=an43_profile,
         )
         dest = out_dir / f"{code}.html"
         dest.write_text(page_html, encoding="utf-8")

@@ -21,6 +21,10 @@ from tools import prerender_home as ph  # noqa: E402
 from tools import prerender_text as pt  # noqa: E402
 from tests import test_prerender as tp  # noqa: E402
 
+from tools.build_airport_pages import airport_js as _an43_airport_js  # noqa: E402
+AIRPORT_JS = _an43_airport_js()
+
+
 NODE = shutil.which("node")
 NIGHT = datetime(2026, 11, 15, 10, 0, tzinfo=timezone.utc)    # 2:00 AM in Los Angeles, inside 0730-1415 UTC
 DAY = datetime(2026, 11, 15, 20, 0, tzinfo=timezone.utc)      # noon in Los Angeles, outside the window
@@ -115,7 +119,7 @@ class TestAirportPageNight(unittest.TestCase):
         self.assertIn("badge--stop status-chip", page)
 
     def test_page_script_carries_the_same_rule(self):
-        page = self.build(sna_card(), NIGHT, UPD_NIGHT)
+        page = self.build(sna_card(), NIGHT, UPD_NIGHT) + AIRPORT_JS  # AN43: the status script lives in ../airport.js
         for needle in ("function closureSchedule", "function effLevel", '"night"', "closed overnight", "badge--night"):
             self.assertIn(needle, page)
 

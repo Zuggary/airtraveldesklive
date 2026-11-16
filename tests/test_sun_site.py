@@ -11,6 +11,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.build_airport_pages import airport_js as _an43_airport_js  # noqa: E402
+AIRPORT_JS = _an43_airport_js()
+
+
 ROOT = Path(__file__).resolve().parent.parent
 NODE = shutil.which("node")
 # sun.js is a byte-for-byte copy of the AN18 module (also used by the stream map). Change it only by copying a new version.
@@ -114,7 +118,7 @@ class TestAirportSunNow(unittest.TestCase):
             self.assertEqual(m.group(3), a["tz"], code)
             self.assertAlmostEqual(float(m.group(1)), a["lat"], 3)
             self.assertIn('<p id="sun-now-source" class="small" hidden>Sun times calculated for the airport\'s location.</p>', t, code)
-            self.assertIn('<script src="../sun.js"></script>', t, code)
+            self.assertIn('<script src="../sun.js" defer></script>', t, code)  # AN43: the paint script is in ../airport.js
             # in the "Right now" section, so it is next to the status
             self.assertLess(t.index('id="right-now"'), t.index('id="sun-now"'))
             self.assertLess(t.index('id="sun-now"'), t.index('id="stuck-heading"'))
@@ -125,9 +129,9 @@ class TestAirportSunNow(unittest.TestCase):
         self.assertNotIn("Sun now:", re.sub(r"<script.*?</script>", "", t, flags=re.S))
 
     def test_script_makes_no_request(self) -> None:
-        t = (self.out / "SFO.html").read_text(encoding="utf-8")
+        t = AIRPORT_JS  # AN43: the daylight script moved from each page into the shared airport.js
         s = t[t.index('var p = document.getElementById("sun-now")'):]
-        s = s[:s.index("</script>")]
+        s = s[:s.index("})();")]
         for bad in ("fetch(", "XMLHttpRequest", "http"):
             self.assertNotIn(bad, s)
 

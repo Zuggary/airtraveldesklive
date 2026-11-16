@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SITE_JS = ["app.js", "lib.js", "stuck.js", "apmap.js", "sun.js", "theme.js", "sources.js", "count.js"]
+SITE_JS = ["app.js", "lib.js", "stuck.js", "apmap.js", "sun.js", "theme.js", "sources.js", "count.js", "airport.js"]
 
 
 class NoTimedRefresh(unittest.TestCase):
@@ -14,6 +14,15 @@ class NoTimedRefresh(unittest.TestCase):
             p = ROOT / name
             if p.exists():
                 self.assertNotIn("setInterval", p.read_text(), name)
+
+    def test_airport_pages_have_no_timer(self):
+        import sys
+        sys.path.insert(0, str(ROOT))
+        from tools import build_airport_pages as b
+        self.assertNotIn("setInterval", b.airport_js())
+        src = (ROOT / "tools" / "build_airport_pages.py").read_text()
+        self.assertNotIn("setInterval", src)
+        self.assertNotIn("http-equiv", src.lower())
 
     def test_no_meta_refresh_in_pages(self):
         pages = [ROOT / "index.html", ROOT / "stuck.html", ROOT / "about.html", ROOT / "privacy.html", ROOT / "sources.html"]

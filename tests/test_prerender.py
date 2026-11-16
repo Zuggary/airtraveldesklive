@@ -25,6 +25,10 @@ from tools import check_links as cl  # noqa: E402
 from tools import prerender_home as ph  # noqa: E402
 from tools import prerender_text as pt  # noqa: E402
 
+from tools.build_airport_pages import airport_js as _an43_airport_js  # noqa: E402
+AIRPORT_JS = _an43_airport_js()
+
+
 UPDATED = "2026-11-14T09:50:00Z"
 NOW = datetime(2026, 11, 14, 9, 58, tzinfo=timezone.utc)  # 8 minutes after the data
 NODE = shutil.which("node")
@@ -208,7 +212,7 @@ class TestAirportPrerender(_Built):
         self.assertLessEqual(len(idx), 60)
 
     def test_browser_script_refreshes_same_elements(self):
-        page = self.pages["ATL"]
+        page = self.pages["ATL"] + AIRPORT_JS  # AN43
         for needle in ('getElementById("right-now")', 'getElementById("status-chip")', 'getElementById("checked-line")',
                        'box.textContent = ""', 'data-prerendered="1"'):
             self.assertIn(needle, page)
@@ -540,7 +544,7 @@ class TestStaleHonesty(unittest.TestCase):
         self.assertEqual(pt.STALE_MIN, 30)
         self.assertIn("var STALE_MIN = A.STALE_MIN;", (ROOT / "app.js").read_text(encoding="utf-8"))
         self.assertIn("var STALE_MIN = 30;", (ROOT / "lib.js").read_text(encoding="utf-8"))
-        self.assertIn("var STALE_MIN = 30;", self.fresh["ATL"])
+        self.assertIn("var STALE_MIN = 30;", AIRPORT_JS)  # AN43: script moved to ../airport.js
         self.assertFalse(pt.is_stale(30))
         self.assertTrue(pt.is_stale(31))
 
@@ -646,7 +650,7 @@ class TestStaleHonesty(unittest.TestCase):
         self.assertEqual(self.fresh_home.count('role="status" hidden'), 1)
 
     def test_browser_script_wording_matches(self):
-        page = self.fresh["ATL"]
+        page = self.fresh["ATL"] + AIRPORT_JS  # AN43
         for needle in ('"Last known status"', '"badge badge--stale"', '"As of "', "Last weather report: ",
                        "Forecast issued ", "forecastExpired", "function durText", '"1 hour"', "last checked "):
             self.assertIn(needle, page, needle)

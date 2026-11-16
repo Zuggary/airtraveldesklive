@@ -10,6 +10,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.build_airport_pages import airport_js as _an43_airport_js  # noqa: E402
+AIRPORT_JS = _an43_airport_js()
+
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 NAV_LABELS = ["Live board", "Airports", "Airlines", "Stuck?", "About"]  # AN34: one nav on every page
@@ -67,13 +71,14 @@ class TestAirportRound4(unittest.TestCase):
         # The notice sits above the status band; the script shows or hides it and holds the one stale limit.
         self.assertLess(self.sfo.index('id="stale-notice"'), self.sfo.index('id="status-chip"'))
         self.assertIn('class="stale-notice" role="status"', self.sfo)
-        self.assertIn("var STALE_MIN = 30;", self.sfo)
-        self.assertIn("https://nasstatus.faa.gov", self.sfo)
-        self.assertIn(", not live. ", self.sfo)
-        self.assertIn('"sn-long"', self.sfo)  # AN34 r2: "FAA's own page:" hides on phones so the notice is one line
+        self.assertIn("var STALE_MIN = 30;", AIRPORT_JS)  # AN43: script moved to ../airport.js
+        both = self.sfo + AIRPORT_JS
+        self.assertIn("https://nasstatus.faa.gov", both)
+        self.assertIn(", not live. ", both)
+        self.assertIn('"sn-long"', both)  # AN34 r2: "FAA's own page:" hides on phones so the notice is one line
 
     def test_one_age_format(self) -> None:
-        script = self.sfo.split("<script>")[-1]
+        script = AIRPORT_JS  # AN43: the status script is the shared airport.js
         self.assertEqual(script.count("\" min\""), 1)
         self.assertEqual(script.count("\" hours\""), 1)
         self.assertNotIn("\" h ago\"", script)
