@@ -144,6 +144,49 @@ def _src_link(text: str) -> str:
     return f'<a class="tap" href="../sources.html">{_esc(text)}</a>'
 
 
+ICONS = {
+    "globe": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/>',
+    "map": '<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+    "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+    "bag": '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8"/>',
+    "car": '<path d="M5 16.5V12l2-5h10l2 5v4.5M3.5 12h17M5 16.5h14"/><circle cx="7.5" cy="17.5" r="1.7"/><circle cx="16.5" cy="17.5" r="1.7"/>',
+    "bed": '<path d="M3 18V7M3 14h18v4M21 14v-2.5A2.5 2.5 0 0 0 18.5 9H11v5"/><circle cx="7" cy="11" r="1.8"/>',
+    "shield": '<path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z"/>',
+    "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    "arrow": '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    "search": '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+    "plane": '<path d="M10.5 3.5c.8 0 1.5.7 1.5 1.5v4.8l7 4v2l-7-2v3.7l2 1.5V21l-3.5-1-3.5 1v-2l2-1.5v-3.7l-7 2v-2l7-4V5c0-.8.7-1.5 1.5-1.5z"/>',
+}
+
+
+def icon(name: str, cls: str = "") -> str:
+    """A drawn stroke icon (24 grid). Inline SVG with no namespace URL, so it adds no outside link."""
+    classes = f"ic {cls}".strip()
+    return f'<svg class="{classes}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICONS.get(name, "")}</svg>'
+
+
+def _link_icon(label: str) -> str:
+    low = label.lower()
+    if "map" in low:
+        return "map"
+    if "park" in low or "transport" in low or "car" in low:
+        return "car"
+    if "security" in low or "tsa" in low:
+        return "shield"
+    if "food" in low or "shop" in low or "dining" in low:
+        return "bag"
+    if "lost" in low or "service" in low or "faq" in low or "help" in low:
+        return "info"
+    if "flight" in low:
+        return "plane"
+    return "globe"
+
+
+def _k(label: str) -> str:
+    """A tile label. It ends with a colon so the tile reads as one sentence with CSS off."""
+    return f'<span class="fact-k">{_esc(label)}:</span> '
+
+
 def _render_live(
     code: str,
     tz: str,
@@ -153,6 +196,7 @@ def _render_live(
 ) -> dict[str, Any]:
     """Pre-rendered live text for one airport page, from data/airports.json values only.
 
+    AN34: the box is a row of tiles (FAA, weather now, next 3 hours), each with its source and age.
     Returns HTML pieces that match what the browser script writes, so the refresh replaces them in place.
     With no data for the airport, returns the plain fallback text.
     """
@@ -166,10 +210,11 @@ def _render_live(
             "chip": "Status loads here",
             "wx_chip": "",
             "checked": f"FAA NAS status loads here. {pt.FALLBACK_STATUS}.",
-            "box": [f'          <p class="updated-text">{_esc(pt.FALLBACK_STATUS)}</p>'],
+            "box": [f'          <div class="fact fact--faa"><p class="updated-text">{_esc(pt.FALLBACK_STATUS)}</p></div>'],
             "word": "",
             "wx": "",
             "clock": "",
+            "level": "none",
         }
     lvl = pt.effective_level(entry)
     word = pt.status_word(entry)
@@ -187,47 +232,52 @@ def _render_live(
     badge_cls = "badge badge--stale" if stale else pt.BADGE_CLASS[lvl]
     badge_text = pt.stale_chip_text(entry, updated_utc, tz) if stale else word
     if stale:
-        status_line = f'          <p>{_esc(word)} {_esc(pt.as_of_text(updated_utc, tz, now))}. Source: {_src_link("FAA NAS status")}.</p>'
+        status_line = f'            <p class="fact-src">{_esc(word)} {_esc(pt.as_of_text(updated_utc, tz, now))}. Source: {_src_link("FAA NAS status")}.</p>'
     else:
-        status_line = f'          <p>{_esc(pt.LEVEL_TEXT[lvl])} ({_src_link("FAA NAS status")})</p>'
-    box: list[str] = [
-        f'          <p class="card-status"><span class="{badge_cls}">{_esc(badge_text)}</span></p>',
-        status_line,
+        status_line = f'            <p class="fact-src">{_esc(pt.LEVEL_TEXT[lvl])} ({_src_link("FAA NAS status")})</p>'
+    faa = [
+        f'          <div class="fact fact--faa fact--{"stale" if stale else lvl}">',
+        f'            <p class="fact-k">FAA status</p>',
+        f'            <p class="card-status"><span class="{badge_cls}">{_esc(badge_text)}</span></p>',
     ]
     if entry.get("reason"):
-        box.append(f'          <p class="event-reason">Reason: {_esc(pt.reason_plain(entry["reason"]))}</p>')
+        faa.append(f'            <p class="event-reason">Reason: {_esc(pt.reason_plain(entry["reason"]))}</p>')
+    faa += [status_line, "          </div>"]
+    box: list[str] = faa
     if wx.get("now_text"):
         wind = pt.wind_text(wx)
         obs = pt.clock_label(wx.get("obs_utc"), tz)
         obs_age = pt.age_minutes(wx.get("obs_utc") or updated_utc, now)
+        value = str(wx["now_text"]) + (f", wind {wind}" if wind else "")
         if stale:
-            wtxt = f"Last weather report: {wx['now_text']}"
-            if wind:
-                wtxt += f", wind {wind}"
+            label = "Last weather report"
             seen = f"observed {obs}, " if obs else ""
             after = f", {seen}{pt.ago_text(obs_age)})"
         else:
-            wtxt = f"Weather now: {wx['now_text']}"
-            if wind:
-                wtxt += f", wind {wind}"
+            label = "Weather now"
             after = f", observed {obs}, updated {pt.ago_text(obs_age)})" if obs else f", updated {pt.ago_text(obs_age)})"
-        box.append(f'          <p>{_esc(wtxt)} ({_src_link("aviationweather.gov METAR")}{_esc(after)}</p>')
+        box.append(
+            f'          <div class="fact fact--wx"><p>{_k(label)}<span class="fact-v">{_esc(value)}</span> '
+            f'<span class="fact-src">({_src_link("aviationweather.gov METAR")}{_esc(after)}</span></p></div>'
+        )
     if wx.get("next3h_text"):
+        label = ""
         if not stale:
-            box.append(
-                f'          <p>Next 3 hours: {_esc(wx["next3h_text"])} ({_src_link("aviationweather.gov TAF")})</p>'
-            )
+            label = "Next 3 hours"
         elif not pt.forecast_expired(wx["next3h_text"], wx.get("taf_issue_utc") or updated_utc, tz, now):
-            issued = pt.clock_label(wx.get("taf_issue_utc") or updated_utc, tz)
+            label = f"Forecast issued {pt.clock_label(wx.get('taf_issue_utc') or updated_utc, tz)}"
+        if label:
             box.append(
-                f'          <p>Forecast issued {_esc(issued)}: {_esc(wx["next3h_text"])} ({_src_link("aviationweather.gov TAF")})</p>'
+                f'          <div class="fact fact--next"><p>{_k(label)}<span class="fact-v">{_esc(wx["next3h_text"])}</span> '
+                f'<span class="fact-src">({_src_link("aviationweather.gov TAF")})</span></p></div>'
             )
     alerts = [str(a) for a in (entry.get("alerts") or [])]
-    box.append(f'          <p>{_esc("Alerts: " + ", ".join(alerts) if alerts else "Alerts: none listed.")}</p>')
     upd = f"last updated {pt.ago_text(age)}" if stale and age is not None else (
         f"updated {pt.ago_text(age)}" if age is not None else "update time unknown")
     box.append(
-        f'          <p class="credit">Sources: {_src_link("FAA NAS status, aviationweather.gov METAR and TAF")}. Data {_esc(upd)}.</p>'
+        '          <div class="fact-foot">'
+        f'<p>{_esc("Alerts: " + ", ".join(alerts) if alerts else "Alerts: none listed.")}</p>'
+        f'<p class="credit">Sources: {_src_link("FAA NAS status, aviationweather.gov METAR and TAF")}. Data {_esc(upd)}.</p></div>'
     )
     return {
         "has": True,
@@ -242,7 +292,141 @@ def _render_live(
         "wx": pt.weather_summary(wx),
         "clock": clock,
         "as_of": pt.as_of_text(updated_utc, tz, now),
+        "level": "stale" if stale else lvl,
     }
+
+
+def _avg_minutes(entry: dict[str, Any] | None) -> tuple[int | None, int | None, str]:
+    """Largest FAA average and longest delay in minutes, and the program kind that carries them."""
+    best: tuple[int | None, int | None, str] = (None, None, "")
+    for ev in (entry or {}).get("events") or []:
+        if not isinstance(ev, dict):
+            continue
+        avg = _minutes(ev.get("avg"))
+        if avg is not None and (best[0] is None or avg > best[0]):
+            best = (avg, _minutes(ev.get("max")), str(ev.get("kind") or ""))
+    return best
+
+
+def _minutes(text: Any) -> int | None:
+    s = str(text or "")
+    h = re.search(r"(\d+)\s*hours?", s, re.I)
+    m = re.search(r"(\d+)\s*minutes?", s, re.I)
+    if not h and not m:
+        return None
+    return (int(h.group(1)) * 60 if h else 0) + (int(m.group(1)) if m else 0)
+
+
+def _dur(minutes: int) -> str:
+    h, m = divmod(int(minutes), 60)
+    out = f"{h} h {m} min" if h and m else (f"{h} h" if h else f"{m} min")
+    return out
+
+
+def _verdict(entry: dict[str, Any] | None, name: str, short: str, live: dict[str, Any], now: Any, tz: str) -> str:
+    """The H1: the answer in plain words. Same rule as the browser script's verdict()."""
+    if not entry or not live.get("has"):
+        return f"{_esc(name)}: delays, weather and traveler help"
+    lvl = pt.effective_level(entry)
+    place = _esc(short)
+    if live.get("stale"):
+        word = pt.status_word(entry)
+        return f"{_esc(word)} at {place}, {_esc(live['as_of'])}"
+    if lvl == "closed":
+        return f"{place} is <em>closed</em> to flights."
+    if lvl == "stop":
+        return f"<em>Ground stop:</em> flights to {place} are held where they are."
+    avg, _mx, kind = _avg_minutes(entry)
+    if lvl == "delay":
+        if kind == "ground_delay" and avg is not None:
+            return f"Flights into {place} are held about <em>{_dur(avg)}</em>."
+        if avg is not None:
+            return f"Expect delays of about <em>{_dur(avg)}</em> at {place}."
+        return f"Expect <em>delays</em> at {place}."
+    return f"No FAA delays at {place} <em>right now</em>."
+
+
+def _lead(entry: dict[str, Any] | None, short: str, code: str, live: dict[str, Any]) -> list[str]:
+    """One plain explanation under the H1. Arrivals and departures are kept apart for ground delays."""
+    if not entry or not live.get("has") or live.get("stale"):
+        return []
+    lvl = pt.effective_level(entry)
+    reason = _plain_reason(pt.reason_plain(entry.get("reason")))
+    why = f" because of {reason}" if reason and reason.lower() != "closed" else ""
+    out: list[str] = []
+    if lvl == "clear":
+        out.append(f'        <p class="ap-lead">No FAA program is listed for {_esc(short)} now. A flight can still be late for airline reasons, '
+                   "so check your airline's app. Leave for the airport as you normally would.</p>")
+    elif lvl == "closed":
+        out.append(f'        <p class="ap-lead">The FAA lists {_esc(short)} as closed to flights. Check your airline\'s app before you go; '
+                   "your airline decides how to rebook you.</p>")
+    elif lvl == "stop":
+        out.append(f'        <p class="ap-lead">The FAA has stopped flights headed to {_esc(code)} from taking off{_esc(why)}. '
+                   f"Flights already in the air still land. Flights leaving {_esc(code)} can run late too.</p>")
+    else:
+        avg, mx, kind = _avg_minutes(entry)
+        if kind == "ground_delay":
+            size = f", on average {_dur(avg)}" + (f" and up to {_dur(mx)}" if mx is not None else "") if avg is not None else ""
+            out.append(f'        <p class="ap-lead">The FAA has a ground delay{_esc(why)}: flights headed to {_esc(code)} wait at their departure airport{size}.</p>')
+            out.append(f'        <p class="ap-out"><strong>Flying out of {_esc(code)}?</strong> The FAA program is for arrivals, but your plane may be '
+                       "one of the late ones coming in, so check your own flight in the airline's app.</p>")
+            out.append('        <details class="ap-explain"><summary>What is a ground delay?</summary>'
+                       "<p>When too many flights would arrive at once, often because of weather, the FAA holds some of them at the airport "
+                       "they leave from, so they wait on the ground instead of circling. The average is across all held flights; yours can "
+                       "be shorter or longer.</p></details>")
+        else:
+            size = f" of about {_dur(avg)}" if avg is not None else ""
+            out.append(f'        <p class="ap-lead">The FAA lists delays{size} at {_esc(code)}{_esc(why)}. Check your airline\'s app for your flight\'s new time before you leave.</p>')
+    return out
+
+
+_PLAIN_REASON = {"low ceilings": "low clouds", "ceilings": "low clouds", "low visibility": "poor visibility",
+                 "volume": "more flights than the runways can take", "traffic volume": "more flights than the runways can take",
+                 "weather, thunderstorms": "thunderstorms", "tstms": "thunderstorms", "weather, wind": "wind",
+                 "runway or taxiway": "runway or taxiway work"}
+
+
+def _plain_reason(reason: str) -> str:
+    """FAA words a traveler may not know, in everyday words ('low ceilings' becomes 'low clouds')."""
+    return "; ".join(_PLAIN_REASON.get(part.strip().lower(), part.strip()) for part in str(reason or "").split(";") if part.strip())
+
+
+def _help_card(code: str, lvl: str) -> list[str]:
+    """The stuck help, scaled to the state: a quiet card when clear, three steps when delayed or closed.
+    Wording follows kits/desk/CHARTER.md: 'may be owed', never 'must cover'; the airline decides each claim."""
+    hot = lvl in ("delay", "stop", "closed")
+    tone = "red" if lvl in ("stop", "closed") else "amber"
+    cls = f"airport-section help-card help-card--hot help-card--{tone}" if hot else "airport-section help-card"
+    head = f"Flying through {_esc(code)} today?" if hot else "If your flight is hit"
+    out = [
+        f'      <section class="{cls}" aria-labelledby="stuck-heading">',
+        f'        <h2 id="stuck-heading">{head}</h2>',
+    ]
+    if hot:
+        out += [
+            '        <p class="help-sub">Three things to do now.</p>',
+            '        <ol class="steps">',
+            "          <li><span><strong>Check your own flight in the airline's app.</strong> The FAA figure is an average, not your flight.</span></li>",
+            "          <li><span><strong>Ask about rebooking early.</strong> Seats on later flights go fast when many flights run late.</span></li>",
+            "          <li><span><strong>Keep your receipts.</strong> Airline meal and hotel commitments cover delays the airline causes; "
+            "a cancellation can still mean a refund, whatever the cause.</span></li>",
+            "        </ol>",
+        ]
+    out += [
+        '        <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
+        '        <div class="stuck-note">',
+        (
+            '          <p>If your flight is delayed or cancelled, walk through the step-by-step '
+            '<a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a> for airline commitments, '
+            'refund rules under 14 CFR 260.6, counter scripts and an email draft, or '
+            f'<a class="tap" href="{DOWNTIME_URL}" target="_blank" rel="noopener noreferrer">'
+            "check what you may be owed</a>. This is plain-language help, not legal advice; your airline decides "
+            "every claim, voucher or reimbursement.</p>"
+        ),
+        "        </div>",
+        "      </section>",
+    ]
+    return out
 
 
 def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[str]:
@@ -287,13 +471,13 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
     age = pt.ago_text(pt.age_minutes(str((history or {}).get("generated_utc") or ""), pt.now_utc())) if gen else ""
     return [
         '      <section class="airport-section" aria-labelledby="history-heading">',
-        '        <h2 id="history-heading">The last 3 days here</h2>',
+        '        <h2 id="history-heading">The last 3 days</h2>',
         f'        <p class="hist-lead">{_esc(head)}</p>',
         f'        <ol class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</ol>',
         '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure <span class="hh hh--none"></span>no reading</p>',
         f'        <p class="small">Source: our hourly record of the FAA NAS status feed, readings {_esc(span)}'
         + (f", copied {_esc(age)}" if age else "")
-        + '. The record only goes back a few days. Once it covers several weeks, this page will show what usually happens at this hour of the week.</p>',
+        + '.</p>',
         "      </section>",
     ]
 
@@ -381,7 +565,8 @@ def _render_head(
         f'  <meta name="twitter:title" content="{_esc(title)}">',
         f'  <meta name="twitter:description" content="{_esc(description)}">',
         f'  <meta name="twitter:image" content="{SITE_URL}/og.png">',
-        '  <meta name="theme-color" content="#0d1722">',
+        '  <meta name="theme-color" content="#080b0f" media="(prefers-color-scheme: dark)">',
+        '  <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">',
         '  <link rel="icon" href="../favicon.svg" type="image/svg+xml">',
         '  <link rel="icon" href="../favicon.png" type="image/png">',
         '  <link rel="stylesheet" href="../tokens.css">',
@@ -391,29 +576,34 @@ def _render_head(
     ])
 
 
-def _nav_chip(label: str, href: str, current: bool) -> str:
+def _nav_chip(label: str, href: str, current: bool, extra: str = "") -> str:
     attrs = ' aria-current="page"' if current else ""
-    return f'        <a class="chip" href="{href}"{attrs}>{label}</a>'
+    cls = f"chip {extra}".strip()
+    return f'        <a class="{cls}" href="{href}"{attrs}>{label}</a>'
 
 
 def _render_header(current: str = "airports", airports_href: str = "index.html") -> str:
+    """The one site header (AN34): brand, then Live board · Airports · Airlines · Stuck? · About.
+    On phones only Airports and Stuck? show; the rest are in the footer."""
+    airlines_href = "index.html" if current == "airlines" else "../airlines/index.html"
     return "\n".join([
         '  <a class="skip-link" href="#main-content">Skip to main content</a>',
-        '  <div class="container">',
-        '    <header class="site-header">',
-        '      <div class="brand-row">',
-        '        <a class="brand" href="../index.html">',
-        '          <img class="brand-logo" src="../brand/logo.svg" width="36" height="36" alt="Air Travel Desk logo">',
-        '          <span class="brand-title">Air Travel Desk</span>',
-        "        </a>",
-        "      </div>",
+        '  <header class="site-header">',
+        '    <div class="header-in">',
+        '      <a class="brand" href="../index.html">',
+        '        <img class="brand-logo" src="../brand/logo.svg" width="30" height="30" alt="">',
+        '        <span class="brand-title">Air Travel Desk</span>',
+        "      </a>",
         '      <nav class="header-nav" aria-label="Site navigation">',
-        _nav_chip("Live board", "../index.html", current == "board"),
+        _nav_chip("Live board", "../index.html", current == "board", "nav-wide"),
         _nav_chip("Airports", airports_href, current == "airports"),
-        _nav_chip("About", "../about.html", current == "about"),
-        _nav_chip("Privacy", "../privacy.html", current == "privacy"),
+        _nav_chip("Airlines", airlines_href, current == "airlines", "nav-wide"),
+        _nav_chip("Stuck?", "../stuck.html", current == "stuck"),
+        _nav_chip("About", "../about.html", current == "about", "nav-wide"),
         "      </nav>",
-        "    </header>",
+        "    </div>",
+        "  </header>",
+        '  <div class="container">',
     ])
 
 
@@ -423,10 +613,16 @@ def _render_footer(
     note: str = "Updated automatically from public data. Not affiliated with any airline or government agency.",
 ) -> str:
     return "\n".join([
+        "  </div>",
         '    <footer class="site-footer">',
-        f"      <p>{_esc(note)}</p>",
+        '      <div class="container foot-grid">',
+        '        <div class="foot-col">',
+        '          <p class="foot-h">Air Travel Desk</p>',
+        f"          <p>{_esc(note)}</p>",
+        "        </div>",
+        '        <div class="foot-col">',
         (
-            '      <p><a class="tap" href="../index.html">Live board</a> &middot; '
+            '          <p><a class="tap" href="../index.html">Live board</a> &middot; '
             f'<a class="tap" href="{airports_href}">Airports</a> &middot; '
             f'<a class="tap" href="{airlines_href}">Airline commitments</a> &middot; '
             '<a class="tap" href="../about.html">About</a> &middot; '
@@ -434,13 +630,14 @@ def _render_footer(
             '<a class="tap" href="../privacy.html">Privacy</a> &middot; '
             f'Contact: <a class="tap" href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>'
         ),
+        "        </div>",
+        "      </div>",
         "    </footer>",
-        "  </div>",
     ])
 
 
 def _sun_now_script() -> str:
-    """Inline script: fills #sun-now from ../sun.js. No network request. Any failure leaves the line hidden."""
+    """Inline script: fills the daylight tile from ../sun.js. No network request. Any failure leaves it hidden."""
     return "\n".join([
         '  <script src="../sun.js"></script>',
         "  <script>",
@@ -448,16 +645,25 @@ def _sun_now_script() -> str:
         '    "use strict";',
         '    var p = document.getElementById("sun-now");',
         '    var src = document.getElementById("sun-now-source");',
+        '    var tile = document.getElementById("sun-tile");',
         "    if (!p || !window.Sun) { return; }",
         "    function paint() {",
         "      try {",
-        "        var t = window.Sun.hubCardText(parseFloat(p.getAttribute(\"data-lat\")), parseFloat(p.getAttribute(\"data-lon\")), p.getAttribute(\"data-tz\"), Date.now());",
-        '        t = String(t).replace(/^Sun: /, "Sun now: ").replace(/ \\u00b7 computed$/, "");',
-        "        var zone = new Intl.DateTimeFormat(\"en-US\", { timeZone: p.getAttribute(\"data-tz\"), timeZoneName: \"short\" }).formatToParts(new Date()).filter(function (x) { return x.type === \"timeZoneName\"; })[0];",
-        '        p.textContent = t + (zone ? ". Times are local to the airport (" + zone.value + ")." : ".");',
-        "        p.hidden = false;",
-        "        if (src) { src.hidden = false; }",
-        "      } catch (e) { p.hidden = true; if (src) { src.hidden = true; } }",
+        '        var tz = p.getAttribute("data-tz"), now = Date.now();',
+        '        var s = window.Sun.hubSun(parseFloat(p.getAttribute("data-lat")), parseFloat(p.getAttribute("data-lon")), tz, now);',
+        "        var F = function (ms) { return window.Sun.fmtTime(ms, tz); };",
+        '        var head = "", sub = "";',
+        '        if (s.state === "polar_day") { head = "Sun stays up"; }',
+        '        else if (s.state === "polar_night") { head = "Sun stays down"; }',
+        '        else if (s.sunrise !== null && s.sunrise > now) { head = "Dark until " + F(s.sunrise); sub = "Sunset " + F(s.sunset); }',
+        '        else if (s.sunset !== null && s.sunset > now) { head = "Light until " + F(s.sunset); sub = "Sunrise was " + F(s.sunrise); }',
+        '        else { head = "Dark"; sub = "Sunset was " + F(s.sunset) + ". Sunrise about " + F(s.sunrise + 86400000); }',
+        "        var zone = new Intl.DateTimeFormat(\"en-US\", { timeZone: tz, timeZoneName: \"short\" }).formatToParts(new Date()).filter(function (x) { return x.type === \"timeZoneName\"; })[0];",
+        "        p.textContent = head;",
+        '        p.hidden = false;',
+        '        if (src) { src.textContent = (sub ? sub + ". " : "") + "Local time at the airport" + (zone ? " (" + zone.value + ")" : "") + "."; src.hidden = false; }',
+        "        if (tile) { tile.hidden = false; }",
+        "      } catch (e) { p.hidden = true; if (src) { src.hidden = true; } if (tile) { tile.hidden = true; } }",
         "    }",
         "    paint();",
         "    setInterval(paint, 60000);",
@@ -466,23 +672,28 @@ def _sun_now_script() -> str:
     ])
 
 
-def _right_now_script(code: str, tz: str = "") -> str:
-    """Inline client-side script that populates #status-chip, #weather-chip, and #right-now from ../data/airports.json."""
+def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
+    """Inline client-side script: refreshes the status chip, the verdict and the tiles in #right-now from ../data/airports.json."""
     code_json = json.dumps(code)
     tz_json = json.dumps(tz)
+    short_json = json.dumps(short or code)
     return "\n".join([
         "  <script>",
         "  (function () {",
         '    "use strict";',
         f"    var CODE = {code_json};",
         f"    var TZ = {tz_json};",
+        f"    var SHORT = {short_json};",
         '    var box = document.getElementById("right-now");',
         '    var statusChip = document.getElementById("status-chip");',
         '    var wxChip = document.getElementById("weather-chip");',
+        '    var verdictEl = document.getElementById("ap-verdict");',
+        '    var hero = document.getElementById("ap-hero");',
         "    if (!box) { return; }",
         '    var LEVEL_TEXT = { clear: "Clear: no FAA delay or ground stop listed.", delay: "Delays: FAA delay program in effect.", stop: "Ground stop: FAA ground stop in effect.", closed: "Closed: FAA airport closure in effect." };',
         '    var BADGE_CLASS = { clear: "badge badge--clear", delay: "badge badge--delay", stop: "badge badge--stop", closed: "badge badge--stop" };',
         '    var BADGE_LABEL = { clear: "No FAA delays reported", delay: "Delays", stop: "Ground stop", closed: "Closed" };',
+        '    var WX_LABEL = { fresh: "Weather now: ", stale: "Last weather report: " };',
         "    function badgeLabel(a, lvl) {",
         "      if (lvl === \"delay\" && Array.isArray(a.events) && a.events.some(function (ev) { return ev && ev.kind === \"ground_delay\"; })) { return \"Ground delay program\"; }",
         "      return BADGE_LABEL[lvl];",
@@ -510,6 +721,20 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '      if (after) { p.appendChild(document.createTextNode(after)); }',
         "      return p;",
         "    }",
+        "    // One tile: a label, the value, then the source in brackets.",
+        "    function tile(cls, label, value, linkText, after) {",
+        '      var d = el("div", "fact " + cls), p = el("p");',
+        '      p.appendChild(el("span", "fact-k", label.replace(/ $/, "")));',
+        '      p.appendChild(document.createTextNode(" "));',
+        '      p.appendChild(el("span", "fact-v", value));',
+        '      p.appendChild(document.createTextNode(" "));',
+        '      var s = el("span", "fact-src", "(");',
+        '      var a = el("a", "tap", linkText); a.href = "../sources.html"; s.appendChild(a);',
+        '      s.appendChild(document.createTextNode(after));',
+        '      p.appendChild(s);',
+        '      d.appendChild(p);',
+        '      return d;',
+        "    }",
         '    var STALE_MIN = 30;',
         '    function ageMin(iso) {',
         '      var ms = Date.parse(iso || "");',
@@ -535,6 +760,11 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '      var m = ageMin(iso);',
         '      return m == null ? "update time unknown" : (stale ? "last updated " : "updated ") + agoText(m);',
         '    }',
+        '    function minutesOf(t) {',
+        '      var h = /(\\d+)\\s*hours?/i.exec(t || ""), m = /(\\d+)\\s*minutes?/i.exec(t || "");',
+        '      return (!h && !m) ? null : (h ? parseInt(h[1], 10) * 60 : 0) + (m ? parseInt(m[1], 10) : 0);',
+        '    }',
+        '    function dur(min) { var h = Math.floor(min / 60), m = min % 60; return h && m ? h + "\\u00a0h " + m + "\\u00a0min" : h ? h + "\\u00a0h" : m + "\\u00a0min"; }',
         '    var ZONES = { eastern: "America/New_York", central: "America/Chicago", mountain: "America/Denver", pacific: "America/Los_Angeles", alaska: "America/Anchorage", hawaii: "Pacific/Honolulu" };',
         '    function zoneParts(ms, zone) {',
         '      var f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" });',
@@ -598,6 +828,21 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '      var m = ageMin(iso);',
         '      return c ? (stale ? "last checked " : "checked ") + c + " (" + agoText(m == null ? 0 : m) + ")" : "check time unknown";',
         '    }',
+        "    // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.",
+        '    function verdict(a, lvl, stale, label, asOf) {',
+        '      var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };',
+        '      if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf)); return h; }',
+        '      if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }',
+        '      if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }',
+        '      var best = null, kind = "";',
+        '      (a.events || []).forEach(function (e) { var x = e && minutesOf(e.avg); if (x != null && (best == null || x > best)) { best = x; kind = e.kind; } });',
+        '      if (lvl === "delay") {',
+        '        if (kind === "ground_delay" && best != null) { h.appendChild(tx("Flights into " + SHORT + " are held about ")); h.appendChild(em(dur(best))); h.appendChild(tx(".")); return h; }',
+        '        if (best != null) { h.appendChild(tx("Expect delays of about ")); h.appendChild(em(dur(best))); h.appendChild(tx(" at " + SHORT + ".")); return h; }',
+        '        h.appendChild(tx("Expect ")); h.appendChild(em("delays")); h.appendChild(tx(" at " + SHORT + ".")); return h;',
+        '      }',
+        '      h.appendChild(tx("No FAA delays at " + SHORT + " ")); h.appendChild(em("right now")); h.appendChild(tx(".")); return h;',
+        '    }',
         '    var checkedLine = document.getElementById("checked-line");',
         '    var heading = document.getElementById("right-now-heading");',
         '    function setUnavailable() {',
@@ -637,6 +882,9 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '        statusChip.className = badgeCls + " status-chip";',
         '        statusChip.textContent = chipText;',
         '      }',
+        '      var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";',
+        '      if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }',
+        '      if (hero) { hero.className = hero.className.replace(/\\bap-hero--\\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }',
         '      var w = a.wx;',
         '      if (wxChip) {',
         '        if (w && w.now_text && !stale) {',
@@ -651,19 +899,22 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '        }',
         '      }',
         '      box.textContent = "";',
+        '      var faa = el("div", "fact fact--faa fact--" + (stale ? "stale" : lvl));',
+        '      faa.appendChild(el("p", "fact-k", "FAA status"));',
         '      var statusRow = el("p", "card-status");',
         '      statusRow.appendChild(el("span", badgeCls, chipText));',
-        '      box.appendChild(statusRow);',
-        '      if (stale) {',
-        '        box.appendChild(srcLine(null, label + " as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + "). Source: ", "FAA NAS status", "."));',
-        '      } else {',
-        '        box.appendChild(srcLine(null, LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
-        '      }',
+        '      faa.appendChild(statusRow);',
         '      if (a.reason) {',
-        '        box.appendChild(el("p", "event-reason", "Reason: " + reasonPlain(a.reason)));',
+        '        faa.appendChild(el("p", "event-reason", "Reason: " + reasonPlain(a.reason)));',
         '      }',
+        '      if (stale) {',
+        '        faa.appendChild(srcLine("fact-src", label + " as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + "). Source: ", "FAA NAS status", "."));',
+        '      } else {',
+        '        faa.appendChild(srcLine("fact-src", LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
+        '      }',
+        '      box.appendChild(faa);',
         '      if (w && w.now_text) {',
-        '        var wxText = (stale ? "Last weather report: " : "Weather now: ") + w.now_text;',
+        '        var wxText = w.now_text;',
         '        if (w.wind_kt != null) {',
         '          wxText += ", wind " + (Math.round(w.wind_kt) === 0 ? "calm (0 kt)" : Math.round(w.wind_kt) + " kt" + (w.gust_kt ? " gusting " + Math.round(w.gust_kt) + " kt" : ""));',
         '        }',
@@ -671,18 +922,20 @@ def _right_now_script(code: str, tz: str = "") -> str:
         '        var wxAfter = stale',
         '          ? ", " + (clockLabel(w.obs_utc) ? "observed " + clockLabel(w.obs_utc) + ", " : "") + agoText(ageMin(obsIso)) + ")"',
         '          : ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(obsIso, false) + ")";',
-        '        box.appendChild(srcLine(null, wxText + " (", "aviationweather.gov METAR", wxAfter));',
+        '        box.appendChild(tile("fact--wx", stale ? WX_LABEL.stale : WX_LABEL.fresh, wxText, "aviationweather.gov METAR", wxAfter));',
         '      }',
         '      if (w && w.next3h_text) {',
         '        if (!stale) {',
-        '          box.appendChild(srcLine(null, "Next 3 hours: " + w.next3h_text + " (", "aviationweather.gov TAF", ")"));',
+        '          box.appendChild(tile("fact--next", "Next 3 hours: ", w.next3h_text, "aviationweather.gov TAF", ")"));',
         '        } else if (!forecastExpired(w.next3h_text, w.taf_issue_utc || data.updated_utc)) {',
-        '          box.appendChild(srcLine(null, "Forecast issued " + clockLabel(w.taf_issue_utc || data.updated_utc) + ": " + w.next3h_text + " (", "aviationweather.gov TAF", ")"));',
+        '          box.appendChild(tile("fact--next", "Forecast issued " + clockLabel(w.taf_issue_utc || data.updated_utc) + ": ", w.next3h_text, "aviationweather.gov TAF", ")"));',
         '        }',
         '      }',
         '      var alerts = Array.isArray(a.alerts) ? a.alerts : [];',
-        '      box.appendChild(el("p", null, alerts.length ? "Alerts: " + alerts.join(", ") : "Alerts: none listed."));',
-        '      box.appendChild(srcLine("credit", "Sources: ", "FAA NAS status, aviationweather.gov METAR and TAF", ". Data " + ageLabel(data.updated_utc, stale) + "."));',
+        '      var foot = el("div", "fact-foot");',
+        '      foot.appendChild(el("p", null, alerts.length ? "Alerts: " + alerts.join(", ") : "Alerts: none listed."));',
+        '      foot.appendChild(srcLine("credit", "Sources: ", "FAA NAS status, aviationweather.gov METAR and TAF", ". Data " + ageLabel(data.updated_utc, stale) + "."));',
+        '      box.appendChild(foot);',
         '    }',
         '    fetch("../data/airports.json?ts=" + Date.now(), { cache: "no-store" })',
         '      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })',
@@ -846,7 +1099,7 @@ def render_airport_page(
             f'            <p class="small">{BTS_DEFINITION_SHORT}; source BTS, {_esc(bts_month)}.</p>'
         )
         ontime_lines.append("          </div>")
-        ontime_html = ['      <section class="airport-section" aria-label="On-time arrivals">', *ontime_lines, "      </section>"]
+        ontime_html = ['      <section class="airport-section" aria-label="On-time arrivals">', '        <h2>A typical month here</h2>', *ontime_lines, "      </section>"]
     else:
         ontime_html = []
     if glance_rows:
@@ -871,8 +1124,11 @@ def render_airport_page(
         sun_lat = sun_lon = None
     if tz and sun_lat is not None and sun_lon is not None:
         sun_now_html = [
-            f'        <p id="sun-now" class="sun-now" data-lat="{sun_lat}" data-lon="{sun_lon}" data-tz="{_esc(tz)}" hidden></p>',
-            '        <p id="sun-now-source" class="small" hidden>Computed from NOAA solar equations.</p>',
+            '        <div id="sun-tile" class="fact fact--sun" hidden>',
+            '          <p class="fact-k">Daylight</p>',
+            f'          <p id="sun-now" class="sun-now" data-lat="{sun_lat}" data-lon="{sun_lon}" data-tz="{_esc(tz)}" hidden></p>',
+            '          <p id="sun-now-source" class="small" hidden>Sun times calculated for the airport\'s location.</p>',
+            "        </div>",
         ]
 
     # Official pages from airport-guide.json
@@ -880,19 +1136,20 @@ def render_airport_page(
         item for item in (guide_entry.get("links") or [])
         if isinstance(item, dict) and _safe_http_url(item.get("url"))
     ]
+    # AN34: official pages as an icon grid; the "could not verify" note lives with the sources below.
     official_lines = ['        <ul class="guide-pills">']
     for item in guide_links:
         url = _safe_http_url(item.get("url"))
         label = str(item.get("label") or "Airport website").strip()
+        host = urllib.parse.urlsplit(url).netloc.removeprefix("www.")
         official_lines.append('          <li class="guide-pill-item">')
         official_lines.append(
-            f'            <a class="tap guide-pill" href="{_esc(url)}" target="_blank" rel="noopener noreferrer">{_esc(label)}</a>'
+            f'            <a class="tap guide-pill" href="{_esc(url)}" target="_blank" rel="noopener noreferrer">'
+            f'{icon(_link_icon(label))}<small>{_esc(host)}</small>{_esc(label)}</a>'
         )
         official_lines.append("          </li>")
     official_lines.append("        </ul>")
     has_blocked_links = any(item.get("verified") is False for item in guide_links)
-    if has_blocked_links:
-        official_lines.append(f'        <p class="small guide-note">{_esc(NOTE_BLOCKED_LINKS)}</p>')
     if not guide_links:
         official_lines.append(f'        <p class="small">We do not list an official link for {_esc(code)} yet.</p>')
     elif guide_entry.get("origin") == "ourairports":
@@ -904,6 +1161,8 @@ def render_airport_page(
         official_lines.append(
             f'        <p class="small">Fewer than 4 official links were available for {_esc(code)} when checked on {_esc(guide_checked_date or build_date)}.</p>'
         )
+    elif operator:
+        official_lines.append(f'        <p class="small">Official pages from {_esc(operator)}.</p>')
 
     # Places within 3.1 miles
     hotels = list((places_entry or {}).get("hotels") or [])
@@ -926,8 +1185,9 @@ def render_airport_page(
         )
     if guide_entry.get("origin") == "ourairports":
         source_items.append("OurAirports (public domain): the address of the airport's website.")
+    source_items.append("Our hourly copy of the FAA feed: the last 3 days. Sun times are calculated for the airport's location.")
     if has_blocked_links:
-        source_items.append(f"{_esc(op_label)}: {_esc(LINKS_NOT_ALL_CHECKED)}")
+        source_items.append(f"{_esc(op_label)}: {_esc(LINKS_NOT_ALL_CHECKED)} {_esc(NOTE_BLOCKED_LINKS)}")
     else:
         source_items.append(
             f"{_esc(op_label)}: {_esc(LINKS_ALL_CHECKED.format(date=guide_checked_date or build_date))}"
@@ -935,9 +1195,13 @@ def render_airport_page(
 
     places_html: list[str] = []
     if has_places:
+        n_h = len([h for h in hotels if isinstance(h, dict) and str(h.get("name") or "").strip()])
+        n_c = len([c for c in cars if isinstance(c, dict) and str(c.get("name") or "").strip()])
         places_html = [
             '      <section class="airport-section" aria-labelledby="places-heading">',
-            '        <h2 id="places-heading">Hotels and car rental within 3.1 miles</h2>',
+            '        <details class="more">',
+            f'          <summary>{icon("bed")}<h2 id="places-heading">Hotels and car rental within 3.1 miles</h2>'
+            f'<span class="cnt">{n_h} {"hotel" if n_h == 1 else "hotels"} · {n_c} rental {"desk" if n_c == 1 else "desks"}</span></summary>',
             '        <div class="places-columns">',
             '          <div class="places-col">',
             "            <h3>Hotels</h3>",
@@ -952,22 +1216,44 @@ def render_airport_page(
                 f'        <p class="credit">&copy; OpenStreetMap contributors. Data from {_esc(places_credit_date)}. '
                 "Distances are in a straight line. We show no prices and do not know what is available.</p>"
             ),
+            "        </details>",
             "      </section>",
         ]
 
+    lvl = live.get("level", "none")
+    short = str((live_entry or {}).get("short") or desk_airports.SHORT.get(code) or city.split(",")[0] or code)
+    try:
+        map_lat = float(airport_info.get("lat"))
+        map_lon = float(airport_info.get("lon"))
+        regional = [
+            f'      <figure class="ap-map" id="ap-map" data-code="{_esc(code)}" data-lat="{map_lat}" data-lon="{map_lon}" hidden>',
+            f'        <canvas id="ap-map-canvas" role="img" aria-label="Map of the area around {_esc(code)} with radar and the status of nearby airports"></canvas>',
+            '        <figcaption id="ap-map-cap">Radar: NOAA MRMS. Status: FAA. Tap an airport to open it.</figcaption>',
+            "      </figure>",
+        ]
+    except (TypeError, ValueError):
+        regional = []
+
     parts = [
         _render_head(title=title, description=description, canonical=canonical, breadcrumb=breadcrumb),
-        "<body>",
+        f'<body class="page-airport">',
         _render_header(),
-        '    <main id="main-content" class="airport-main">',
-        f'      <h1 class="airport-page-title">{_esc(name)} ({_esc(code)}): delays, weather and traveler help</h1>',
+        f'    <main id="main-content" class="airport-main">',
+        f'      <p class="crumb"><a href="index.html">All airports</a> <span aria-hidden="true">/</span> {_esc(code)}</p>',
         (
             f'      <p id="stale-notice" class="stale-notice" role="status">{_esc(live["stale_notice"])} '
             '<a class="stale-link" href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">nasstatus.faa.gov</a></p>'
             if live["has"] and live["stale"]
             else '      <p id="stale-notice" class="stale-notice" role="status" hidden></p>'
         ),
-        '      <div class="airport-summary-band">',
+        f'      <section id="ap-hero" class="ap-hero ap-hero--{_esc(lvl)}" aria-labelledby="ap-verdict">',
+        '       <div class="ap-hero-main">',
+        '        <div class="lockup">',
+        f'          <span class="big-code" aria-hidden="true">{_esc(code)}</span>',
+        f'          <p class="ap-name"><strong>{_esc(name)} ({_esc(code)})</strong><span>{_esc(city)}</span></p>',
+        "        </div>",
+        f'        <h1 id="ap-verdict" class="airport-page-title ap-verdict">{_verdict(live_entry, name, short, live, now, tz)}</h1>',
+        *_lead(live_entry, short, code, live),
         '        <div class="airport-summary-chips">',
         f'          <span id="status-chip" class="{live["chip_class"]}" aria-live="polite">{_esc(live["chip"])}</span>',
         (
@@ -982,78 +1268,55 @@ def render_airport_page(
             else f'        <p id="checked-line" class="last-checked">{_esc(live["checked"])}</p>'
         ),
         (
-            f'        <p class="ap-why">Why: {_esc(pt.reason_plain((live_entry or {}).get("reason")))}. <a class="tap" href="../stuck.html">What to do if your flight is hit</a></p>'
-            if live["has"] and not live["stale"] and (live_entry or {}).get("reason") and str((live_entry or {}).get("reason")).strip().lower() != "closed"
-            else ""
-        ),
-        (
-            f'        <p class="ap-why">{_esc(_delay_sizes(live_entry))}</p>'
-            if live["has"] and not live["stale"] and _delay_sizes(live_entry)
-            else ""
-        ),
-        *_what_to_do(live["chip_class"], live),
-        (
             '        <p class="ap-alt">Other airports nearby, straight-line miles: '
             + ", ".join(f'<a class="tap" href="{_esc(c)}.html">{_esc(c)}</a> ({m} mi{", " + w if w else ""})' for c, _n, m, w in (alternates or []))
             + ". Status is from the FAA feed, checked as shown above. We know nothing about fares or seats there; ask your airline what it can rebook.</p>"
             if alternates and live["has"] and not live["stale"] and "badge--stop" in live["chip_class"]
             else ""
         ),
-        '        <div class="airport-summary-actions">',
-        '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
-        "        </div>",
-        "      </div>",
+        "       </div>",
+        *regional,
+        "      </section>",
         '    <div class="ap-cols">',
-        '      <div class="ap-col ap-col--main">',
-        '      <section class="airport-section" aria-labelledby="right-now-heading">',
+        '      <section class="airport-section ap-now" aria-labelledby="right-now-heading">',
         f'        <h2 id="right-now-heading">{"Last known status" if live["stale"] else "Right now"}</h2>',
+        '        <div class="facts">',
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}"{prerendered_attr}>',
         *live["box"],
         "        </div>",
         *sun_now_html,
+        "        </div>",
         "        <noscript>",
         f'          <p class="noscript-note">{"Refreshing" if live["stale"] else "Live refresh"} needs JavaScript. The status above is from the last site build; for the FAA\'s own page, see nasstatus.faa.gov.</p>',
         "        </noscript>",
         "      </section>",
+        *_help_card(code, lvl),
         *_render_history(code, tz, history),
-        '      <section class="airport-section" aria-labelledby="stuck-heading">',
-        '        <h2 id="stuck-heading">If you are stuck here</h2>',
-        '        <div class="stuck-note">',
-        (
-            '          <p>If your flight is delayed or cancelled, walk through the step-by-step '
-            '<a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a> for airline commitments, '
-            'refund rules under 14 CFR 260.6, counter scripts and an email draft, or '
-            f'<a class="tap" href="{DOWNTIME_URL}" target="_blank" rel="noopener noreferrer">'
-            "check what you may be owed</a>. This is plain-language help, not legal advice; your airline decides "
-            "every claim, voucher or reimbursement.</p>"
-        ),
-        "        </div>",
-        "      </section>",
         *ontime_html,
-        "      </div>",
-        '      <div class="ap-col ap-col--side">',
         '      <section class="airport-section" aria-labelledby="official-heading">',
         '        <h2 id="official-heading">Official pages</h2>',
         *official_lines,
         "      </section>",
         *places_html,
         *glance_html,
-        "      </div>",
-        "    </div>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
-        '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',
+        '        <details class="more">',
+        f'          <summary>{icon("clock")}<h2 id="sources-heading">Where this page\'s data comes from</h2><span class="cnt">every source and its age</span></summary>',
         '        <ul class="airport-sources">',
         *[f"          <li>{line}</li>" for line in source_items],
         "        </ul>",
+        "        </details>",
         "      </section>",
         '      <section class="airport-section airport-about-note" aria-labelledby="about-page-heading">',
         '        <h2 id="about-page-heading">About this page</h2>',
-        '        <p class="small">This page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="../about.html">About Air Travel Desk</a> for how these pages are made.</p>',
+        '        <p class="small">This traveler page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="../about.html">About Air Travel Desk</a> for how these pages are made.</p>',
         "      </section>",
+        "    </div>",
         "    </main>",
         _render_footer(),
         _sun_now_script() if tz else "",
-        _right_now_script(code, tz),
+        _right_now_script(code, tz, short),
+        '  <script src="../apmap.js" defer></script>' if regional else "",
         '<script src="/count.js" defer></script>',
         "</body>",
         "</html>",
@@ -1088,8 +1351,12 @@ def render_index_page(
     places_fetched_date: str,
     bts_data: dict[str, Any],
     build_date: str,
+    live_cards: dict[str, Any] | None = None,
+    live_updated_utc: str = "",
+    now: Any = None,
 ) -> str:
-    """Render HTML for airports/index.html: all airports, grouped by state (the list is static HTML, no script)."""
+    """Render HTML for airports/index.html: all airports, grouped by state. The list is static HTML; a small
+    script only filters it as you type. Each card shows the FAA word at build time (the site rebuilds every 5 minutes)."""
     n = len(codes)
     title = f"US airport status: {n} busiest airports, live delays"
     description = (
@@ -1122,6 +1389,15 @@ def render_index_page(
 
     jump = ['        <nav class="airport-jump" aria-label="Jump to a state">', "          <p class=\"small\">Jump to: " + " ".join(
         f'<a class="tap" href="#{group_id(st)}">{_esc(st or "Other")}</a>' for st in states) + "</p>", "        </nav>"]
+    live_cards = live_cards or {}
+    now = now or pt.now_utc()
+    live_age = pt.age_minutes(live_updated_utc, now) if live_updated_utc else None
+    live_ok = bool(live_cards) and not pt.is_stale(live_age)
+    trouble = []
+    for code in codes:
+        card = live_cards.get(code)
+        if live_ok and isinstance(card, dict) and pt.effective_level(card) != "clear":
+            trouble.append(code)
 
     sections: list[str] = []
     for st in states:
@@ -1133,17 +1409,25 @@ def render_index_page(
             city = str(info.get("city") or "")
             b = bts_airports.get(code)
             if isinstance(b, dict) and b.get("ontime") is not None and bts_month:
-                rate_line = f"Last month's on-time rate ({bts_month}): {b['ontime']}%"
+                rate_line = f"{round(float(b['ontime']))}% on time in {bts_month}"
             else:
                 rate_line = ""      # no BTS number for this airport: show nothing instead of 'unavailable' on every card
-            sections.append('          <li class="airport-index-card">')
+            card = live_cards.get(code)
+            lv = pt.effective_level(card) if live_ok and isinstance(card, dict) else "none"
+            word = {"clear": "Normal", "delay": "Delays", "stop": "Ground stop", "closed": "Closed"}.get(lv, "")
+            hay = " ".join([code, name, city, STATE_NAMES.get(st, "")]).lower()
+            sections.append(f'          <li class="airport-index-card idx--{lv}" data-q="{_esc(hay)}">')
             sections.append(
-                f'            <a class="tap airport-index-link" href="{_esc(code)}.html">{_esc(name)} ({_esc(code)})</a>'
+                f'            <a class="tap airport-index-link" href="{_esc(code)}.html"><span class="idx-code">{_esc(code)}</span>'
+                f'<span class="idx-name">{_esc(name)} ({_esc(code)})</span></a>'
             )
-            if city:
-                sections.append(f'            <p class="airport-index-meta">{_esc(city)}</p>')
-            if rate_line:
-                sections.append(f'            <p class="airport-index-meta">{_esc(rate_line)}</p>')
+            meta = " · ".join(x for x in (city, rate_line) if x)
+            sections.append(
+                '            <p class="idx-status">'
+                + (f'<span class="dot dot--{lv}"></span><b>{_esc(word)}</b>' if word else "")
+                + (f'<span class="airport-index-meta">{_esc(meta)}</span>' if meta else "")
+                + "</p>"
+            )
             sections.append("          </li>")
         sections.append("        </ul>")
 
@@ -1157,12 +1441,24 @@ def render_index_page(
 
     parts = [
         _render_head(title=title, description=description, canonical=canonical, breadcrumb=breadcrumb),
-        "<body>",
+        '<body class="page-index">',
         _render_header(),
         '    <main id="main-content" class="airport-main">',
-        '      <h1 class="airport-page-title">US Airports: delays, weather and traveler help</h1>',
-        f'      <p class="airport-purpose">Purpose: directory of the {n} busiest US airports with city, last month\'s on-time arrival rate and a dedicated help page for each airport.</p>',
-        '      <p class="small">The <a href="../index.html">live board</a> on the home page shows the first 30.</p>',
+        '      <div class="idx-hero">',
+        '      <h1 class="idx-title">US Airports: delays, weather and traveler help</h1>',
+        f'      <p class="airport-purpose">Each of the {n} busiest US airports has its own page: live FAA status, weather, the last 3 days, '
+        'official links and help if you are stuck. The <a href="../index.html">live board</a> has the national picture.</p>',
+        (
+            f'      <p class="idx-now"><span class="dot dot--{"delay" if trouble else "clear"}"></span>'
+            + (f'FAA programs at {len(trouble)} of {n} now: ' + ", ".join(f'<a href="{_esc(c)}.html">{_esc(c)}</a>' for c in trouble)
+               if trouble else f"No FAA programs at any of the {n} now")
+            + f'. FAA NAS status, {_esc(pt.checked_text(live_updated_utc, "America/New_York", now))}.</p>'
+            if live_ok else ""
+        ),
+        '      <div class="search idx-search"><label for="idx-filter">Find an airport</label>'
+        '<div class="field">' + icon("search") + '<input id="idx-filter" type="search" autocomplete="off" spellcheck="false" placeholder="Code, city or state"></div>'
+        '<p id="idx-none" class="search-empty" hidden>No match among the 100 busiest airports.</p></div>',
+        "      </div>",
         '      <section class="airport-section" aria-labelledby="directory-heading">',
         f'        <h2 id="directory-heading">{n} busiest US airports, by state</h2>',
         *jump,
@@ -1177,6 +1473,19 @@ def render_index_page(
         "      </section>",
         "    </main>",
         _render_footer(),
+        "  <script>",
+        "  (function () {",
+        '    var f = document.getElementById("idx-filter"), none = document.getElementById("idx-none");',
+        "    if (!f) { return; }",
+        '    var cards = [].slice.call(document.querySelectorAll(".airport-index-card")), heads = [].slice.call(document.querySelectorAll(".airport-index-state"));',
+        '    f.addEventListener("input", function () {',
+        '      var q = f.value.trim().toLowerCase(), shown = 0;',
+        '      cards.forEach(function (c) { var hit = !q || c.getAttribute("data-q").indexOf(q) >= 0; c.hidden = !hit; if (hit) { shown++; } });',
+        '      heads.forEach(function (h) { var ul = h.nextElementSibling; h.hidden = !!q && !(ul && ul.querySelector(".airport-index-card:not([hidden])")); if (ul) { ul.hidden = h.hidden; } });',
+        "      none.hidden = shown > 0;",
+        "    });",
+        "  })();",
+        "  </script>",
         '<script src="/count.js" defer></script>',
         "</body>",
         "</html>",
@@ -1317,6 +1626,9 @@ def build_pages(
         places_fetched_date=places_fetched_date,
         bts_data=bts_data,
         build_date=date_str,
+        live_cards=live_cards,
+        live_updated_utc=live_updated,
+        now=now,
     )
     index_dest = out_dir / "index.html"
     index_dest.write_text(index_html, encoding="utf-8")

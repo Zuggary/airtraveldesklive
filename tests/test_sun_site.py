@@ -113,7 +113,7 @@ class TestAirportSunNow(unittest.TestCase):
             self.assertIsNotNone(m, code)
             self.assertEqual(m.group(3), a["tz"], code)
             self.assertAlmostEqual(float(m.group(1)), a["lat"], 3)
-            self.assertIn('<p id="sun-now-source" class="small" hidden>Computed from NOAA solar equations.</p>', t, code)
+            self.assertIn('<p id="sun-now-source" class="small" hidden>Sun times calculated for the airport\'s location.</p>', t, code)
             self.assertIn('<script src="../sun.js"></script>', t, code)
             # in the "Right now" section, so it is next to the status
             self.assertLess(t.index('id="right-now"'), t.index('id="sun-now"'))
@@ -177,7 +177,7 @@ class TestSiteWiring(unittest.TestCase):
     def test_service_worker_caches_sun_js_and_cache_name_bumped(self) -> None:
         sw = read("sw.js")
         self.assertIn('"./sun.js"', sw)
-        self.assertIn('CACHE_NAME = "atd-offline-v7"', sw)
+        self.assertIn('CACHE_NAME = "atd-offline-v8"', sw)
 
     def test_workflow_publishes_sun_js(self) -> None:
         yml = read(".github/workflows/status.yml")

@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var CACHE_NAME = "atd-offline-v7";
+  var CACHE_NAME = "atd-offline-v8";
   var STATIC_FILES = [
     "./",
     "./index.html",
@@ -15,6 +15,7 @@
     "./app.js",
     "./lib.js",
     "./sun.js",
+    "./apmap.js",
     "./stuck.js",
     "./sources.js",
     "./fonts/public-sans-latin-wght-normal.woff2",
