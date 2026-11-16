@@ -190,7 +190,7 @@
     var s = $("summary");
     if (!D.state) { s.textContent = "Unable to load the latest FAA status."; return; }
     var upd = D.state.updated_utc;
-    s.textContent = A.nationalSummary(airports, isStaleIso(upd) ? asOfText(upd) : "");
+    s.textContent = A.nationalSummary(allAirports.length ? allAirports : airports, isStaleIso(upd) ? asOfText(upd) : "");
   }
 
   var REASON_PREFIX = { "WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway", "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other" };
@@ -335,7 +335,17 @@
     var weight = { red: 3, orange: 2, yellow: 1 };
     var ordered = airports.map(function (a, i) { return { a: a, i: i, w: (tiles[a.code] && weight[tiles[a.code].status]) || 0 }; });
     ordered.sort(function (x, y) { return (y.w - x.w) || (x.i - y.i); }); // worst first, then the usual order
-    ordered.forEach(function (o) { box.appendChild(makeTile(o.a, tiles)); });
+    var clearRows = [];
+    ordered.forEach(function (o) { if (o.w) { box.appendChild(makeTile(o.a, tiles)); } else { clearRows.push(o.a); } });
+    if (clearRows.length) {
+      var fold = el("details", "fold clear-fold");
+      if (clearRows.length === ordered.length) { fold.open = true; }
+      fold.appendChild(el("summary", null, clearRows.length + (clearRows.length === 1 ? " airport is clear" : " airports are clear") + (clearRows.length === ordered.length ? "" : ": show them")));
+      var inner = el("div", "board-grid");
+      clearRows.forEach(function (a) { inner.appendChild(makeTile(a, tiles)); });
+      fold.appendChild(inner);
+      box.appendChild(fold);
+    }
     renderMine(tiles);
     var note = $("board-note");
     if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. The word after the status (better, worse, steady) compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }

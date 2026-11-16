@@ -73,10 +73,13 @@ def national_summary(airports: list[dict[str, Any]], as_of: str = "") -> str:
     as_of is empty when the data is fresh. When it is set ('as of 1:50 AM EST (12 hours ago)') the line
     is dated and has no live words.
     """
-    stops = delays = 0
+    stops = delays = closed = 0
     best: tuple[int, str] | None = None
     for a in airports:
-        if a.get("level") == "stop":
+        is_closure = any(isinstance(e, dict) and e.get("kind") == "closure" for e in a.get("events") or [])
+        if a.get("level") == "stop" and is_closure:
+            closed += 1
+        elif a.get("level") == "stop":
             stops += 1
         elif a.get("level") == "delay":
             delays += 1
@@ -84,10 +87,12 @@ def national_summary(airports: list[dict[str, Any]], as_of: str = "") -> str:
             mins = minutes_of(ev.get("avg") if isinstance(ev, dict) else None)
             if mins is not None and (best is None or mins > best[0]):
                 best = (mins, str(a.get("short") or a.get("code") or ""))
-    if not stops and not delays:
-        base = "No delays or ground stops at the 30 busiest airports"
+    if not stops and not delays and not closed:
+        base = f"No delays or ground stops at the {max(len(airports), 30)} busiest airports"
         return f"{base} {as_of}" if as_of else f"{base} right now"
     parts = []
+    if closed:
+        parts.append(f"{closed} airport closed" if closed == 1 else f"{closed} airports closed")
     if stops:
         parts.append(f"{stops} airport with a ground stop" if stops == 1 else f"{stops} airports with ground stops")
     if delays:

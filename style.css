@@ -914,3 +914,5 @@ main > section { margin-top: 36px; }
 }
 .ap-alt { margin: 4px 0 0; font-size: 1rem; color: var(--text-muted); max-width: 52ch; }
 .ap-alt .tap { display: inline; min-height: 0; font-weight: 700; }
+.board-grid > .clear-fold { grid-column: 1 / -1; border-top: 0; }
+.clear-fold .board-grid { border-top: 0; }

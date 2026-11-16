@@ -146,10 +146,12 @@
   }
 
   function nationalSummary(airports, asOf) {
-    var stops = 0, delays = 0, best = null;
+    var stops = 0, delays = 0, closed = 0, best = null;
     for (var i = 0; i < airports.length; i++) {
       var a = airports[i];
-      if (a.level === "stop") { stops++; }
+      var isClosure = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
+      if (a.level === "stop" && isClosure) { closed++; }
+      else if (a.level === "stop") { stops++; }
       else if (a.level === "delay") { delays++; }
       var evs = a.events || [];
       for (var j = 0; j < evs.length; j++) {
@@ -157,8 +159,9 @@
         if (mins != null && (!best || mins > best.mins)) { best = { mins: mins, name: a.short || a.code }; }
       }
     }
-    if (!stops && !delays) { return "No delays or ground stops at the 30 busiest airports " + (asOf || "right now"); }
+    if (!stops && !delays && !closed) { return "No delays or ground stops at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports " + (asOf || "right now"); }
     var parts = [];
+    if (closed) { parts.push(closed + (closed === 1 ? " airport closed" : " airports closed")); }
     if (stops) { parts.push(stops + (stops === 1 ? " airport with a ground stop" : " airports with ground stops")); }
     if (delays) { parts.push(delays + (delays === 1 ? " airport with delays" : " airports with delays")); }
     var line = parts.join(" · ");
