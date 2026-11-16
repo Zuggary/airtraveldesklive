@@ -161,6 +161,10 @@ FLIGHT_STATUS = {
 }
 
 
+SITE_NOTE = " (airline's own site)"
+HOME_ONLY = ("allegiant", "frontier", "spirit", "united")      # no status address confirmed: these rows open the airline's own site
+
+
 def _flight_check(code: str) -> list[str]:
     """AN35: the 'Check my flight' box. The visitor types a flight number (DL 123); a small script on the page picks the airline
     by its code and opens that airline's own status page in a new tab. Nothing is fetched or stored, and the flight number is
@@ -168,7 +172,7 @@ def _flight_check(code: str) -> list[str]:
     table = {c: key for key, (_n, codes, _u) in FLIGHT_STATUS.items() for c in codes}
     data = {key: {"name": n, "url": u} for key, (n, _c, u) in FLIGHT_STATUS.items()}
     items = "".join(
-        f'<li><a class="tap" href="{_esc(u)}" target="_blank" rel="noopener noreferrer">{_esc(n)}</a></li>'
+        f'<li><a class="tap" href="{_esc(u)}" target="_blank" rel="noopener noreferrer">{_esc(n)}{SITE_NOTE if _k in HOME_ONLY else ""}</a></li>'
         for _k, (n, _c, u) in FLIGHT_STATUS.items()
     )
     return [
@@ -178,7 +182,7 @@ def _flight_check(code: str) -> list[str]:
         '              <button type="submit" class="btn btn-accent">Open airline page</button></span>',
         '              <p id="flight-msg" class="small" role="status" hidden></p>',
         '            </form>',
-        '            <p class="small flight-honest">Opens the airline\'s own status page. We do not track individual flights.</p>',
+        '            <p class="small flight-honest">Opens the airline\'s own status page or home page. We do not track individual flights.</p>',
         f'            <ul class="airline-links" id="flight-airlines" aria-label="Airline flight-status pages">{items}</ul>',
         '            <script>',
         '            (function () {',

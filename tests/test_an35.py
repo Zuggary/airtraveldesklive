@@ -194,8 +194,9 @@ class TestFlightBox(unittest.TestCase):
 
     def test_box_is_honest_and_carries_no_tracking(self):
         html = "\n".join(bap._flight_check("ATL"))
-        self.assertIn("Opens the airline\\'s own status page. We do not track individual flights.".replace("\\'", "'"), html)
+        self.assertIn("Opens the airline\\'s own status page or home page. We do not track individual flights.".replace("\\'", "'"), html)
         self.assertEqual(html.count("<li><a"), 10)
+        self.assertEqual(html.count("(airline's own site)"), 4)
         self.assertNotIn("fetch(", html)
         self.assertNotIn("localStorage", html)
         self.assertNotIn("XMLHttpRequest", html)
