@@ -184,8 +184,11 @@
     }
     var clock = m == null ? "" : fmtTime(new Date(Date.parse(upd)));
     var stale0 = A.isStale(m);
-    ($("now-title") || $("now-heading")).textContent = stale0 ? "Last known status" : "Right now";
-    line.textContent = (m == null ? "Update time unavailable" : "FAA NAS status, " + (stale0 ? "last checked " : "checked ") + (clock ? clock + " " : "") + "(" + ageText(upd) + ")") + " · updates about every 5 minutes";
+    // AN34 round 4: a dateline (the visitor's day and clock of the FAA check) in place of a pulsing "Right now".
+    var dl = "Latest FAA check";
+    if (m != null) { var dd = new Date(Date.parse(upd)); try { dl = A.dateline({ weekday: dd.toLocaleDateString("en-US", { weekday: "long" }), hour: dd.getHours(), clock: fmtTime(dd) }); } catch (e) { /* keep the plain label */ } }
+    ($("now-title") || $("now-heading")).textContent = stale0 ? "Last known status" : dl;
+    line.textContent = (m == null ? "Update time unavailable" : "FAA NAS status, " + (stale0 ? "last checked " : "checked ") + (clock ? clock + " " : "") + "(" + ageText(upd) + ")") + ". We check every 5 minutes.";
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
@@ -284,6 +287,8 @@
         try { day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d); } catch (e) { day = mt[1] + " " + mt[2]; }
         // AN34 r2: the big word is the state; the date sits in the small line, in the visitor's zone like every clock here.
         if (d.getTime() <= Date.now()) { return { big: "Closed", small: "listed to reopen " + day + ", " + fmtTime(d) + "; that time has passed, so it may have reopened" }; }
+        // AN34 round 4: a listing days out is often a run of nightly closures, not one long shutdown.
+        if (d.getTime() - Date.now() > 24 * 3600 * 1000) { return { big: "Closed", small: "FAA listing runs to " + day + ". A listing this long is often nightly closures; check the airport for its hours" }; }
         return { big: "Closed", small: "listed to reopen " + day + ", " + fmtTime(d) };
       }
       return { big: "Closed", small: "no reopening time listed" };
@@ -434,7 +439,7 @@
     ordered.sort(function (x, y) { return (y.w - x.w) || (x.i - y.i); }); // worst first, then the usual order
     var head = el("div", "bh");
     head.setAttribute("aria-hidden", "true");
-    ["Code", "City", "Last 24 h", "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
+    ["Code", "City", "Past 24 h", "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
     // AN34 round 3: full rows only for airports with an FAA program now or in the last 24 h. The rest,
     // normal now and all day, fold into one compact grid of codes, so a calm day is not 30 rows of "Normal".
     var busy = ordered.filter(function (o) { return o.w > 0 || o.a.level !== "clear" || histTrouble(o.a.code); });
@@ -490,6 +495,7 @@
     var note = $("board-note");
     if (note) {
       note.textContent = "";
+      note.appendChild(el("span", "key-lead", "Each strip is the past 24 hours, one bar an hour, oldest on the left:"));
       [["clear", "no FAA program"], ["delay", "delay"], ["stop", "ground stop or closure"], ["none", "no reading"]].forEach(function (k) {
         var key = el("span", "key");
         key.appendChild(el("i", "hh hh--" + k[0]));
@@ -557,7 +563,8 @@
     var st = el("span", "tile-level");
     if (lvl === "clear") {
       st.appendChild(el("span", "dot dot--clear"));
-      st.appendChild(el("span", "tile-ok", "Normal"));
+      // AN34 round 4: amber or red in the 24 h strip beside a clear airport means trouble earlier, now over; say so.
+      st.appendChild(el("span", "tile-ok", histTrouble(a.code) ? "Clear now" : "Normal"));
     } else {
       var mins = null;
       (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });

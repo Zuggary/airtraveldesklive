@@ -159,10 +159,11 @@ class TestHomeCard(unittest.TestCase):
         self.assertIn("A free game from us. No ads, no cookies.", self.idx)
 
     def test_card_sits_low_after_the_data_sections(self) -> None:
+        # AN34 round 4: the game is a quiet line in the footer, after every data section.
         i = self.idx.index('id="while-you-wait"')
         for sec in ('id="now"', 'id="map-section"', 'id="owed"', 'id="compare"'):
             self.assertLess(self.idx.index(sec), i, sec)
-        self.assertLess(i, self.idx.index("</main>"))
+        self.assertGreater(i, self.idx.index("<footer"))
 
     def test_tap_target_is_44px(self) -> None:
         css = read("style.css")
@@ -177,7 +178,7 @@ class TestSiteWiring(unittest.TestCase):
     def test_service_worker_caches_sun_js_and_cache_name_bumped(self) -> None:
         sw = read("sw.js")
         self.assertIn('"./sun.js"', sw)
-        self.assertIn('CACHE_NAME = "atd-offline-v10"', sw)
+        self.assertIn('CACHE_NAME = "atd-offline-v11"', sw)
 
     def test_workflow_publishes_sun_js(self) -> None:
         yml = read(".github/workflows/status.yml")

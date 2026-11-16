@@ -972,3 +972,125 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 @media (max-width: 699px) {
   .ap-hero .band-art::after, .stuck-band .band-art::after { background: linear-gradient(180deg, rgba(7, 10, 14, 0.72) 0%, rgba(7, 10, 14, 0.84) 45%, rgba(7, 10, 14, 0.94) 100%); }
 }
+
+/* ---------- AN34 round 4: fewer template signals. A dateline, not a pulsing badge; one-colour headlines;
+   rows on the page instead of a stack of identical cards; the board is the dark departures band. ---------- */
+.live-dot { display: none; }
+.dateline { margin: 0 0 12px; font: 600 var(--fs-sm)/1.2 var(--font-text); color: var(--text-muted); letter-spacing: 0.01em; }
+.verdict em, .ap-hero .ap-verdict em { color: inherit; }
+.page-home .band-art img { opacity: 0.42; filter: saturate(0.55); }
+.page-home .hero .band-art::after {
+  background:
+    linear-gradient(180deg, rgba(7, 10, 14, 0.6) 0%, rgba(7, 10, 14, 0.5) 40%, rgba(7, 10, 14, 0.92) 100%),
+    linear-gradient(90deg, rgba(7, 10, 14, 0.95) 0%, rgba(7, 10, 14, 0.75) 45%, rgba(7, 10, 14, 0.45) 100%);
+}
+
+/* section heads: condensed display type, like the board's own signs */
+.sec-head h2 { font: 700 clamp(1.7rem, 1.4rem + 1vw, 2.2rem)/1.05 var(--font-display); letter-spacing: 0.005em; }
+
+/* delays and closures: tinted rows, no side stripe */
+.event-card { border: 0; border-radius: 0; background: var(--amber-soft); border-top: 1px solid var(--line); }
+.event-card--stop { background: var(--red-soft); }
+.event-card::before { display: none; }
+.events-list { gap: 0; border-radius: var(--radius); overflow: hidden; }
+
+/* the 30 busiest: a full-width dark band, rows with hairlines, no outer card */
+.board-band { margin-top: var(--space-7); padding: var(--space-6) 0 var(--space-6); }
+.board-band.sec { padding-top: var(--space-6); }
+.board-band .board { background: transparent; border: 0; border-radius: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.board-band .sec-head p, .board-band .board-note { color: var(--text-faint); }
+.board-band .board-note { margin: 0 0 10px; }
+.board-band .qt { background: rgba(255, 255, 255, 0.05); }
+.board-band .qt:hover { background: rgba(255, 255, 255, 0.1); }
+.board-band .more-link { color: var(--link); }
+.board-band .tile--delay { background: rgba(245, 179, 1, 0.1); }
+.board-band .tile--stop { background: rgba(255, 90, 71, 0.12); }
+.key-lead { color: var(--text-muted); }
+@media (max-width: 999px) { .board-note .key { display: inline-flex; } .board-note .key-src { display: none; } }
+
+/* last 24 hours and travel volume: plain rows on the page, hairline above, no card */
+.hist-box, .compare-card { background: transparent; border: 0; border-radius: 0; border-top: 1px solid var(--border); padding: 16px 0 0; }
+.split--quiet #changed { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 12px 0; }
+.compare-grid { gap: 0 var(--space-6); }
+.compare-grid > .tsa-card .bars { max-height: 150px; flex: 0 0 120px; }
+.hol-bars { height: 72px; }
+@media (min-width: 1000px) {
+  .compare-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.8fr); align-items: start; }
+  .compare-grid > .tsa-card, .compare-grid > .holiday, .compare-grid > .compare-card--bts { grid-row: auto; }
+  .compare-grid > .compare-card--bts { grid-column: auto; }
+  .split--quiet .hist-box { padding: 16px 0 0; }
+}
+
+/* the help band: one card, one button */
+.owed-panel .btns .btn { min-height: 52px; padding: 0 22px; }
+.owed-panel .small a { color: var(--link); }
+@media (max-width: 699px) { .owed-panel .small { display: block; } }
+
+/* footer: links in one block, the stream and the game as quiet lines */
+.foot-links { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 0 28px; margin: 0; }
+.foot-links .tap { min-height: 40px; display: inline-flex; align-items: center; }
+.site-footer .wait-card { margin: 0; display: block; }
+.site-footer .wait-card h2 { margin: 0 0 8px; }
+.site-footer .wait-card p { margin: 0 0 8px; }
+.site-footer .watch-section .chip { min-height: 40px; margin-top: 4px; }
+@media (min-width: 800px) { .foot-grid { grid-template-columns: 1.2fr 1fr 1.1fr 1fr; } }
+
+/* phones: the header shows every section; it scrolls away to give the page room */
+@media (max-width: 699px) {
+  .site-header { position: static; }
+  .header-in { flex-wrap: wrap; gap: 0; padding-top: 6px; padding-bottom: 4px; }
+  .header-nav { width: calc(100% + 12px); margin: 0 -6px; justify-content: space-between; }
+  .header-nav .nav-wide { display: inline-flex; }
+  .header-nav .chip { padding: 0 6px; font-size: 0.875rem; min-height: 40px; }
+}
+
+/* ---------- AN34 round 4 airport pages: one "Today at" strip, help beside the official links ---------- */
+.ap-eyebrow.dateline { margin: 0 0 14px; }
+.ap-hero .lockup ~ .ap-verdict { margin-top: var(--space-4); }
+.ap-hero--clear .flight-check { order: -1; }
+.ap-today { margin-top: var(--space-6); }
+.ap-today > h2, .ap-cols h2, .ap-official h2 { font: 700 clamp(1.6rem, 1.35rem + 0.9vw, 2rem)/1.05 var(--font-display) !important; letter-spacing: 0.005em; }
+.today-grid { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 2px solid var(--board-text); }
+.today-grid > * { min-width: 0; }
+.ap-today .facts { border: 0; border-radius: 0; background: transparent; }
+.ap-today .fact { border-left: 0; padding: 16px 20px 16px 0; }
+.ap-today .fact + .fact { border-left: 1px solid var(--line); padding-left: 20px; }
+.ap-today .fact-foot { padding: 10px 0; }
+.today-record { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
+.today-cell { padding: 16px 0; min-width: 0; }
+.today-cell + .today-cell { border-top: 1px solid var(--line); }
+.today-cell .fact-k { margin: 0 0 8px; }
+.today-hist .hist-lead { margin: 0; font: 700 1.35rem/1.15 var(--font-display); color: var(--board-text); max-width: 34ch; }
+.today-hist .hist-strip { margin-top: 10px; }
+.ap-ontime .glance-ontime-num { margin: 0; font: 700 2.4rem/1 var(--font-display); color: var(--board-text); }
+.ap-ontime .glance-ontime-label { margin: 4px 0 0; font-weight: 600; font-size: var(--fs-sm); }
+.ap-ontime .glance-ontime-comp, .ap-ontime .glance-ontime-flights { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--text-muted); }
+.ap-ontime .small { margin: 6px 0 0; font-size: var(--fs-xs); color: var(--text-faint); }
+.ap-ontime .glance-ontime { display: block; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+@media (min-width: 900px) {
+  .today-record { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); column-gap: var(--space-6); }
+  .today-cell + .today-cell { border-top: 0; border-left: 1px solid var(--line); padding-left: var(--space-5); }
+}
+/* help and official links side by side, then the folds */
+.ap-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--space-6); align-items: start; }
+@media (min-width: 900px) {
+  .ap-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ap-cols > * { grid-column: auto; grid-row: auto; }
+}
+.ap-cols > .help-card { margin-top: var(--space-6); }
+.ap-official .guide-pills { display: block; border-top: 1px solid var(--line); }
+.ap-official .guide-pill-item { border-bottom: 1px solid var(--line); }
+.ap-official .guide-pill { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 2px; border: 0; border-radius: 0; background: transparent; font-weight: 600; }
+.ap-official .guide-pill:hover { background: var(--surface-alt); }
+.ap-official .small { margin-top: 10px; }
+.ap-folds { margin-top: var(--space-5); }
+.ap-folds > .airport-section { margin-top: 0; }
+/* phones: a flat dark panel, no photo behind the words */
+@media (max-width: 699px) {
+  .ap-hero .band-art { display: none; }
+  .ap-today .fact + .fact { border-left: 0; padding-left: 0; }
+  .ap-today .fact { padding-right: 0; }
+}
+.page-home .foot-links { grid-template-columns: minmax(0, 1fr); }
+.owed-panel .refund-line { border: 0; padding: 0; background: none; font-weight: 600; }
+@media (min-width: 700px) { .ap-today .fact--sun { border-left: 1px solid var(--line); padding-left: 20px; } }

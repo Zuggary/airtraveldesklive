@@ -220,3 +220,48 @@ class TestAn12Helpers(unittest.TestCase):
         self.assertEqual(v["rows"][0]["nowPct"], 50.0)
         self.assertIsNone(v["rows"][1]["nowPct"])
         self.assertTrue(v["rows"][1]["isRecord"])
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestRound4Words(unittest.TestCase):
+    """AN34 round 4: the dateline and the plain reason read the same in the build and the browser."""
+
+    def test_dateline_parity(self):
+        sys.path.insert(0, str(ROOT))
+        from datetime import datetime
+        from tools import prerender_text as pt
+        for hour, want in ((1, "Early Monday, 1:05 AM"), (9, "Monday morning, 9:05 AM"), (13, "Monday afternoon, 1:05 PM"),
+                           (19, "Monday evening, 7:05 PM"), (22, "Monday night, 10:05 PM")):
+            local = datetime(2026, 11, 16, hour, 5)
+            self.assertEqual(pt.dateline(local), want)
+            clock = local.strftime("%I:%M %p").lstrip("0")
+            self.assertEqual(js("ATD.dateline(DATA.p)", p={"weekday": "Monday", "hour": hour, "clock": clock}), want)
+
+    def test_reason_words_parity(self):
+        sys.path.insert(0, str(ROOT))
+        from tools import prerender_home as ph
+        for raw, want in (("low ceilings", "low clouds"), ("WX: thunderstorms", "thunderstorms"), ("something new", ""), ("", "")):
+            self.assertEqual(ph.reason_words(raw), want)
+            self.assertEqual(js("ATD.reasonWords(DATA.r)", r=raw), want)
+        ap = [{"code": "SFO", "short": "San Francisco", "level": "delay", "reason": "low ceilings",
+               "events": [{"kind": "ground_delay", "avg": "2 hours and 46 minutes"}]}]
+        want = "Flights to San Francisco (SFO) are held about 2 h 46 min for low clouds."
+        self.assertEqual(ph.trouble_line(ap), want)
+        self.assertEqual(js("ATD.troubleLine(DATA.ap)", ap=ap), want)
+
+
+class TestLongClosureListing(unittest.TestCase):
+    """AN34 round 4: a closure listed to end days out does not read as a plain reopening time."""
+
+    def test_far_reopen_is_explained(self):
+        sys.path.insert(0, str(ROOT))
+        from datetime import datetime, timezone
+        from tools import prerender_home as ph
+        now = datetime(2026, 11, 16, 6, 30, tzinfo=timezone.utc)
+        far = {"kind": "closure", "fields": {"reopen": "Nov 21 at 14:15 UTC."}}
+        big, small = ph.event_figure(far, "America/Los_Angeles", now)
+        self.assertEqual(big, "Closed")
+        self.assertIn("FAA listing runs to Nov 21", small)
+        self.assertIn("often nightly closures", small)
+        near = {"kind": "closure", "fields": {"reopen": "Nov 16 at 14:15 UTC."}}
+        self.assertTrue(ph.event_figure(near, "America/Los_Angeles", now)[1].startswith("listed to reopen Nov 16"))

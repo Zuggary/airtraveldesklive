@@ -64,9 +64,9 @@
       <div class="hero-grid">
         <div class="hero-main">
           <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
-          <h2 id="now-heading" class="eyebrow"><span class="pulse" aria-hidden="true"></span><span id="now-title"><!--pr:nowtitle-->Right now<!--/pr:nowtitle--></span></h2>
+          <h2 id="now-heading" class="dateline"><span id="now-title"><!--pr:nowtitle-->Latest FAA check<!--/pr:nowtitle--></span></h2>
           <h1 id="summary" class="verdict" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></h1>
-          <p class="lede"><span id="trouble-line"><!--pr:trouble--><!--/pr:trouble--></span> <span class="lede-about">We check the FAA's airport status every 5 minutes and say what it means for your trip.</span></p>
+          <p class="lede"><span id="trouble-line"><!--pr:trouble--><!--/pr:trouble--></span></p>
 
           <div id="airports" class="search">
             <label for="airport-search">Check your airport</label>
@@ -111,20 +111,25 @@
     <section id="trouble" class="sec" aria-labelledby="trouble-heading">
       <div class="sec-head">
         <h2 id="trouble-heading">Delays and closures now</h2>
-        <p>FAA airport status, worst first</p>
       </div>
       <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
     </section>
 
-    <section id="board-section" class="sec" aria-labelledby="board-heading">
+    </div>
+
+    <section id="board-section" class="sec band board-band" aria-labelledby="board-heading">
+      <div class="container">
       <div class="sec-head">
         <h2 id="board-heading">The 30 busiest US airports</h2>
         <p>Trouble first, then by passenger traffic. Tap a row for that airport.</p>
       </div>
-      <div id="board" class="board"></div>
       <p id="board-note" class="board-note"></p>
-      <p class="board-more"><a class="more-link" href="airports/index.html">All 100 busiest airports, with a page for each <span aria-hidden="true">&rarr;</span></a></p>
+      <div id="board" class="board"></div>
+      <p class="board-more"><a class="more-link" href="airports/index.html">All 100 busiest airports, with a page for each</a></p>
+      </div>
     </section>
+
+    <div class="container">
 
     <div class="split">
       <section id="changed" class="sec" aria-labelledby="changed-heading">
@@ -150,7 +155,6 @@
     <section id="compare" class="sec" aria-labelledby="compare-heading">
       <div class="sec-head">
         <h2 id="compare-heading">How busy travel is</h2>
-        <p>TSA checkpoint counts and BTS on-time numbers</p>
       </div>
       <div id="compare-cards" class="compare-grid"><!--pr:tsa--><!--/pr:tsa--></div>
     </section>
@@ -158,53 +162,49 @@
     <section id="owed" class="owed-panel help" aria-labelledby="owed-heading">
       <div class="help-text">
         <h2 id="owed-heading">Delayed? What you may be owed</h2>
-        <p>Our step-by-step guide covers rebooking, what each airline has committed to, and what to say at the counter. See what an airline may owe you for a delay or a cancellation, and how to ask for it.</p>
+        <p>Pick your airline and what happened. The guide shows what that airline has said it will do, what to ask at the counter before you pay for anything, and an email you can send afterwards.</p>
         <p class="refund-line" id="owed-refund">Refunds are a separate rule, 14 CFR 260.6, and it applies whatever the cause of the delay or cancellation.</p>
-        <p class="small">Each airline has its own page of what it has committed to for delays and cancellations. This is plain-language help, not legal advice; the airline decides each claim.</p>
+        <p class="small"><a class="tap" href="https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive" target="_blank" rel="noopener noreferrer">Check what you may be owed</a>, or see <a class="tap" href="airlines/index.html">what each airline has committed to</a>. Plain-language help, not legal advice; the airline decides each claim.</p>
       </div>
       <div class="btns">
-        <a class="btn btn-primary" href="stuck.html">I'm stuck at the airport <span aria-hidden="true">&rarr;</span></a>
-        <a class="btn btn-secondary" href="https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive" target="_blank" rel="noopener noreferrer">Check what you may be owed</a>
-        <a class="btn btn-secondary" href="airlines/index.html">See airline commitments</a>
+        <a class="btn btn-primary" href="stuck.html">I'm stuck at the airport</a>
       </div>
-    </section>
-
-    <section id="while-you-wait" class="wait-card" aria-labelledby="wait-heading">
-      <h2 id="wait-heading">While you wait: play Lantern Drift</h2>
-      <p>A free game from us. No ads, no cookies.</p>
-      <a class="btn btn-secondary wait-link" href="https://www.lanterndrift.com/" target="_blank" rel="noopener">Play Lantern Drift</a>
     </section>
     </div>
   </main>
 
   <footer class="site-footer">
     <div class="container foot-grid">
+      <div class="foot-col">
+        <h2>Air Travel Desk</h2>
+        <p>Updated automatically from public data. Not affiliated with any airline or government agency.</p>
+        <p>Contact: <a class="tap" href="mailto:hello@airtraveldesklive.com">hello@airtraveldesklive.com</a></p>
+      </div>
+      <nav class="foot-links" aria-label="Footer">
+        <a class="tap" href="airports/index.html">Airports</a>
+        <a class="tap" href="airlines/index.html">Airline commitments</a>
+        <a class="tap" href="stuck.html">I'm stuck guide</a>
+        <a class="tap" href="about.html">About</a>
+        <a class="tap" href="sources.html">Data and sources</a>
+        <a class="tap" href="privacy.html">Privacy</a>
+      </nav>
       <section id="watch" class="watch-section" aria-labelledby="watch-heading">
         <h2 id="watch-heading">Watch live with voice</h2>
-        <p>A map and a voice read these same updates around the clock, on Twitch. Or put the TV view on a spare screen.</p>
-        <nav class="watch-bar" aria-label="Watch live with voice">
-          <a class="chip" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>
-          <!-- YouTube link goes here when the channel is live (AN5). -->
-          <a class="chip" href="tv.html">TV mode</a>
-          <button type="button" class="chip chip--button" id="load-live" aria-expanded="false" aria-controls="live-panel">Load live video</button>
-        </nav>
+        <p>The same updates, read aloud around the clock: <a class="tap" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>, or <a class="tap" href="tv.html">TV mode</a> for a spare screen.</p>
+        <button type="button" class="chip chip--button" id="load-live" aria-expanded="false" aria-controls="live-panel">Load live video here</button>
         <div class="live-panel" id="live-panel" hidden>
           <p class="live-note">The video plays from Twitch. Loading it contacts Twitch, which sets its own cookies. Nothing loads from Twitch until you press the button.</p>
           <div class="live-frame" id="live-frame"></div>
         </div>
       </section>
-      <div class="foot-col">
-        <h2>Air Travel Desk</h2>
-        <p><a class="tap" href="airports/index.html">Airports</a></p>
-        <p><a class="tap" href="airlines/index.html">Airline commitments</a></p>
-        <p><a class="tap" href="about.html">About</a> &middot; <a class="tap" href="sources.html">Data and sources</a> &middot; <a class="tap" href="privacy.html">Privacy</a></p>
-        <p>Contact: <a class="tap" href="mailto:hello@airtraveldesklive.com">hello@airtraveldesklive.com</a></p>
-      </div>
+      <section id="while-you-wait" class="wait-card" aria-labelledby="wait-heading">
+        <h2 id="wait-heading">While you wait: play Lantern Drift</h2>
+        <p>A free game from us. No ads, no cookies.</p>
+        <a class="btn btn-secondary wait-link" href="https://www.lanterndrift.com/" target="_blank" rel="noopener">Play Lantern Drift</a>
+      </section>
     </div>
     <div class="container fine">
-      <p>Updated automatically from public data. Not affiliated with any airline or government agency.</p>
-      <p>Data: FAA, National Weather Service, NOAA (MRMS radar, SPC storm outlooks, NHC hurricanes), aviationweather.gov (airport weather), TSA, Bureau of Transportation Statistics (BTS), &copy; OpenStreetMap contributors. Map outlines: Natural Earth.</p>
-      <p class="credit-line">Aircraft data: <a class="tap" href="https://www.adsb.lol/" target="_blank" rel="noopener noreferrer">adsb.lol</a> (ODbL).</p>
+      <p>Data: FAA, National Weather Service, NOAA (MRMS radar, SPC storm outlooks, NHC hurricanes), aviationweather.gov, TSA, BTS, &copy; OpenStreetMap contributors, Natural Earth, aircraft from <a class="tap" href="https://www.adsb.lol/" target="_blank" rel="noopener noreferrer">adsb.lol</a> (ODbL). <a class="tap" href="sources.html">Every source and its age</a>.</p>
     </div>
   </footer>
 

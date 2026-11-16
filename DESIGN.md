@@ -39,6 +39,23 @@ a typical month (BTS), official pages as an icon grid, hotels folded, facts, sou
 - Every clock and date on the home page is in the visitor's own zone; the pre-render uses Eastern.
 - Wind in mph, temperature in deg F (METAR). Captions 13 px or more.
 
+## Round 4 (AN34 r2-2, CoS default, open for Zach)
+Judges (r2-1) named template signals and thin airport pages. Changes:
+- No pulsing or still "live" dot and no "Right now" badge. A dateline sits over the verdict ("Sunday night, 10:27 PM PST";
+  airport pages: "Early Monday, 1:37 AM in Atlanta", above the code lockup). Stale data still says "Last known status".
+- Headlines are one colour; the accent device is the map's rings. Home hero art is dimmed and desaturated.
+- Home below the hero: delays as tinted rows (no side stripe), the 30-airport board as a full-width dark band (the centrepiece),
+  the 24 h chart and travel volume as plain rows under a hairline (no cards). The help band is the one card, with one button.
+  Lantern Drift, Twitch and TV mode are quiet footer lines; the data credit is one line.
+- Board: a clear airport with amber or red earlier in its strip says "Clear now"; the strip key sits above the board.
+- A closure listed to end more than a day out says "FAA listing runs to <day>. A listing this long is often nightly closures".
+- Ground delays name a known reason in plain words in the trouble line ("for low clouds").
+- Airport page: the bright button follows the state (clear: "Check my flight"; trouble: "I'm stuck guide"); one
+  "Today at <code>" strip (weather now, next 3 hours, daylight, then the last 3 days and the on-time record); a calm
+  3-day record is one sentence, bars only when a program ran; help beside the official links as one compact list.
+  Phones: no photo behind the hero words. Map neighbours too close to the edge are left out; labels try the left side.
+- Phones show all five nav items; the header scrolls away.
+
 ## Copy rules (unchanged)
 Every number carries its source and age. "May be owed" / "possibly owed", never "must cover"; the airline decides
 each claim. Arrivals and departures are kept apart for ground delays.

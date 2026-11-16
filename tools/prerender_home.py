@@ -116,6 +116,23 @@ def _trouble_rank(a: dict[str, Any]) -> int:
     return (30000 if _is_closed(a) else 20000 if a.get("level") == "stop" else 10000) + avg
 
 
+# AN34 round 4: the FAA reason in everyday words, only for reasons we know. Same table as lib.js REASON_WORDS.
+REASON_WORDS = {"low ceilings": "low clouds", "ceilings": "low clouds", "low visibility": "poor visibility", "fog": "fog",
+                "thunderstorms": "thunderstorms", "tstms": "thunderstorms", "wind": "wind", "snow": "snow", "snow/ice": "snow and ice",
+                "rain": "rain", "volume": "heavy traffic", "traffic volume": "heavy traffic", "runway construction": "runway work",
+                "rwy/twy": "runway work"}
+
+
+def reason_words(reason: Any) -> str:
+    key = re.sub(r"^(wx|weather)\s*[:,]\s*", "", str(reason or "").lower()).strip()
+    return REASON_WORDS.get(key, "")
+
+
+def dateline(local: datetime) -> str:
+    """'Sunday night, 10:27 PM': the dated line over the home verdict. Same rule as lib.js dateline."""
+    return pt.dateline(local)
+
+
 def trouble_line(airports: list[dict[str, Any]], stale: bool = False) -> str:
     """One plain sentence per airport with an FAA program, worst first, at most 3. Same rule as lib.js troubleLine."""
     bad = sorted((a for a in airports if a.get("level") in ("stop", "delay")), key=_trouble_rank, reverse=True)
@@ -131,12 +148,13 @@ def trouble_line(airports: list[dict[str, Any]], stale: bool = False) -> str:
         evs = [e for e in a.get("events") or [] if isinstance(e, dict)]
         mins = [m for m in (minutes_of(e.get("avg")) for e in evs) if m is not None]
         avg = max(mins) if mins else None
+        why = reason_words(a.get("reason"))
         if any(e.get("kind") == "ground_delay" for e in evs):
             held = f" about {fmt_minutes(avg)}" if avg is not None else ""
-            out.append(f"Flights to {name} {'were' if stale else 'are'} held{held}.")
+            out.append(f"Flights to {name} {'were' if stale else 'are'} held{held}" + (f" for {why}" if why else "") + ".")
         else:
             size = f" of about {fmt_minutes(avg)}" if avg is not None else ""
-            out.append(f"{name} {'had' if stale else 'has'} delays{size}.")
+            out.append(f"{name} {'had' if stale else 'has'} delays{size}" + (f", {why}" if why else "") + ".")
     if len(bad) > 3:
         n = len(bad) - 3
         out.append(f"{n} more airport has an FAA program." if n == 1 else f"{n} more airports have an FAA program.")
@@ -227,6 +245,9 @@ def event_figure(ev: dict[str, Any], tz: str, now: datetime) -> tuple[str, str]:
                 clock = pt.clock_label(when.isoformat().replace("+00:00", "Z"), HOME_TZ)
                 if when <= now:
                     return "Closed", f"listed to reopen {day}, {clock}; that time has passed, so it may have reopened"
+                if (when - now).total_seconds() > 24 * 3600:
+                    # AN34 round 4: a listing days out is often a run of nightly closures, not one long shutdown.
+                    return "Closed", f"FAA listing runs to {day}. A listing this long is often nightly closures; check the airport for its hours"
                 return "Closed", f"listed to reopen {day}, {clock}"
             except Exception:  # unknown zone or bad date
                 pass
@@ -344,7 +365,12 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     stale = bool(state_utc) and pt.is_stale(pt.age_minutes(state_utc, now))
     as_of = pt.as_of_text(state_utc, HOME_TZ, now) if stale else ""
     page = template
-    page = _slot(page, "nowtitle", "Last known status" if stale else "Right now")
+    checked = pt.parse_utc(state_utc) if state_utc else None
+    title = "Latest FAA check"
+    if checked:
+        local = checked.astimezone(pt.ZoneInfo(HOME_TZ))
+        title = dateline(local) + " " + local.strftime("%Z")
+    page = _slot(page, "nowtitle", "Last known status" if stale else title)
     if airports:
         outside = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA"
                    and e.get("kind") in KIND_RANK and str(e.get("airport") or "") not in by_code]
@@ -353,7 +379,7 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     else:
         page = re.sub(r"<!--/?pr:(summary|trouble)-->", "", page)
     if state_utc:
-        line = f"FAA NAS status, {pt.checked_text(state_utc, HOME_TZ, now, last=stale)} · updates about every 5 minutes"
+        line = f"FAA NAS status, {pt.checked_text(state_utc, HOME_TZ, now, last=stale)}. We check every 5 minutes."
         page = _slot(page, "updated", _esc(line))
     else:
         page = re.sub(r"<!--/?pr:updated-->", "", page)

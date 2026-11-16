@@ -177,6 +177,21 @@
     (a.events || []).forEach(function (e) { var m = minutesOf(e && e.avg); if (m != null && m > avg) { avg = m; } });
     return (isClosedAirport(a) ? 30000 : a.level === "stop" ? 20000 : 10000) + avg;
   }
+  // AN34 round 4: the FAA reason in everyday words, only for reasons we know ("low ceilings" is "low clouds"). Same table as prerender_home.REASON_WORDS.
+  var REASON_WORDS = { "low ceilings": "low clouds", "ceilings": "low clouds", "low visibility": "poor visibility", "fog": "fog",
+    "thunderstorms": "thunderstorms", "tstms": "thunderstorms", "wind": "wind", "snow": "snow", "snow/ice": "snow and ice", "rain": "rain",
+    "volume": "heavy traffic", "traffic volume": "heavy traffic", "runway construction": "runway work", "rwy/twy": "runway work" };
+  function reasonWords(r) {
+    var k = String(r || "").toLowerCase().replace(/^(wx|weather)\s*[:,]\s*/, "").trim();
+    return REASON_WORDS.hasOwnProperty(k) ? REASON_WORDS[k] : "";
+  }
+  // AN34 round 4: a dateline in place of a pulsing "Right now" badge: "Sunday night, 10:27 PM". parts: {weekday, hour (0-23), clock}.
+  function dateline(parts) {
+    var h = parts.hour, d = parts.weekday, part;
+    if (h < 5) { return "Early " + d + ", " + parts.clock; }
+    part = h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night";
+    return d + " " + part + ", " + parts.clock;
+  }
   function troubleLine(airports, stale) {
     var list = airports.filter(function (a) { return a.level === "stop" || a.level === "delay"; });
     list.sort(function (x, y) { return troubleRank(y) - troubleRank(x); });
@@ -190,8 +205,9 @@
         if (e.kind === "ground_delay") { gd = e; }
         var m = minutesOf(e.avg); if (m != null && (avg == null || m > avg)) { avg = m; }
       });
-      if (gd) { return "Flights to " + name + (stale ? " were" : " are") + " held" + (avg != null ? " about " + fmtMinutes(avg) : "") + "."; }
-      return name + (stale ? " had" : " has") + " delays" + (avg != null ? " of about " + fmtMinutes(avg) : "") + ".";
+      var why = reasonWords(a.reason);
+      if (gd) { return "Flights to " + name + (stale ? " were" : " are") + " held" + (avg != null ? " about " + fmtMinutes(avg) : "") + (why ? " for " + why : "") + "."; }
+      return name + (stale ? " had" : " has") + " delays" + (avg != null ? " of about " + fmtMinutes(avg) : "") + (why ? ", " + why : "") + ".";
     });
     if (list.length > 3) { out.push((list.length - 3) + (list.length - 3 === 1 ? " more airport has" : " more airports have") + " an FAA program."); }
     return out.join(" ");
@@ -417,7 +433,7 @@
 
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
-    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, troubleLine: troubleLine,
+    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, troubleLine: troubleLine, reasonWords: reasonWords, dateline: dateline,
     kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,

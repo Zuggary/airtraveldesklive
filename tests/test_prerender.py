@@ -221,10 +221,10 @@ class TestAirportPrerender(_Built):
 
 class TestAirportOrder(_Built):
     def test_status_first_then_bts_then_help(self):
-        # AN34 r2: the record (on-time month) sits right under the status; the facts fold into the about note.
+        # AN34 round 4: one "Today at" strip under the status (weather, then the record and the on-time month).
         page = self.pages["SFO"]
         order = [page.index(x) for x in (
-            "<h1", 'id="status-chip"', 'aria-label="On-time arrivals"', 'id="right-now-heading"', 'id="stuck-heading"',
+            "<h1", 'id="status-chip"', 'id="right-now-heading"', 'aria-label="On-time arrivals"', 'id="stuck-heading"',
             'id="official-heading"', 'id="about-page-heading"', 'class="glance-details"')]
         self.assertEqual(order, sorted(order))
 
@@ -275,7 +275,7 @@ class TestHomePrerender(_Built):
         # AN34: the headline is a verdict over every airport; one plain line names the exceptions.
         self.assertIn("3 of the 5 busiest US airports have no FAA delays right now", text)
         self.assertIn("Denver (DEN) has a ground stop.", text)
-        self.assertIn("Flights to Chicago (ORD) are held about 1 h 20 min.", text)
+        self.assertIn("Flights to Chicago (ORD) are held about 1 h 20 min", text)  # AN34 round 4: a known reason follows in plain words
         self.assertIn("Ground stop", text)
         self.assertIn("Ground delay", text)
         self.assertIn("People screened, Nov 12", text)
@@ -342,13 +342,14 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
 
     def test_main_column_order(self):
         # AN34: verdict, search and map first; then the programs, the board, the changes and travel volume, then help.
+        # AN34 round 4: the page body ends on the help band; the stream and Lantern Drift are quiet footer lines.
         ids = ['id="now"', "airport-search", 'id="map-section"', 'id="trouble"', 'id="board-section"', 'id="changed"',
-               'id="history"', 'id="compare"', 'id="owed"', 'id="while-you-wait"', "</main>", 'id="watch"']
+               'id="history"', 'id="compare"', 'id="owed"', "</main>", 'id="watch"', 'id="while-you-wait"']
         pos = [self.tpl.index(i) for i in ids]
         self.assertEqual(pos, sorted(pos))
         sections = re.findall(r'<section id="([a-z-]+)"', self.tpl.split("</main>")[0])
         self.assertEqual(sections[0], "now")  # AN32: the national answer first
-        self.assertEqual(sections[-1], "while-you-wait")  # Lantern Drift last in the page body
+        self.assertEqual(sections[-1], "owed")  # help last in the page body
 
     def test_watch_live_moved_to_the_footer(self):
         # AN34: the Twitch links left the top of the page; they sit in the footer, after the data.
@@ -566,7 +567,10 @@ class TestStaleHonesty(unittest.TestCase):
         text = visible_text(atl)
         self.assertIn("As of 4:50 AM EST: no FAA delays reported", text)
         # AN34 round 3: one status block (eyebrow, H1, checked line); no repeat FAA tile.
-        self.assertIn("Last known status No FAA delays reported at Atlanta.", text)
+        # AN34 round 4: the dateline line sits above the code lockup; stale, it reads "Last known status".
+        self.assertIn("Last known status", text)
+        self.assertIn("No FAA delays reported at Atlanta.", text)
+        self.assertLess(text.index("Last known status"), text.index("No FAA delays reported at Atlanta."))
         self.assertNotIn('class="card-status"', atl)
         self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
         self.assertIn("This data is 12 hours old, not live.", text)
@@ -602,7 +606,9 @@ class TestStaleHonesty(unittest.TestCase):
 
     def test_fresh_pages_keep_live_words(self):
         atl = visible_text(self.fresh["ATL"])
-        self.assertIn("Right now", atl)
+        # AN34 round 4: a dateline in the airport's zone replaces the "Right now" badge.
+        self.assertIn("Early Saturday, 4:50 AM in Atlanta", atl)
+        self.assertIn("right now", atl)
         self.assertIn("Weather now: clear, wind 10 mph", atl)
         self.assertIn("Next 3 hours:", atl)
         self.assertIn("badge badge--clear status-chip", self.fresh["ATL"])
@@ -632,7 +638,8 @@ class TestStaleHonesty(unittest.TestCase):
 
     def test_fresh_home_keeps_live_words(self):
         text = visible_text(self.fresh_home)
-        self.assertIn("Right now", text)
+        self.assertIn("Early Saturday, 4:50 AM EST", text)  # AN34 round 4: the dateline over the verdict
+        self.assertIn("right now", text)
         self.assertNotIn("Last known status", text)
         self.assertEqual(self.fresh_home.count('role="status" hidden'), 1)
 

@@ -287,3 +287,25 @@ def reason_plain(reason: Any) -> str:
         if part:
             out.append(part)
     return "; ".join(out)
+
+
+def dateline(local: datetime) -> str:
+    """AN34 round 4: 'Sunday night, 10:27 PM', a dated line in place of a pulsing 'Right now'. Same rule as lib.js dateline."""
+    clock = local.strftime("%I:%M %p").lstrip("0")
+    day = local.strftime("%A")
+    if local.hour < 5:
+        return f"Early {day}, {clock}"
+    part = "morning" if local.hour < 12 else "afternoon" if local.hour < 17 else "evening" if local.hour < 21 else "night"
+    return f"{day} {part}, {clock}"
+
+
+def airport_dateline(updated_utc: str, tz: str, place: str) -> str:
+    """'Early Monday, 1:27 AM in Atlanta': the FAA check time in the airport's own zone. '' when unknown."""
+    dt = parse_utc(updated_utc)
+    if not dt:
+        return ""
+    try:
+        local = dt.astimezone(ZoneInfo(tz)) if tz else dt
+    except Exception:  # unknown zone name
+        return ""
+    return f"{dateline(local)} in {place}"

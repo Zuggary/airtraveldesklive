@@ -69,7 +69,8 @@
     list.forEach(function (a) {
       if (typeof a.lat !== "number" || typeof a.lon !== "number") { return; }
       var p = px(a.lon, a.lat);
-      if (p[0] < -20 || p[0] > w + 20 || p[1] < -20 || p[1] > h + 20) { return; }
+      // AN34 round 4: a neighbour too close to the edge would have its label cut off; leave it out.
+      if (a.code !== CODE && (p[0] < 16 || p[0] > w - 16 || p[1] < 16 || p[1] > h - 16)) { return; }
       marks.push({ code: a.code, x: p[0], y: p[1], lv: level(a), me: a.code === CODE });
     });
     if (!marks.some(function (m) { return m.me; })) { var me = px(LON, LAT); marks.push({ code: CODE, x: me[0], y: me[1], lv: "none", me: true }); }
@@ -91,8 +92,10 @@
       var gap = m.me ? 22 : 9, tw = ctx.measureText(m.code).width, tx = m.x + gap, ty = m.y;
       if (tx + tw > w - 4) { tx = m.x - gap - tw; }
       var bx = { x: tx - 2, y: ty - (m.me ? 13 : 9), w: tw + 4, h: m.me ? 26 : 18 };
-      var hit = boxes.some(function (o) { return !(bx.x + bx.w < o.x || o.x + o.w < bx.x || bx.y + bx.h < o.y || o.y + o.h < bx.y); });
-      if (hit) { return; }
+      function hits(b) { return boxes.some(function (o) { return !(b.x + b.w < o.x || o.x + o.w < b.x || b.y + b.h < o.y || o.y + o.h < b.y); }); }
+      // AN34 round 4: when the right side is taken, try the left, so a dot is not left without its code.
+      if (hits(bx) && !m.me) { tx = m.x - gap - tw; bx = { x: tx - 2, y: bx.y, w: bx.w, h: bx.h }; }
+      if (hits(bx) || tx < 2) { return; }
       boxes.push(bx);
       if (m.me) { boxes.push({ x: m.x - 27, y: m.y - 27, w: 54, h: 54 }); }
       ctx.lineWidth = 4; ctx.strokeStyle = col.ground; ctx.strokeText(m.code, tx, ty);

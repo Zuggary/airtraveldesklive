@@ -343,8 +343,8 @@ def _lead(entry: dict[str, Any] | None, short: str, code: str, live: dict[str, A
     why = f" because of {reason}" if reason and reason.lower() != "closed" else ""
     out: list[str] = []
     if lvl == "clear":
-        out.append(f'        <p class="ap-lead">No FAA program is listed for {_esc(short)} now. A flight can still be late for airline reasons, '
-                   "so check your airline's app. Leave for the airport as you normally would.</p>")
+        out.append('        <p class="ap-lead">Nothing on the FAA list. Your own flight can still run late for airline reasons; '
+                   "its time is in your airline's app.</p>")
     elif lvl == "closed":
         out.append(f'        <p class="ap-lead">The FAA lists {_esc(short)} as closed to flights. Check your airline\'s app before you go; '
                    "your airline decides how to rebook you.</p>")
@@ -437,7 +437,7 @@ def _airline_home(url: Any) -> str:
     return f"{parts.scheme}://{parts.netloc}/"
 
 
-def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str) -> list[str]:
+def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str, lvl: str = "clear") -> list[str]:
     """AN34 r2: one action strip under the answer: the stuck guide, and 'Check my flight' (the airline sites).
     We hold no flight data, so the strip says where a flight's own time lives instead of guessing it."""
     items = []
@@ -449,11 +449,14 @@ def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str
         f' The <a class="tap" href="{_esc(airport_site)}" target="_blank" rel="noopener noreferrer">airport\'s own site</a> lists its departures too.'
         if airport_site else ""
     )
+    # AN34 round 4: the bright button follows the state. Clear: checking your own flight leads.
+    # Delay, stop or closure: the stuck guide leads. The live refresh swaps them (scaleHelp in the page script).
+    hot = lvl in ("delay", "stop", "closed")
     return [
         '        <div class="ap-actions">',
-        '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
+        f'          <a id="stuck-btn" class="btn {"btn-accent" if hot else "btn-ghost"}" href="../stuck.html">I\'m stuck guide</a>',
         '          <details class="flight-check">',
-        '            <summary class="btn btn-ghost">Check my flight</summary>',
+        f'            <summary id="flight-btn" class="btn {"btn-ghost" if hot else "btn-accent"}">Check my flight</summary>',
         '            <div class="flight-pop">',
         f"              <p>Your airline's app or site has your flight's own time; the FAA figure is an average for {_esc(code)}.{site}</p>",
         f'              <ul class="airline-links">{"".join(items)}</ul>' if items else "",
@@ -496,30 +499,36 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
         dt = pt.parse_utc(h)
         label = f"{day_hour(dt)} local: {word[c]}" if dt else word[c]
         cells.append(f'<li class="hh hh--{ {"c": "clear", "d": "delay", "s": "stop", "-": "none"}[c] }" title="{_esc(label)}"></li>')
+    start = pt.parse_utc(hours[0]) if hours else None
+    since = day_hour(start) if start else (day_hour(first) if first else "")
     if n_prog == 0:
-        head = f"No FAA delay program in any of the {len(seen)} hours we have a reading for."
+        # AN34 round 4: a calm record is one sentence, not a strip of identical green bars.
+        head = f"Clear the whole time: no FAA delay or stop in {len(seen)} hourly checks" + (f" since {since}." if since else ".")
     else:
         parts = []
         if n_stop:
             parts.append(f"{n_stop} with a ground stop or closure")
         if n_delay:
             parts.append(f"{n_delay} with a delay")
-        head = f"An FAA program was on in {n_prog} of the last {len(seen)} hours we have a reading for ({', '.join(parts)})."
-    span = f"from {day_hour(first)} to {day_hour(last)} local time" if first and last else ""
+        head = f"An FAA program was on in {n_prog} of {len(seen)} hourly checks" + (f" since {since}" if since else "") + f" ({', '.join(parts)})."
     gen = pt.parse_utc(str((history or {}).get("generated_utc") or ""))
     age = pt.ago_text(pt.age_minutes(str((history or {}).get("generated_utc") or ""), pt.now_utc())) if gen else ""
-    return [
-        '      <section class="airport-section" aria-labelledby="history-heading">',
-        '        <h2 id="history-heading">The last 3 days</h2>',
-        f'        <p class="hist-lead">{_esc(head)}</p>',
-        f'        <ol class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</ol>',
-        '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure'
-        + (' <span class="hh hh--none"></span>no reading' if "-" in row else "") + '</p>',
-        f'        <p class="small">Source: our hourly record of the FAA NAS status feed, readings {_esc(span)}'
-        + (f", copied {_esc(age)}" if age else "")
-        + '.</p>',
-        "      </section>",
+    out = [
+        '          <div class="today-cell today-hist" aria-labelledby="history-heading">',
+        '            <h3 id="history-heading" class="fact-k">Last 3 days</h3>',
+        f'            <p class="hist-lead">{_esc(head)}</p>',
     ]
+    if n_prog:
+        out += [
+            f'            <ol class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</ol>',
+            '            <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure'
+            + (' <span class="hh hh--none"></span>no reading' if "-" in row else "") + '</p>',
+        ]
+    out += [
+        '            <p class="fact-src">Our hourly record of the FAA feed' + (f", updated {_esc(age)}" if age else "") + '.</p>',
+        "          </div>",
+    ]
+    return out
 
 
 def _what_to_do(chip_class: str, live: dict[str, Any]) -> list[str]:
@@ -789,6 +798,10 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      if (hh) { hh.textContent = hot ? "Flying through " + CODE + " today?" : "If your flight is hit"; }',
         '      var steps = card.querySelector(".help-hot");',
         '      if (steps) { steps.hidden = !hot; }',
+        '      // AN34 round 4: the bright button follows the state (clear: check my flight; trouble: the stuck guide).',
+        '      var sb = document.getElementById("stuck-btn"), fb = document.getElementById("flight-btn");',
+        '      if (sb) { sb.className = "btn " + (hot ? "btn-accent" : "btn-ghost"); }',
+        '      if (fb) { fb.className = "btn " + (hot ? "btn-ghost" : "btn-accent"); }',
         '    }',
         '    var STALE_MIN = 30;',
         '    function ageMin(iso) {',
@@ -872,6 +885,18 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      n.appendChild(l);',
         '      n.hidden = false;',
         '    }',
+        '    // AN34 round 4: "Early Monday, 1:27 AM in Atlanta", the FAA check time in the airport zone. Same rule as prerender_text.airport_dateline.',
+        '    function datelineText(iso) {',
+        '      var ms = Date.parse(iso || "");',
+        '      if (!isFinite(ms)) { return ""; }',
+        '      try {',
+        '        var o = { weekday: "long", hour: "numeric", hourCycle: "h23" }; if (TZ) { o.timeZone = TZ; }',
+        '        var parts = {}; new Intl.DateTimeFormat("en-US", o).formatToParts(new Date(ms)).forEach(function (x) { parts[x.type] = x.value; });',
+        '        var h = parseInt(parts.hour, 10) % 24, d = parts.weekday, c = clockLabel(iso).replace(/ [A-Z]{2,5}$/, "");',
+        '        var lead = h < 5 ? "Early " + d : d + " " + (h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night");',
+        '        return lead + ", " + c + " in " + SHORT;',
+        '      } catch (e) { return ""; }',
+        '    }',
         '    function clockLabel(iso) {',
         '      var ms = Date.parse(iso || "");',
         '      if (!isFinite(ms)) { return ""; }',
@@ -915,7 +940,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var updMin = ageMin(data && data.updated_utc);',
         '      var stale = isStale(updMin);',
         '      showStale(data && data.updated_utc);',
-        '      if (heading) { heading.textContent = stale ? "Last known status" : "Right now"; }',
+        '      if (heading) { heading.textContent = stale ? "Last known status" : (datelineText(data && data.updated_utc) || "Latest FAA check"); }',
         '      var a = data && data.airports && data.airports[CODE];',
         '      if (checkedLine && a) {',
         '        checkedLine.textContent = "";',
@@ -1139,6 +1164,7 @@ def render_airport_page(
         comp_text = _bts_comparison_text(bts_entry["ontime"], bts_entry.get("ly_ontime"), bts_ly_month)
         ontime_lines = [
             '          <div class="glance-ontime">',
+            '            <h3 class="fact-k">On-time record</h3>',
             f'            <p class="glance-ontime-num">{_esc(round(float(bts_entry["ontime"])))}%</p>',
             f'            <p class="glance-ontime-label">On-time arrivals, {_esc(bts_month)}, BTS</p>',
         ]
@@ -1152,10 +1178,7 @@ def render_airport_page(
             f'            <p class="small">{BTS_DEFINITION_SHORT}; source BTS, {_esc(bts_month)}.</p>'
         )
         ontime_lines.append("          </div>")
-        ontime_html = ['      <section class="airport-section ap-ontime" aria-label="On-time arrivals">', '        <h2>A typical month here</h2>', *ontime_lines,
-                       '        <p class="ap-tip">Early flights run late least often. Delays tend to build through the afternoon and evening, '
-                       "and the last flight of the day has no later one to rebook onto (BTS on-time data shows this pattern nationwide).</p>",
-                       "      </section>"]
+        ontime_html = ['        <div class="today-cell ap-ontime" aria-label="On-time arrivals">', *ontime_lines, "        </div>"]
     else:
         ontime_html = []
     if glance_rows:
@@ -1194,11 +1217,10 @@ def render_airport_page(
     for item in guide_links:
         url = _safe_http_url(item.get("url"))
         label = str(item.get("label") or "Airport website").strip()
-        host = urllib.parse.urlsplit(url).netloc.removeprefix("www.")
         official_lines.append('          <li class="guide-pill-item">')
         official_lines.append(
             f'            <a class="tap guide-pill" href="{_esc(url)}" target="_blank" rel="noopener noreferrer">'
-            f'{icon(_link_icon(label))}<small>{_esc(host)}</small>{_esc(label)}</a>'
+            f'{icon(_link_icon(label))}{_esc(label)}</a>'
         )
         official_lines.append("          </li>")
     official_lines.append("        </ul>")
@@ -1207,10 +1229,9 @@ def render_airport_page(
     if sec_url:
         # AN34 r2: the security line link (we show no wait numbers; the airport's own page may).
         sec_label = "Security wait times" if sec.get("verified") and sec_url.rstrip("/") not in {_safe_http_url(i.get("url")).rstrip("/") for i in guide_links} else "Security lines"
-        sec_host = urllib.parse.urlsplit(sec_url).netloc.removeprefix("www.")
         official_lines.insert(1, '          <li class="guide-pill-item">')
         official_lines.insert(2, f'            <a class="tap guide-pill" href="{_esc(sec_url)}" target="_blank" rel="noopener noreferrer">'
-                                 f'{icon("clock")}<small>{_esc(sec_host)}</small>{_esc(sec_label)}</a>')
+                                 f'{icon("clock")}{_esc(sec_label)}</a>')
         official_lines.insert(3, "          </li>")
     has_blocked_links = any(item.get("verified") is False for item in guide_links)
     if not guide_links:
@@ -1225,7 +1246,9 @@ def render_airport_page(
             f'        <p class="small">Fewer than 4 official links were available for {_esc(code)} when checked on {_esc(guide_checked_date or build_date)}.</p>'
         )
     elif operator:
-        official_lines.append(f'        <p class="small">Official pages from {_esc(operator)}.</p>')
+        hosts = sorted({urllib.parse.urlsplit(_safe_http_url(i.get("url"))).netloc.removeprefix("www.") for i in guide_links} - {""})
+        where = f" Every link goes to {hosts[0]}." if len(hosts) == 1 else ""
+        official_lines.append(f'        <p class="small">Official pages from {_esc(operator)}.{_esc(where)}</p>')
 
     # Places within 3.1 miles
     hotels = list((places_entry or {}).get("hotels") or [])
@@ -1311,11 +1334,11 @@ def render_airport_page(
         f'      <section id="ap-hero" class="ap-hero band ap-hero--{_esc(lvl)}" aria-labelledby="ap-verdict">',
         *_hero_art(airport_type(code)),
         '       <div class="ap-hero-main">',
+        f'        <p id="ap-now-title" class="dateline ap-eyebrow"><span id="ap-now-word">{"Last known status" if live["stale"] else _esc(pt.airport_dateline(live_updated_utc, tz, short) or "Latest FAA check")}</span></p>',
         '        <div class="lockup">',
         f'          <span class="big-code" aria-hidden="true">{_esc(code)}</span>',
         f'          <p class="ap-name"><strong>{_esc(name)} ({_esc(code)})</strong><span>{_esc(city)}</span></p>',
         "        </div>",
-        f'        <p id="ap-now-title" class="eyebrow ap-eyebrow"><span class="pulse pulse--{_esc(lvl)}" aria-hidden="true"></span><span id="ap-now-word">{"Last known status" if live["stale"] else "Right now"}</span></p>',
         f'        <h1 id="ap-verdict" class="airport-page-title ap-verdict">{_verdict(live_entry, name, short, live, now, tz)}</h1>',
         *_lead(live_entry, short, code, live),
         (
@@ -1343,33 +1366,35 @@ def render_airport_page(
             if alternates and live["has"] and not live["stale"] and "badge--stop" in live["chip_class"]
             else ""
         ),
-        *_actions(code, airlines, _safe_http_url((guide_links[0] if guide_links else {}).get("url"))),
+        *_actions(code, airlines, _safe_http_url((guide_links[0] if guide_links else {}).get("url")), lvl),
         "       </div>",
         *regional,
         "      </section>",
-        *(['    <div class="ap-record">', *_render_history(code, tz, history), *ontime_html, "    </div>"]
-          if (_render_history(code, tz, history) or ontime_html) else []),
-        '    <div class="ap-cols">',
-        '      <section class="airport-section ap-now" aria-labelledby="right-now-heading">',
-        '        <h2 id="right-now-heading">Weather and daylight</h2>',
+        '      <section class="airport-section ap-now ap-today" aria-labelledby="right-now-heading">',
+        f'        <h2 id="right-now-heading">Today at {_esc(code)}</h2>',
+        '        <div class="today-grid">',
         '        <div class="facts">',
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}"{prerendered_attr}>',
         *live["box"],
         "        </div>",
         *sun_now_html,
         "        </div>",
+        *(['        <div class="today-record">', *_render_history(code, tz, history), *ontime_html, "        </div>"]
+          if (_render_history(code, tz, history) or ontime_html) else []),
+        "        </div>",
         "        <noscript>",
         f'          <p class="noscript-note">{"Refreshing" if live["stale"] else "Live refresh"} needs JavaScript. The status above is from the last site build; for the FAA\'s own page, see nasstatus.faa.gov.</p>',
         "        </noscript>",
         "      </section>",
-        '      <div class="ap-side">',
+        '    <div class="ap-cols">',
         *_help_card(code, lvl),
-        '      <section class="airport-section" aria-labelledby="official-heading">',
+        '      <section class="airport-section ap-official" aria-labelledby="official-heading">',
         '        <h2 id="official-heading">Official pages</h2>',
         *official_lines,
         "      </section>",
+        "    </div>",
+        '    <div class="ap-folds">',
         *places_html,
-        "      </div>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <details class="more">',
         f'          <summary>{icon("clock")}<h2 id="sources-heading">Where this page\'s data comes from</h2><span class="cnt">every source and its age</span></summary>',
