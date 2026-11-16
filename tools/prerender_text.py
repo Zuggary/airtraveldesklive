@@ -27,18 +27,21 @@ WORD_STOP = "Ground stop"
 WORD_GDP = "Ground delay program"
 WORD_DELAY = "Delays"
 WORD_CLOSED = "Closed"
+WORD_NIGHT = "Closed overnight"
 
 LEVEL_TEXT = {
     "clear": "Clear: no FAA delay or ground stop listed.",
     "delay": "Delays: FAA delay program in effect.",
     "stop": "Ground stop: FAA ground stop in effect.",
     "closed": "Closed: FAA airport closure in effect.",
+    "night": "Closed overnight: the FAA lists a daily closure.",
 }
 BADGE_CLASS = {
     "clear": "badge badge--clear",
     "delay": "badge badge--delay",
     "stop": "badge badge--stop",
     "closed": "badge badge--stop",
+    "night": "badge badge--night",
 }
 
 
@@ -121,6 +124,30 @@ def checked_text(iso: Any, tz: str, now: datetime, last: bool = False) -> str:
     return f"{'last checked' if last else 'checked'} {clock} ({ago_text(age_minutes(iso, now))})"
 
 
+def faa_age_parts(iso: Any, tz: str, now: datetime, stale: bool) -> tuple[str, str]:
+    """AN35: the one place a page states the FAA data age. Returns the text before and after the 'FAA NAS status' source link.
+
+    Fresh: 'FAA data 4 min old, checked 11:17 PM PST. Source: [FAA NAS status].' Stale: 'Source: [FAA NAS status], last checked 11:17 PM PST.'
+    (the stale banner carries the age). Same rule as faaParts in the page scripts.
+    """
+    clock = clock_label(iso, tz)
+    if not clock:
+        return "Source: ", ", check time unknown."
+    if stale:
+        return "Source: ", f", last checked {clock}."
+    m = age_minutes(iso, now)
+    age = "under 1 min" if (m or 0) < 1 else dur_text(m)
+    return f"FAA data {age} old, checked {clock}. Source: ", "."
+
+
+def faa_age_plain(iso: Any, tz: str, now: datetime, stale: bool) -> str:
+    """The same line as plain text (no link), for the home page: 'FAA data 4 min old, checked 11:17 PM PST.'"""
+    before, after = faa_age_parts(iso, tz, now, stale)
+    if stale or not clock_label(iso, tz):
+        return f"FAA NAS status{after}"
+    return before.removesuffix(" Source: ")
+
+
 def stale_text(iso: Any, now: datetime) -> str:
     """The stale notice sentence (without the FAA link), or '' when the data is fresh enough."""
     m = age_minutes(iso, now)
@@ -194,24 +221,100 @@ def forecast_expired(text: Any, issued_iso: Any, tz: str, now: datetime) -> bool
     return end is None or end <= now
 
 
-def effective_level(entry: dict[str, Any]) -> str:
-    """clear, delay, stop or closed, the same rule the browser script uses."""
+_LISTED_UTC_RE = re.compile(r"([A-Z][a-z]{2}) (\d{1,2}) at (\d{2}):(\d{2}) UTC")
+_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def listed_utc(text: Any, now: datetime) -> datetime | None:
+    """A FAA listed time such as 'Nov 20 at 14:15 UTC.' as a UTC time. The year is the current one (next year for a month far behind)."""
+    m = _LISTED_UTC_RE.search(str(text or ""))
+    if not m or m.group(1) not in _MONTHS:
+        return None
+    month = _MONTHS.index(m.group(1)) + 1
+    year = now.year + (1 if month < now.month - 6 else 0)
+    try:
+        return datetime(year, month, int(m.group(2)), int(m.group(3)), int(m.group(4)), tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def _local_clock(dt: datetime, tz: str) -> str:
+    """'6:15 AM' in the airport's own zone (UTC when the zone is unknown)."""
+    local = dt
+    if tz and ZoneInfo is not None:
+        try:
+            local = dt.astimezone(ZoneInfo(tz))
+        except Exception:  # unknown zone id
+            local = dt
+    return f"{local.hour % 12 or 12}:{local.minute:02d} {'AM' if local.hour < 12 else 'PM'}"
+
+
+def closure_schedule(ev: dict[str, Any], tz: str, now: datetime) -> dict[str, Any] | None:
+    """AN35: a closure the FAA lists as daily ('CLSD DLY 0730-1415', UTC hours) is a scheduled closure.
+
+    Returns None for any other closure (that stays an alarm). Otherwise {in_window, reopen, close}: whether the
+    airport is inside its daily closed hours now, the next reopening and the next closing in the airport's own
+    clock ('6:15 AM'). A listing whose end time has passed counts as outside the window. Same rule as ATD.closureSchedule in lib.js.
+    """
+    if not isinstance(ev, dict) or ev.get("kind") != "closure":
+        return None
+    fields = ev.get("fields") if isinstance(ev.get("fields"), dict) else {}
+    daily = str(ev.get("daily") or fields.get("daily") or "")
+    m = re.fullmatch(r"(\d{2})(\d{2})-(\d{2})(\d{2})", daily)
+    if not m:
+        return None
+    s_min = int(m.group(1)) * 60 + int(m.group(2))
+    e_min = int(m.group(3)) * 60 + int(m.group(4))
+    if s_min == e_min or s_min >= 1440 or e_min >= 1440:
+        return None
+    t = now.hour * 60 + now.minute
+    in_window = (s_min <= t < e_min) if s_min < e_min else (t >= s_min or t < e_min)
+    start = listed_utc(ev.get("start") or fields.get("start"), now)
+    end = listed_utc(ev.get("reopen") or fields.get("reopen"), now)
+    if (start and now < start - timedelta(days=1)) or (end and now >= end):
+        in_window = False
+
+    def next_at(minute: int) -> datetime:
+        day = now.replace(hour=minute // 60, minute=minute % 60, second=0, microsecond=0)
+        return day if day > now else day + timedelta(days=1)
+
+    return {"in_window": in_window, "reopen": _local_clock(next_at(e_min), tz), "close": _local_clock(next_at(s_min), tz)}
+
+
+def effective_level(entry: dict[str, Any], now: datetime | None = None) -> str:
+    """clear, delay, stop, closed or night (a scheduled daily closure, inside its hours), the same rule the browser script uses.
+
+    AN35: a closure with a daily window is calm: 'night' inside the closed hours, and ignored outside them.
+    Any other closure is 'closed' (an alarm).
+    """
     level = str(entry.get("level") or "clear")
-    events = entry.get("events") or []
-    if level == "closed" or any(isinstance(e, dict) and e.get("kind") == "closure" for e in events):
+    events = [e for e in (entry.get("events") or []) if isinstance(e, dict)]
+    closures = [e for e in events if e.get("kind") == "closure"]
+    if closures or level == "closed":
+        tz = str(entry.get("tz") or "")
+        sched = [closure_schedule(e, tz, now or now_utc()) for e in closures]
+        if closures and all(sched):
+            if any(x["in_window"] for x in sched if x):
+                return "night"
+            rest = [e for e in events if e.get("kind") != "closure"]
+            if any(e.get("kind") == "ground_stop" for e in rest):
+                return "stop"
+            return "delay" if rest else "clear"
         return "closed"
-    return level if level in LEVEL_TEXT else "clear"
+    return level if level in LEVEL_TEXT and level != "night" else "clear"
 
 
-def status_word(entry: dict[str, Any]) -> str:
+def status_word(entry: dict[str, Any], now: datetime | None = None) -> str:
     """Plain status words for one airport entry from data/airports.json."""
-    lvl = effective_level(entry)
+    lvl = effective_level(entry, now)
     if lvl == "clear":
         return WORD_CLEAR
     if lvl == "stop":
         return WORD_STOP
     if lvl == "closed":
         return WORD_CLOSED
+    if lvl == "night":
+        return WORD_NIGHT
     kinds = {e.get("kind") for e in (entry.get("events") or []) if isinstance(e, dict)}
     return WORD_GDP if "ground_delay" in kinds else WORD_DELAY
 

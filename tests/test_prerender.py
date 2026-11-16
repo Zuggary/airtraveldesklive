@@ -148,10 +148,10 @@ class TestAirportPrerender(_Built):
         atl = visible_text(self.pages["ATL"])
         self.assertIn("Weather now: clear, wind 10 mph", atl)  # AN34 r2: mph for travelers
         self.assertIn("aviationweather.gov METAR", atl)
-        self.assertIn("FAA NAS status, checked 4:50 AM EST (8 min ago)", atl)
+        self.assertIn("FAA data 8 min old, checked 4:50 AM EST. Source: FAA NAS status.", atl)
         den = visible_text(self.pages["DEN"])
         self.assertIn("Weather now: thunderstorms, wind 28 mph gusting 40 mph", den)
-        self.assertIn("FAA NAS status, checked 2:50 AM MST (8 min ago)", den)
+        self.assertIn("FAA data 8 min old, checked 2:50 AM MST. Source: FAA NAS status.", den)
         # AN34 round 3: the reason is in the lead under the H1, not in a repeat FAA tile.
         self.assertIn("because of thunderstorms", den)
         ord_text = visible_text(self.pages["ORD"])
@@ -180,7 +180,8 @@ class TestAirportPrerender(_Built):
             bap.build_pages(data_dir=d, out_dir=out, sitemap_path=None, build_date="2026-11-14", now=later)
             atl = visible_text((out / "ATL.html").read_text(encoding="utf-8"))
         self.assertIn("This data is 4 hours old, not live.", atl)
-        self.assertIn("FAA NAS status, last checked 4:50 AM EST (4 hours ago)", atl)
+        self.assertIn("Source: FAA NAS status, last checked 4:50 AM EST.", atl)
+        self.assertNotIn("(4 hours ago)", atl.split("Source: FAA NAS status")[1][:60])  # AN35: the age is stated once, in the banner
 
     def test_description_states_the_status_in_plain_words(self):
         for code, word in (("ATL", "No FAA delays reported"), ("DEN", "Ground stop"), ("JFK", "Closed")):
@@ -224,8 +225,8 @@ class TestAirportOrder(_Built):
         # AN34 round 4: one "Today at" strip under the status (weather, then the record and the on-time month).
         page = self.pages["SFO"]
         order = [page.index(x) for x in (
-            "<h1", 'id="status-chip"', 'id="right-now-heading"', 'aria-label="On-time arrivals"', 'id="stuck-heading"',
-            'id="official-heading"', 'id="about-page-heading"', 'class="glance-details"')]
+            "<h1", 'id="status-chip"', 'id="official-heading"', 'id="right-now-heading"', 'aria-label="On-time arrivals"',
+            'id="stuck-heading"', 'id="about-page-heading"', 'class="glance-details"')]
         self.assertEqual(order, sorted(order))
 
     def test_illustration_keeps_caption_and_tag(self):
@@ -271,7 +272,8 @@ class TestLinkWording(_Built):
 class TestHomePrerender(_Built):
     def test_text_with_js_off(self):
         text = visible_text(self.home)
-        self.assertIn("FAA NAS status, checked 4:50 AM EST (8 min ago)", text)
+        self.assertIn("FAA data 8 min old, checked 4:50 AM EST.", text)
+        self.assertNotIn("We check every 5 minutes", text)
         # AN34: the headline is a verdict over every airport; one plain line names the exceptions.
         self.assertIn("3 of the 5 busiest US airports have no FAA delays right now", text)
         self.assertIn("Denver (DEN) has a ground stop.", text)
@@ -318,7 +320,7 @@ class TestHomePrerender(_Built):
             rc = ph.main(["--template", str(ROOT / "index.html"), "--data", str(self.data), "--out", str(out),
                           "--now", "2026-11-14T09:58:00Z"])
             self.assertEqual(rc, 0)
-            self.assertIn("checked 4:50 AM EST (8 min ago)", visible_text(out.read_text(encoding="utf-8")))
+            self.assertIn("checked 4:50 AM EST", visible_text(out.read_text(encoding="utf-8")))
             bad = Path(t) / "bad.html"
             bad.write_text("<html><body><!--pr:summary-->x<!--/pr:summary--></body></html>", encoding="utf-8")
             out2 = Path(t) / "o2.html"
@@ -572,7 +574,7 @@ class TestStaleHonesty(unittest.TestCase):
         self.assertIn("No FAA delays reported at Atlanta.", text)
         self.assertLess(text.index("Last known status"), text.index("No FAA delays reported at Atlanta."))
         self.assertNotIn('class="card-status"', atl)
-        self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
+        self.assertIn("Source: FAA NAS status, last checked 4:50 AM EST.", text)
         self.assertIn("This data is 12 hours old, not live.", text)
         chip = re.search(r'<span id="status-chip" class="([^"]+)"', atl).group(1)
         self.assertIn("badge--stale", chip)
@@ -621,7 +623,7 @@ class TestStaleHonesty(unittest.TestCase):
             self.assertNotIn(w, text, w)
         self.assertNotIn(" live ", text.replace("Watch live", "").replace("live video", "").replace("Live board", ""))
         self.assertIn("Last known status", text)
-        self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
+        self.assertIn("FAA NAS status, last checked 4:50 AM EST.", text)
         self.assertLess(self.stale_home.index('id="stale-notice"'), self.stale_home.index('id="summary"'))
         self.assertNotIn('role="status" hidden', self.stale_home.split('id="stale-notice"')[1].split("</p>")[0])
 

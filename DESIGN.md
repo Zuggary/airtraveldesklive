@@ -30,7 +30,7 @@ delays, status chips, source line) with a regional radar map on wide screens (ap
 (quiet when clear, three steps when delayed or closed; sticky right rail on wide screens), the last 3 days,
 a typical month (BTS), official pages as an icon grid, hotels folded, facts, sources folded.
 
-## Round 2 (AN34 r2, CoS default, open for Zach)
+## Round 2 (AN34 r2)
 - The hero is a dark band in both themes (style.css `.band` redefines the dark tokens inside it), on GPU-made
   night-airfield art: home band full width; airport heroes by airport type (hub, coastal, mountain, desert);
   the stuck page title band reuses the hub picture. Art is decoration only; files and prompts in design/art-log.md.
@@ -39,7 +39,7 @@ a typical month (BTS), official pages as an icon grid, hotels folded, facts, sou
 - Every clock and date on the home page is in the visitor's own zone; the pre-render uses Eastern.
 - Wind in mph, temperature in deg F (METAR). Captions 13 px or more.
 
-## Round 4 (AN34 r2-2, CoS default, open for Zach)
+## Round 4 (AN34 r2-2)
 Judges (r2-1) named template signals and thin airport pages. Changes:
 - No pulsing or still "live" dot and no "Right now" badge. A dateline sits over the verdict ("Sunday night, 10:27 PM PST";
   airport pages: "Early Monday, 1:37 AM in Atlanta", above the code lockup). Stale data still says "Last known status".
@@ -115,3 +115,13 @@ page where it belongs), emoji and decorative icons.
 ## Copy rules
 Plain, first person plural only when we did something ("we read the FAA feed every 5 minutes"). Every number carries its
 source and its age. No "may be owed" wording changes: "possibly owed", never "must cover".
+
+## Round 5 (AN35)
+- Scheduled closures: a FAA closure with a daily window ("CLSD DLY 0730-1415", UTC) is calm: "Closed overnight, reopens about 6:15 AM
+  local time", a slate badge, no red; outside its hours it is not an event. Any other closure stays a red alarm. Judged at the data's own time when stale.
+- Airport hero carries two glance lines above the fold: TSA checkpoint wait (only with a number, a source and an age of 60 min or less;
+  data/security-waits.json holds links only today, so none shows) and "Next 3 hours" from the TAF fields with source, issue time and age.
+- "Check my flight" is a box: type DL 123, the page opens that airline's own status page (table FLIGHT_STATUS in tools/build_airport_pages.py).
+  No fetch, no tracking, no query string; unknown code shows the airline list.
+- The FAA data age is stated once per page (the line under the verdict; the stale banner when old). Official links sit under the hero.
+- Charts that have no data are left out (Thanksgiving week with no counted day shows the countdown only).

@@ -99,6 +99,12 @@
     if (m == null) { return "age unknown"; }
     return m < 1 ? "less than 1 min ago" : durText(m) + " ago";
   }
+  // AN35: the one line that states the FAA data age (the stale banner states it when stale). Same rule as faa_age_plain in prerender_text.py.
+  function faaAgePlain(m, clock, stale) {
+    if (m == null || !clock) { return "FAA NAS status, check time unknown."; }
+    if (stale) { return "FAA NAS status, last checked " + clock + "."; }
+    return "FAA data " + (m < 1 ? "under 1 min" : durText(m)) + " old, checked " + clock + ".";
+  }
   function oldText(m) {
     if (m == null) { return "of unknown age"; }
     if (m < 60) { return m === 1 ? "1 minute old" : m + " minutes old"; }
@@ -147,23 +153,70 @@
 
   // AN34: the home headline is a verdict over all the airports we cover, not a list of counts.
   // "98 of the 100 busiest US airports have no FAA delays right now". troubleLine names the exceptions.
-  function isClosedAirport(a) { return a.level === "stop" && (a.events || []).some(function (e) { return e && e.kind === "closure"; }); }
+  // AN35: a closure the FAA lists as daily ("CLSD DLY 0730-1415", UTC hours; ev.daily or ev.fields.daily) is a scheduled closure.
+  // Returns null for any other closure, else {in_window, reopen, close} with clocks in the airport zone. Same rule as closure_schedule in prerender_text.py.
+  var MONTHS3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function listedUtc(text, nowMs) {
+    var m = /([A-Z][a-z]{2}) (\d{1,2}) at (\d{2}):(\d{2}) UTC/.exec(String(text || "")), mo = m ? MONTHS3.indexOf(m[1]) : -1;
+    if (mo < 0) { return null; }
+    var n = new Date(nowMs);
+    return Date.UTC(n.getUTCFullYear() + (mo < n.getUTCMonth() - 6 ? 1 : 0), mo, +m[2], +m[3], +m[4]);
+  }
+  function zoneClock(ms, tz) {
+    try {
+      var o = { hour: "numeric", minute: "2-digit" };
+      if (tz) { o.timeZone = tz; }
+      return new Intl.DateTimeFormat("en-US", o).format(new Date(ms)).replace(/\u202f/g, " ");
+    } catch (e) { return ""; }
+  }
+  function closureSchedule(ev, tz, nowMs) {
+    if (!ev || ev.kind !== "closure") { return null; }
+    var f = ev.fields || {}, m = /^(\d{2})(\d{2})-(\d{2})(\d{2})$/.exec(String(ev.daily || f.daily || ""));
+    if (!m) { return null; }
+    var s = +m[1] * 60 + +m[2], e = +m[3] * 60 + +m[4];
+    if (s === e || s >= 1440 || e >= 1440) { return null; }
+    var now = nowMs == null ? Date.now() : nowMs, d = new Date(now), t = d.getUTCHours() * 60 + d.getUTCMinutes();
+    var inW = s < e ? (t >= s && t < e) : (t >= s || t < e);
+    var st = listedUtc(ev.start || f.start, now), en = listedUtc(ev.reopen || f.reopen, now);
+    if ((st && now < st - 864e5) || (en && now >= en)) { inW = false; }
+    function nextAt(min) { var b = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), Math.floor(min / 60), min % 60); return b > now ? b : b + 864e5; }
+    return { in_window: inW, reopen: zoneClock(nextAt(e), tz), close: zoneClock(nextAt(s), tz) };
+  }
+  // True when every closure at this airport is a scheduled daily one and nothing else (no ground stop) is listed.
+  function isScheduledOnly(a, nowMs) {
+    var evs = (a.events || []).filter(Boolean), cl = evs.filter(function (e) { return e.kind === "closure"; });
+    return cl.length > 0 && cl.every(function (e) { return closureSchedule(e, a.tz, nowMs); }) && !evs.some(function (e) { return e.kind === "ground_stop"; });
+  }
+  // The reopening clock ("6:15 AM") when this airport is inside a scheduled daily closure now, else "".
+  function nightReopen(a, nowMs) {
+    if (!isScheduledOnly(a, nowMs)) { return ""; }
+    var r = "";
+    (a.events || []).forEach(function (e) { var sc = !r && closureSchedule(e, a.tz, nowMs); if (sc && sc.in_window) { r = sc.reopen; } });
+    return r;
+  }
+  function isClosedAirport(a) { return a.level === "stop" && (a.events || []).some(function (e) { return e && e.kind === "closure"; }) && !isScheduledOnly(a); }
   // AN34 round 3: an FAA program at an airport outside the list leads the headline, so the headline never
   // says "no delays" above a closure card. outside: FAA events ({airport, kind}) at airports not in the list.
-  function outsideLead(outside, stale) {
+  function outsideLead(outside, stale, nowMs) {
     var seen = {}, list = [];
-    (outside || []).forEach(function (e) { var c = String(e && e.airport || ""); if (c && !seen[c]) { seen[c] = 1; list.push(e); } });
+    (outside || []).forEach(function (e) {
+      var c = String(e && e.airport || ""), sc = closureSchedule(e, e && e.tz, nowMs);
+      if (sc && !sc.in_window) { return; }   // a daily closure outside its hours is not news
+      if (c && !seen[c]) { seen[c] = 1; list.push(e); }
+    });
     if (!list.length) { return ""; }
     if (list.length > 1) { return list.length + " other airports " + (stale ? "had" : "have") + " an FAA program. "; }
     var e = list[0], c = String(e.airport);
+    var sc1 = e.kind === "closure" && closureSchedule(e, e.tz, nowMs);
+    if (sc1) { return c + (stale ? " was listed as closed overnight. " : " is closed overnight, reopens about " + sc1.reopen + " local time. "); }
     if (e.kind === "closure") { return c + (stale ? " was listed as closed. " : " is closed. "); }
     if (e.kind === "ground_stop") { return c + (stale ? " had" : " has") + " a ground stop. "; }
     return c + (stale ? " had" : " has") + " delays. ";
   }
-  function nationalSummary(airports, asOf, outside) {
+  function nationalSummary(airports, asOf, outside, nowMs) {
     var bad = 0;
-    for (var i = 0; i < airports.length; i++) { if (airports[i].level === "stop" || airports[i].level === "delay") { bad++; } }
-    var n = airports.length > 30 ? airports.length : 30, lead = outsideLead(outside, !!asOf);
+    for (var i = 0; i < airports.length; i++) { if ((airports[i].level === "stop" || airports[i].level === "delay") && !isScheduledOnly(airports[i], nowMs)) { bad++; } }
+    var n = airports.length > 30 ? airports.length : 30, lead = outsideLead(outside, !!asOf, nowMs);
     if (!bad && lead) { return lead + "The " + n + " busiest airports " + (asOf ? "were clear" : "are clear right now"); }
     // AN34: when the data is old (asOf set) the headline is past tense and carries no time; the banner and the checked line date it.
     if (!bad) { return asOf ? "No delays or ground stops were listed at the " + n + " busiest airports" : "No delays or ground stops at the " + n + " busiest airports right now"; }
@@ -192,8 +245,8 @@
     part = h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night";
     return d + " " + part + ", " + parts.clock;
   }
-  function troubleLine(airports, stale) {
-    var list = airports.filter(function (a) { return a.level === "stop" || a.level === "delay"; });
+  function troubleLine(airports, stale, nowMs) {
+    var list = airports.filter(function (a) { return (a.level === "stop" || a.level === "delay") && !isScheduledOnly(a, nowMs); });
     list.sort(function (x, y) { return troubleRank(y) - troubleRank(x); });
     var out = list.slice(0, 3).map(function (a) {
       var name = (a.short || a.name || a.code) + " (" + a.code + ")";
@@ -209,16 +262,27 @@
       if (gd) { return "Flights to " + name + (stale ? " were" : " are") + " held" + (avg != null ? " about " + fmtMinutes(avg) : "") + (why ? " for " + why : "") + "."; }
       return name + (stale ? " had" : " has") + " delays" + (avg != null ? " of about " + fmtMinutes(avg) : "") + (why ? ", " + why : "") + ".";
     });
+    // AN35: an airport inside its daily closed hours gets one calm sentence, not a count. Same rule as prerender_home.trouble_line.
+    var nights = stale ? [] : airports.filter(function (a) { return nightReopen(a, nowMs); });
+    nights.slice(0, 2).forEach(function (a) { out.push((a.short || a.name || a.code) + " (" + a.code + ") is closed overnight, reopens about " + nightReopen(a, nowMs) + " local time."); });
     if (list.length > 3) { out.push((list.length - 3) + (list.length - 3 === 1 ? " more airport has" : " more airports have") + " an FAA program."); }
     return out.join(" ");
   }
 
-  function kindLabel(kind) {
+  function kindLabel(kind, ev, tz, nowMs) {
+    var sc = ev && closureSchedule(ev, tz, nowMs);
+    if (sc) { return sc.in_window ? "Closed overnight" : "Nightly closure"; }
     return ({ ground_stop: "Ground stop", ground_delay: "Ground delay", closure: "Airport closed", delay: "Delays" })[kind] || "Disruption";
   }
 
   // Plain-language impact for one FAA event. place: short airport name.
-  function impactText(ev, place, stale) {
+  function impactText(ev, place, stale, tz, nowMs) {
+    var sc = closureSchedule(ev, tz, nowMs);
+    if (sc) {
+      if (stale) { return place + " was listed with a daily closure."; }
+      return sc.in_window ? place + " is closed overnight. The FAA lists a daily closure; it reopens about " + sc.reopen + " local time."
+        : place + " is open now. The FAA lists a daily closure; it closes again about " + sc.close + " local time.";
+    }
     var avg = fmtFaaDuration(ev.avg || (ev.fields && ev.fields.avg) || "");
     var max = fmtFaaDuration(ev.max || (ev.fields && ev.fields.max) || "");
     var dir = ev.direction || (ev.fields && ev.fields.direction) || "";
@@ -434,7 +498,7 @@
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
     fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, troubleLine: troubleLine, reasonWords: reasonWords, dateline: dateline,
-    kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
+    closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,
     changedLastHour: changedLastHour, historySeries: historySeries, checkedView: checkedView,

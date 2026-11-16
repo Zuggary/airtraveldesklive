@@ -306,6 +306,9 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
                 "avg": f.get("avg") or "", "max": f.get("max") or "", "min": f.get("min") or "",
                 "trend": f.get("trend") or "", "direction": f.get("direction") or "",
                 "end_time": f.get("end_time") or "", "end_utc": e.get("end_utc") or "",
+                # AN35: a closure keeps its listed times; 'daily' (UTC hours, '0730-1415') marks a scheduled closure.
+                **({"reopen": f.get("reopen") or "", "start": f.get("start") or "", "daily": f.get("daily") or ""}
+                   if e.get("kind") == "closure" else {}),
             })
         _, lat, lon = AIRPORTS[code]
         cards[code] = {

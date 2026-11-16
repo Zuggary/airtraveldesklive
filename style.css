@@ -431,7 +431,7 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .delta--down { color: var(--red-text); }
 .bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: end; height: 120px; margin-top: var(--space-4); }
 .bar7 { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 6px; text-align: center; }
-.bar7 i { display: block; border-radius: 6px 6px 2px 2px; background: var(--surface-3); position: relative; }
+.bar7 i { display: block; border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--accent) 34%, var(--surface-3)); position: relative; }
 .bar7--latest i { background: var(--accent); }
 .bar7 .ly { position: absolute; left: -2px; right: -2px; border-top: 2px dashed var(--text-muted); }
 .bar7 small { font-size: 0.72rem; color: var(--text-faint); }
@@ -443,7 +443,7 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .hol-mark { font-size: var(--fs-xs); line-height: 1.2; color: var(--amber-text); }
 .hol-bars { display: flex; align-items: flex-end; gap: 2px; height: 110px; width: 100%; justify-content: center; }
 .hol-bar { display: block; width: 38%; max-width: 16px; border-radius: 3px 3px 0 0; }
-.hol-bar--ly { background: var(--surface-3); }
+.hol-bar--ly { background: color-mix(in srgb, var(--text-muted) 38%, var(--surface-3)); }
 .hol-bar--busiest { background: var(--amber); }
 .hol-bar--now { background: var(--accent); }
 .hol-bar--none { visibility: hidden; }
@@ -458,7 +458,7 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .bts-stat + .bts-stat { padding-top: 14px; border-top: 1px solid var(--line); }
 .hol-sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; }
 .hol-sw--now { background: var(--accent); }
-.hol-sw--ly { background: var(--surface-3); }
+.hol-sw--ly { background: color-mix(in srgb, var(--text-muted) 38%, var(--surface-3)); }
 .hol-sw--none { box-shadow: inset 0 0 0 1.5px var(--accent); }
 
 /* the help band */
@@ -932,7 +932,7 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 .flight-check > summary { list-style: none; cursor: pointer; }
 .flight-check > summary::-webkit-details-marker { display: none; }
 .flight-check[open] { flex-basis: 100%; }
-.flight-check[open] > summary { background: rgba(255, 255, 255, 0.14); }
+.flight-check[open] > summary { background: rgba(255, 255, 255, 0.14); color: var(--text); }
 .flight-pop { margin-top: 10px; padding: 14px 16px; border-radius: var(--radius); background: rgba(14, 19, 25, 0.9); border: 1px solid var(--line); }
 .flight-pop p { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); max-width: 60ch; }
 .airline-links { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1095,3 +1095,40 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .owed-panel .refund-line { border: 0; padding: 0; background: none; font-weight: 600; }
 @media (min-width: 700px) { .ap-today .fact--sun { border-left: 1px solid var(--line); padding-left: 20px; } }
 .owed-panel .small .tap, .watch-section p .tap { display: inline; min-height: 0; min-width: 0; padding: 0; }
+
+/* ---------- AN35: scheduled closures are calm; hero glance lines; flight box; official links under the hero ---------- */
+.badge--night { background: var(--surface-3); color: var(--text); }
+.dot--night { background: var(--text-muted); }
+.idx--night { background: linear-gradient(var(--surface-3), var(--surface-3)), var(--surface); }
+.event-card--night { background: var(--surface-alt); }
+.event-card--night .event-big b { color: var(--text); }
+.ap-hero--night { background: linear-gradient(var(--surface-3), var(--surface-3)), var(--surface); }
+.ap-hero--night .big-code::after { background: var(--text-muted); }
+.ap-hero.band.ap-hero--night::before { background: var(--text-muted); }
+.ap-hero--night .ap-verdict em { color: inherit; }
+.pulse--night { background: var(--text-muted); animation: none !important; }
+.ap-lead--calm { opacity: 0.92; }
+
+.ap-glance { margin: var(--space-4) 0 0; display: grid; gap: 6px; }
+.ap-glance .gl { margin: 0; font-size: var(--fs-sm); line-height: 1.4; color: var(--text); }
+.ap-glance .gl[hidden] { display: none; }
+.ap-glance .gl-k { font-weight: 700; }
+.ap-glance .gl-src { color: var(--text-muted); font-size: var(--fs-xs); }
+.ap-glance .gl-src .tap { display: inline; min-height: 0; min-width: 0; padding: 0; color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }
+
+.flight-form { display: grid; gap: 6px; margin: 8px 0 0; }
+.flight-form label { font-size: var(--fs-sm); font-weight: 600; }
+.flight-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.flight-row input { flex: 1 1 140px; min-width: 0; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 1rem; text-transform: uppercase; }
+.flight-row .btn { min-height: 48px; }
+.flight-honest { margin: 8px 0 0; }
+.flight-check .airline-links[hidden] { display: none; }
+
+.ap-official { margin-top: var(--space-5); }
+.ap-official h2 { font-size: var(--fs-title, 1.4rem); margin-bottom: var(--space-3); }
+.ap-official .guide-pills { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: var(--space-6); }
+@media (min-width: 700px) { .ap-official .guide-pills { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .ap-official .guide-pills { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ap-official .guide-pill { min-height: 48px; }
+@media (min-width: 1000px) { .ap-cols { grid-template-columns: minmax(0, 1fr); } .ap-cols > .help-card { max-width: none; } .help-card .stuck-note p { max-width: 80ch; } }
+.flight-pop .small, .flight-pop label { color: var(--text); } .flight-pop p { line-height: 1.5; }

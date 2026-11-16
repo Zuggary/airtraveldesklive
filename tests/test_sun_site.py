@@ -117,7 +117,7 @@ class TestAirportSunNow(unittest.TestCase):
             self.assertIn('<script src="../sun.js"></script>', t, code)
             # in the "Right now" section, so it is next to the status
             self.assertLess(t.index('id="right-now"'), t.index('id="sun-now"'))
-            self.assertLess(t.index('id="sun-now"'), t.index('id="official-heading"'))
+            self.assertLess(t.index('id="sun-now"'), t.index('id="stuck-heading"'))
 
     def test_js_off_shows_nothing(self) -> None:
         t = (self.out / "SFO.html").read_text(encoding="utf-8")
@@ -178,7 +178,7 @@ class TestSiteWiring(unittest.TestCase):
     def test_service_worker_caches_sun_js_and_cache_name_bumped(self) -> None:
         sw = read("sw.js")
         self.assertIn('"./sun.js"', sw)
-        self.assertIn('CACHE_NAME = "atd-offline-v11"', sw)
+        self.assertIn('CACHE_NAME = "atd-offline-v12"', sw)
 
     def test_workflow_publishes_sun_js(self) -> None:
         yml = read(".github/workflows/status.yml")

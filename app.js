@@ -64,6 +64,11 @@
 
   function million(n) { return (n / 1e6).toFixed(2) + " million"; }
 
+  // AN35: the moment a scheduled closure is judged at: now, or the data's own time when the data is stale.
+  function atMs() {
+    var u = D.state && D.state.updated_utc, ms = Date.parse(u || "");
+    return isFinite(ms) && A.isStale(ageMin(u)) ? ms : Date.now();
+  }
   function ageMin(iso) {
     var ms = Date.parse(iso || "");
     return isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 60000)) : null;
@@ -101,6 +106,8 @@
     // Levels and events always come from state.json when it is newer than airports.json.
     // The board, the map and the airport card cover the airports on the state.json board (30). The search covers all of them;
     // an airport outside the board opens its own page.
+    // AN35: an airport inside a scheduled daily closure is calm: it counts as normal here, and the headline line and its program row say "closed overnight".
+    list.forEach(function (a) { if (a.level === "stop" && A.isScheduledOnly(a, atMs())) { a.level = "clear"; } });
     allAirports = list;
     var boardCodes = {};
     var hasBoard = D.state && Array.isArray(D.state.board) && D.state.board.length;
@@ -116,7 +123,8 @@
   function faaEvents() {
     var evs = (D.state && Array.isArray(D.state.events)) ? D.state.events : [];
     var rank = { ground_stop: 4, closure: 4, ground_delay: 3, delay: 2 };
-    var sorted = evs.filter(function (e) { return e.source === "FAA" && rank[e.kind]; }).sort(function (a, b) {
+    // AN35: a daily closure outside its hours is not an event.
+    var sorted = evs.filter(function (e) { var sc = e.kind === "closure" && A.closureSchedule(e, e.tz, atMs()); return e.source === "FAA" && rank[e.kind] && !(sc && !sc.in_window); }).sort(function (a, b) {
       var d = rank[b.kind] - rank[a.kind];
       if (d) { return d; }
       return (A.minutesOf(b.fields && b.fields.avg) || 0) - (A.minutesOf(a.fields && a.fields.avg) || 0);
@@ -188,7 +196,8 @@
     var dl = "Latest FAA check";
     if (m != null) { var dd = new Date(Date.parse(upd)); try { dl = A.dateline({ weekday: dd.toLocaleDateString("en-US", { weekday: "long" }), hour: dd.getHours(), clock: fmtTime(dd) }); } catch (e) { /* keep the plain label */ } }
     ($("now-title") || $("now-heading")).textContent = stale0 ? "Last known status" : dl;
-    line.textContent = (m == null ? "Update time unavailable" : "FAA NAS status, " + (stale0 ? "last checked " : "checked ") + (clock ? clock + " " : "") + "(" + ageText(upd) + ")") + ". We check every 5 minutes.";
+    // AN35: this line is the one place the FAA data age is stated (the stale banner states it when the data is old).
+    line.textContent = m == null ? "Update time unavailable" : A.faaAgePlain(m, clock, stale0);
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
@@ -211,11 +220,11 @@
     var have = {};
     list.forEach(function (a) { have[a.code] = 1; });
     var outside = faaEvents().filter(function (e) { return !have[String(e.airport || "")]; });
-    var text = A.nationalSummary(list, stale ? asOfText(upd) : "", outside);
+    var text = A.nationalSummary(list, stale ? asOfText(upd) : "", outside, atMs());
     var m = /^(\d+ of the \d+)(.*)$/.exec(text);
     s.textContent = "";
     if (m) { s.appendChild(el("em", "ok", m[1])); s.appendChild(document.createTextNode(m[2])); } else { s.textContent = text; }
-    if (tl) { tl.textContent = nbspUnits(A.troubleLine(list, stale)); }
+    if (tl) { tl.textContent = nbspUnits(A.troubleLine(list, stale, atMs())); }
     renderChips();
   }
 
@@ -277,6 +286,8 @@
   // The big number on a program row and its small label. Same rule as prerender_home.event_figure.
   function eventFigure(ev, tz) {
     var f = ev.fields || {};
+    var sc = ev.kind === "closure" && A.closureSchedule(ev, tz, atMs());
+    if (sc) { return sc.in_window ? { big: "Closed overnight", small: "reopens about " + sc.reopen + " local time" } : { big: "Open now", small: "closes again about " + sc.close + " local time" }; }
     if (ev.kind === "closure") {
       var mt = /([A-Z][a-z]{2}) (\d{1,2}) at (\d{2}):(\d{2}) UTC/.exec(String(f.reopen || ""));
       if (mt && MONTH_IX.hasOwnProperty(mt[1])) {
@@ -309,8 +320,9 @@
     var code = String(ev.airport || "").toUpperCase();
     var a = allByCode[code] || byCode[code] || {};
     var place = a.short || ev.display || code;
-    var stop = ev.kind === "ground_stop" || ev.kind === "closure";
-    var card = el("article", "event-card" + (stop ? " event-card--stop" : ""));
+    var night = ev.kind === "closure" && A.closureSchedule(ev, ev.tz || a.tz, atMs());
+    var stop = (ev.kind === "ground_stop" || ev.kind === "closure") && !night;
+    var card = el("article", "event-card" + (night ? " event-card--night" : stop ? " event-card--stop" : ""));
     var head = el("div", "event-header");
     var h3 = el("h3", "event-title");
     var lk = el("a", "ev-link");
@@ -319,9 +331,9 @@
     lk.appendChild(el("span", "ev-place", a.name || ev.display || place));
     h3.appendChild(lk);
     head.appendChild(h3);
-    head.appendChild(el("span", "badge " + (stop ? "badge--stop" : "badge--delay"), A.kindLabel(ev.kind)));
+    head.appendChild(el("span", "badge " + (night ? "badge--night" : stop ? "badge--stop" : "badge--delay"), A.kindLabel(ev.kind, ev, ev.tz || a.tz, atMs())));
     card.appendChild(head);
-    card.appendChild(el("p", "event-impact", nbspUnits(A.impactText(ev, place, isStaleIso(D.state.updated_utc)))));
+    card.appendChild(el("p", "event-impact", nbspUnits(A.impactText(ev, place, isStaleIso(D.state.updated_utc), ev.tz || a.tz, atMs()))));
     if (ev.reason && String(ev.reason).toLowerCase() !== "closed") { card.appendChild(el("p", "event-reason", "Reason: " + reasonText(ev.reason))); }
     var fig = eventFigure(ev, ev.tz || a.tz);
     var big = el("p", "event-big");
@@ -330,8 +342,7 @@
     card.appendChild(big);
     var meta = el("p", "event-meta");
     var parts = [];
-    parts.push("Sources: " + ((ev.sources && ev.sources.length) ? ev.sources.join(", ") : "FAA"));
-    parts.push("Checked " + ageText(D.state.updated_utc));
+    parts.push("Source: " + ((ev.sources && ev.sources.length) ? ev.sources.join(", ") : "FAA"));
     meta.textContent = parts.join(" · ");
     card.appendChild(meta);
     return card;
@@ -502,7 +513,7 @@
         key.appendChild(document.createTextNode(k[1]));
         note.appendChild(key);
       });
-      note.appendChild(el("span", "key-src", "Status: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + ". Last 24 h: our hourly copy of the FAA feed" + (D.hist && D.hist.generated_utc ? ", " + ageText(D.hist.generated_utc) : "") + "."));
+      note.appendChild(el("span", "key-src", "Status: FAA. Last 24 h: our hourly copy of the FAA feed" + (D.hist && D.hist.generated_utc ? ", " + ageText(D.hist.generated_utc) : "") + "."));
     }
   }
 
@@ -683,7 +694,7 @@
   function faaPlainStatus(a, stale) {
     var evs = a.events || [];
     if (evs.length) {
-      return evs.map(function (ev) { return A.impactText(ev, a.short || a.code, stale); }).join(" ");
+      return evs.map(function (ev) { return A.impactText(ev, a.short || a.code, stale, a.tz, atMs()); }).join(" ");
     }
     if (a.level === "stop") { return "FAA ground stop in effect"; }
     if (a.level === "delay") { return "FAA delay program in effect"; }
@@ -718,7 +729,7 @@
       facts.appendChild(el("li", null, "On-time arrivals, " + D.bts.month_label + ": " + A.pct(b.ontime) + (b.ly_ontime != null ? " (" + D.bts.ly_month_label + ": " + A.pct(b.ly_ontime) + ")" : "") + " (BTS)"));
     }
     var upd = D.cards && D.cards.updated_utc || (D.state && D.state.updated_utc);
-    facts.appendChild(el("li", null, (isStaleIso(upd) ? "Status last checked " : "Status checked ") + ageText(upd)));
+    facts.appendChild(el("li", null, (isStaleIso(upd) ? "FAA status last checked " : "FAA data ") + (isStaleIso(upd) ? ageText(upd) : A.oldText(ageMin(upd)))));
     box.appendChild(facts);
     renderGuideNow(r.guideNow, a);
   }
@@ -1018,10 +1029,19 @@
     if (holFig) { c.appendChild(holFig); }
     var dl = hv.daysTo > 0 ? hv.daysTo + (hv.daysTo === 1 ? " day" : " days") + " left" : hv.daysTo === 0 ? "Thanksgiving is today" : "Thanksgiving was " + (-hv.daysTo) + " days ago";
     c.appendChild(el("p", "compare-big", dl));
-    c.appendChild(el("p", "compare-line", "Thanksgiving is " + fmtDay(hv.thanksgiving) + ". Bars show people screened by TSA, in millions."));
+    c.appendChild(el("p", "compare-line", "Thanksgiving is " + fmtDay(hv.thanksgiving) + "." + (hv.rows.some(function (r) { return r.count != null; }) ? " Bars show people screened by TSA, in millions." : " TSA has not posted this year's counts for that week yet.")));
+    var done = hv.rows.filter(function (r) { return r.count != null; }).length;
+    // AN35: with no counted day this year the chart has nothing to show; leave the whole block out (the countdown and last year's busiest day stay).
+    if (!done) {
+      if (hv.busiest && hv.busiestCount) {
+        var rec0 = hv.record && hv.record.date === hv.busiest;
+        c.appendChild(el("p", "compare-line", "Last year's busiest day that week: " + fmtDayYear(hv.busiest) + ", " + million(hv.busiestCount) + (rec0 ? ", the TSA record." : ".")));
+      }
+      c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtLocalDay(hv.fetched) + ". Last year lined up by days to Thanksgiving."));
+      return c;
+    }
     var grid = el("div", "hol-grid");
     grid.setAttribute("role", "img");
-    var done = hv.rows.filter(function (r) { return r.count != null; }).length;
     grid.setAttribute("aria-label", "Bar chart of TSA people screened, " + fmtDay(hv.rows[0].date) + " to " + fmtDay(hv.rows[hv.rows.length - 1].date) + ", this year against last year. This year has " + done + " days counted so far. The table below has the numbers.");
     hv.rows.forEach(function (r) {
       var col = el("div", "hol-col" + (r.isThanksgiving ? " hol-col--day" : ""));
@@ -1299,7 +1319,7 @@
     // AN34 r2: an FAA program at an airport with no card (the headline may lead with it) still gets a ringed, labelled dot.
     faaEvents().forEach(function (e) {
       var c = String(e.airport || "");
-      if (!/^[A-Z]{3}$/.test(c) || seen[c] || typeof e.lat !== "number" || typeof e.lon !== "number") { return; }
+      if (!/^[A-Z]{3}$/.test(c) || seen[c] || A.closureSchedule(e, e.tz, atMs()) || typeof e.lat !== "number" || typeof e.lon !== "number") { return; }
       add({ code: c, lat: e.lat, lon: e.lon, level: e.kind === "closure" || e.kind === "ground_stop" ? "stop" : "delay", events: [{ kind: e.kind, avg: (e.fields || {}).avg }] });
     });
     canvas.setAttribute("data-markers", mapMarkers.map(function (m) { return m.code + ":" + Math.round(m.x) + ":" + Math.round(m.y); }).join(","));

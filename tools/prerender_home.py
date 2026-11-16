@@ -67,11 +67,37 @@ def fmt_minutes(minutes: int) -> str:
     return f"{m} min"
 
 
-def outside_lead(outside: list[dict[str, Any]] | None, stale: bool) -> str:
+def _sched(ev: dict[str, Any] | None, tz: Any, now: datetime | None) -> dict[str, Any] | None:
+    """AN35: the scheduled-closure facts for a daily closure event, else None. See prerender_text.closure_schedule."""
+    return pt.closure_schedule(ev or {}, str(tz or ""), now or pt.now_utc())
+
+
+def scheduled_only(a: dict[str, Any], now: datetime | None = None) -> bool:
+    """True when every closure at this airport is a scheduled daily one and no ground stop is listed. Same rule as ATD.isScheduledOnly."""
+    evs = [e for e in a.get("events") or [] if isinstance(e, dict)]
+    cl = [e for e in evs if e.get("kind") == "closure"]
+    return bool(cl) and all(_sched(e, a.get("tz"), now) for e in cl) and not any(e.get("kind") == "ground_stop" for e in evs)
+
+
+def night_reopen(a: dict[str, Any], now: datetime | None = None) -> str:
+    """The reopening clock ('6:15 AM') when this airport is inside a scheduled daily closure now, else ''."""
+    if not scheduled_only(a, now):
+        return ""
+    for e in a.get("events") or []:
+        sc = _sched(e, a.get("tz"), now)
+        if sc and sc["in_window"]:
+            return sc["reopen"]
+    return ""
+
+
+def outside_lead(outside: list[dict[str, Any]] | None, stale: bool, now: datetime | None = None) -> str:
     """AN34 round 3: an FAA program at an airport outside the list leads the headline. Same rule as lib.js outsideLead."""
     seen: dict[str, dict[str, Any]] = {}
     for e in outside or []:
         c = str((e or {}).get("airport") or "")
+        sc = _sched(e, (e or {}).get("tz"), now)
+        if sc and not sc["in_window"]:
+            continue  # a daily closure outside its hours is not news
         if c and c not in seen:
             seen[c] = e
     if not seen:
@@ -79,6 +105,9 @@ def outside_lead(outside: list[dict[str, Any]] | None, stale: bool) -> str:
     if len(seen) > 1:
         return f"{len(seen)} other airports {'had' if stale else 'have'} an FAA program. "
     c, e = next(iter(seen.items()))
+    sc1 = _sched(e, e.get("tz"), now) if e.get("kind") == "closure" else None
+    if sc1:
+        return f"{c} was listed as closed overnight. " if stale else f"{c} is closed overnight, reopens about {sc1['reopen']} local time. "
     if e.get("kind") == "closure":
         return f"{c} was listed as closed. " if stale else f"{c} is closed. "
     if e.get("kind") == "ground_stop":
@@ -86,14 +115,14 @@ def outside_lead(outside: list[dict[str, Any]] | None, stale: bool) -> str:
     return f"{c} {'had' if stale else 'has'} delays. "
 
 
-def national_summary(airports: list[dict[str, Any]], as_of: str = "", outside: list[dict[str, Any]] | None = None) -> str:
+def national_summary(airports: list[dict[str, Any]], as_of: str = "", outside: list[dict[str, Any]] | None = None, now: datetime | None = None) -> str:
     """The home headline: a verdict over every airport we cover. Same rule as lib.js nationalSummary.
 
     as_of is empty when the data is fresh. When it is set ('as of 1:50 AM EST (12 hours ago)') the line
     is dated and has no live words.
     """
-    bad = sum(1 for a in airports if a.get("level") in ("stop", "delay"))
-    lead = outside_lead(outside, bool(as_of))
+    bad = sum(1 for a in airports if a.get("level") in ("stop", "delay") and not scheduled_only(a, now))
+    lead = outside_lead(outside, bool(as_of), now)
     if not bad and lead:
         n = max(len(airports), 30)
         return f"{lead}The {n} busiest airports " + ("were clear" if as_of else "are clear right now")
@@ -108,7 +137,7 @@ def national_summary(airports: list[dict[str, Any]], as_of: str = "", outside: l
 
 
 def _is_closed(a: dict[str, Any]) -> bool:
-    return a.get("level") == "stop" and any(isinstance(e, dict) and e.get("kind") == "closure" for e in a.get("events") or [])
+    return a.get("level") == "stop" and any(isinstance(e, dict) and e.get("kind") == "closure" for e in a.get("events") or []) and not scheduled_only(a)
 
 
 def _trouble_rank(a: dict[str, Any]) -> int:
@@ -133,9 +162,9 @@ def dateline(local: datetime) -> str:
     return pt.dateline(local)
 
 
-def trouble_line(airports: list[dict[str, Any]], stale: bool = False) -> str:
+def trouble_line(airports: list[dict[str, Any]], stale: bool = False, now: datetime | None = None) -> str:
     """One plain sentence per airport with an FAA program, worst first, at most 3. Same rule as lib.js troubleLine."""
-    bad = sorted((a for a in airports if a.get("level") in ("stop", "delay")), key=_trouble_rank, reverse=True)
+    bad = sorted((a for a in airports if a.get("level") in ("stop", "delay") and not scheduled_only(a, now)), key=_trouble_rank, reverse=True)
     out = []
     for a in bad[:3]:
         name = f"{a.get('short') or a.get('name') or a.get('code')} ({a.get('code')})"
@@ -155,6 +184,9 @@ def trouble_line(airports: list[dict[str, Any]], stale: bool = False) -> str:
         else:
             size = f" of about {fmt_minutes(avg)}" if avg is not None else ""
             out.append(f"{name} {'had' if stale else 'has'} delays{size}" + (f", {why}" if why else "") + ".")
+    # AN35: an airport inside its daily closed hours gets one calm sentence, not a count. Same rule as lib.js troubleLine.
+    for a in ([] if stale else [x for x in airports if night_reopen(x, now)])[:2]:
+        out.append(f"{a.get('short') or a.get('name') or a.get('code')} ({a.get('code')}) is closed overnight, reopens about {night_reopen(a, now)} local time.")
     if len(bad) > 3:
         n = len(bad) - 3
         out.append(f"{n} more airport has an FAA program." if n == 1 else f"{n} more airports have an FAA program.")
@@ -172,7 +204,7 @@ def verdict_html(text: str) -> str:
     return re.sub(r"^(\d+ of the \d+)", r'<em class="ok">\1</em>', esc, count=1)
 
 
-def impact_text(ev: dict[str, Any], place: str, stale: bool = False) -> str:
+def impact_text(ev: dict[str, Any], place: str, stale: bool = False, tz: Any = "", now: datetime | None = None) -> str:
     fields = ev.get("fields") or {}
     avg = ev.get("avg") or fields.get("avg") or ""
     mx = ev.get("max") or fields.get("max") or ""
@@ -181,6 +213,13 @@ def impact_text(ev: dict[str, Any], place: str, stale: bool = False) -> str:
     avg_t = fmt_minutes(avg_m) if avg_m is not None else str(avg)
     max_t = fmt_minutes(max_m) if max_m is not None else str(mx)
     kind = ev.get("kind")
+    sc = _sched(ev, tz, now) if kind == "closure" else None
+    if sc:
+        if stale:
+            return f"{place} was listed with a daily closure."
+        if sc["in_window"]:
+            return f"{place} is closed overnight. The FAA lists a daily closure; it reopens about {sc['reopen']} local time."
+        return f"{place} is open now. The FAA lists a daily closure; it closes again about {sc['close']} local time."
     if kind == "ground_stop":
         return f"Flights bound for {place} are held at their departure airports until the stop ends."
     if kind == "closure":
@@ -229,6 +268,9 @@ def event_figure(ev: dict[str, Any], tz: str, now: datetime) -> tuple[str, str]:
     """The big number and its small label for one program row. Same rule as app.js eventFigure."""
     f = ev.get("fields") or {}
     kind = ev.get("kind")
+    sc = _sched(ev, tz, now) if kind == "closure" else None
+    if sc:
+        return ("Closed overnight", f"reopens about {sc['reopen']} local time") if sc["in_window"] else ("Open now", f"closes again about {sc['close']} local time")
     if kind == "closure":
         m = _REOPEN_RE.search(str(f.get("reopen") or ""))
         if m and m.group(1) in MONTHS:
@@ -273,8 +315,11 @@ def event_figure(ev: dict[str, Any], tz: str, now: datetime) -> tuple[str, str]:
     return "Delays", "no size listed"
 
 
-def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: str, now: datetime, stale: bool = False) -> str:
+def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: str, now: datetime, stale: bool = False, at: datetime | None = None) -> str:
+    at = at or now  # a scheduled closure is judged at the data's own time when the data is stale
     events = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA" and e.get("kind") in KIND_RANK]
+    # AN35: a daily closure outside its hours is not a row.
+    events = [e for e in events if not ((sc := _sched(e, e.get("tz"), at)) and not sc["in_window"])]
     if not state:
         return ""
     if not events:
@@ -282,7 +327,6 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
             return f'<p class="empty-state">No FAA delays or ground stops were listed {_esc(pt.as_of_text(updated_utc, HOME_TZ, now))}.</p>'
         return '<p class="empty-state">No FAA delays or ground stops are listed right now.</p>'
     events.sort(key=lambda e: (-KIND_RANK[e["kind"]], -(minutes_of((e.get("fields") or {}).get("avg")) or 0)))
-    age = pt.ago_text(pt.age_minutes(updated_utc, now))
     out = []
     seen: set[str] = set()  # AN32: one row per airport, the worst program first
     for ev in events:
@@ -293,23 +337,24 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
         a = by_code.get(code) or {}
         place = a.get("short") or ev.get("display") or code
         full = a.get("name") or ev.get("display") or place
-        stop = ev.get("kind") in ("ground_stop", "closure")
-        cls = "event-card event-card--stop" if stop else "event-card"
-        badge = "badge badge--stop" if stop else "badge badge--delay"
-        big, small = event_figure(ev, str(ev.get("tz") or a.get("tz") or ""), now)
+        night = bool(ev.get("kind") == "closure" and _sched(ev, ev.get("tz") or a.get("tz"), at))
+        stop = ev.get("kind") in ("ground_stop", "closure") and not night
+        cls = "event-card event-card--night" if night else "event-card event-card--stop" if stop else "event-card"
+        badge = "badge badge--night" if night else "badge badge--stop" if stop else "badge badge--delay"
+        big, small = event_figure(ev, str(ev.get("tz") or a.get("tz") or ""), at if night else now)
         href = f"airports/{code}.html" if re.fullmatch(r"[A-Z]{3}", code) else "airports/index.html"
         lines = [
             f'<article class="{cls}">',
             f'<div class="event-header"><h3 class="event-title"><a class="ev-link" href="{href}"><span class="ev-code">{_esc(code)}</span>'
             f'<span class="ev-place">{_esc(full)}</span></a></h3>'
-            f'<span class="{badge}">{_esc(KIND_LABEL.get(ev["kind"], "Disruption"))}</span></div>',
-            f'<p class="event-impact">{_esc(nbsp_units(impact_text(ev, str(place), stale)))}</p>',
+            f'<span class="{badge}">{_esc("Closed overnight" if night else KIND_LABEL.get(ev["kind"], "Disruption"))}</span></div>',
+            f'<p class="event-impact">{_esc(nbsp_units(impact_text(ev, str(place), stale, ev.get("tz") or a.get("tz"), at)))}</p>',
         ]
         if ev.get("reason") and str(ev["reason"]).strip().lower() != "closed":
             lines.append(f'<p class="event-reason">Reason: {_esc(reason_text(ev["reason"]))}</p>')
         lines.append(f'<p class="event-big"><b>{_esc(nbsp_units(big))}</b><small>{_esc(small)}</small></p>')
         sources = ", ".join(str(x) for x in (ev.get("sources") or [])) or "FAA"
-        lines.append(f'<p class="event-meta">Sources: {_esc(sources)} · Checked {_esc(age)}</p>')
+        lines.append(f'<p class="event-meta">Source: {_esc(sources)}</p>')
         lines.append("</article>")
         out.append("".join(lines))
     return "".join(out)
@@ -363,6 +408,7 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     state_utc = str(state.get("updated_utc") or "")
 
     stale = bool(state_utc) and pt.is_stale(pt.age_minutes(state_utc, now))
+    at = (pt.parse_utc(state_utc) or now) if stale else now  # AN35: a scheduled closure is judged at the data's own time when it is stale
     as_of = pt.as_of_text(state_utc, HOME_TZ, now) if stale else ""
     page = template
     checked = pt.parse_utc(state_utc) if state_utc else None
@@ -374,16 +420,16 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     if airports:
         outside = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA"
                    and e.get("kind") in KIND_RANK and str(e.get("airport") or "") not in by_code]
-        page = _slot(page, "summary", verdict_html(national_summary(airports, as_of, outside)))
-        page = _slot(page, "trouble", _esc(nbsp_units(trouble_line(airports, stale))))
+        page = _slot(page, "summary", verdict_html(national_summary(airports, as_of, outside, at)))
+        page = _slot(page, "trouble", _esc(nbsp_units(trouble_line(airports, stale, at))))
     else:
         page = re.sub(r"<!--/?pr:(summary|trouble)-->", "", page)
     if state_utc:
-        line = f"FAA NAS status, {pt.checked_text(state_utc, HOME_TZ, now, last=stale)}. We check every 5 minutes."
+        line = pt.faa_age_plain(state_utc, HOME_TZ, now, stale)
         page = _slot(page, "updated", _esc(line))
     else:
         page = re.sub(r"<!--/?pr:updated-->", "", page)
-    events_html = render_events(state, by_code, state_utc, now, stale) if state else ""
+    events_html = render_events(state, by_code, state_utc, now, stale, at) if state else ""
     page = _slot(page, "events", events_html)
     page = _slot(page, "tsa", render_tsa(tsa))
     notice = pt.stale_notice_html(state_utc, now) if state_utc else ""

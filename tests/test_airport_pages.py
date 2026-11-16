@@ -118,6 +118,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
             "https://www.adsb.lol/",
             "https://nasstatus.faa.gov",
         }
+        from tools.build_airport_pages import FLIGHT_STATUS  # AN35: each airline's own status page
+        cls.allowed_urls.update(u for _n, _c, u in FLIGHT_STATUS.values())
         for code, entry in cls.guide["airports"].items():
             cls.allowed_urls.add(f"{SITE_URL}/airports/{code}.html")
             for item in entry.get("links") or []:
@@ -198,7 +200,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
             if fname == "index.html":
                 self.assertIn("Page built 2026-11-14.", p.visible_text)
             else:
-                self.assertIn("FAA NAS status, checked ", p.visible_text, fname)
+                self.assertRegex(p.visible_text, r"FAA data .* old, checked .* Source: FAA NAS status\.|Source: FAA NAS status, last checked ", fname)
                 self.assertEqual(text.count(">Live board<"), 2, f"{fname}: header chip and footer link only")
                 self.assertNotIn("btn-primary", text, fname)
                 self.assertIn("var TZ = ", text, fname)

@@ -9,5 +9,5 @@
 | Airport desert | assets/art/airport-desert-* | "long runway stretching toward red rock buttes at twilight ..." (AN34r2-desert-v4) | same | same | laptop | 2026-11-15 | 1 of 4 |
 
 Encoding: ffmpeg libsvtav1 (AVIF, crf 36 at 1440, 40 at 2880) and JPEG fallback through <picture>. Sizes: 20 to 45 KB AVIF, 95 to 215 KB JPEG.
-Cull: by the builder from contact sheets (demo/an34/art/*-sheet.png). The vision judge runs on the 5090 desktop, which was in "game" mode (Zach present), so it was not used; this cull needs a judge pass.
+Cull: by the builder from contact sheets (demo/an34/art/*-sheet.png). The vision judge runs on the 5090 desktop, which was in "game" mode (in use), so it was not used; this cull needs a judge pass.
 Raw renders and 4x upscales: demo/an34/art/raw and demo/an34/art/up (factory repo, not committed).

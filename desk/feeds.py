@@ -49,6 +49,19 @@ def _text(el: ET.Element, tag: str) -> str:
     return child.text.strip()
 
 
+_DAILY_RE = re.compile(r"\bCLSD\s+DLY\s+(\d{4})\s*-\s*(\d{4})\b")
+
+
+def daily_window(raw_reason: str) -> str:
+    """'0730-1415' from a FAA closure line such as 'AD AP CLSD DLY 0730-1415', else ''. The hours are UTC."""
+    m = _DAILY_RE.search(str(raw_reason or "").upper())
+    if not m:
+        return ""
+    a, b = m.group(1), m.group(2)
+    ok = lambda t: int(t[:2]) < 24 and int(t[2:]) < 60  # noqa: E731
+    return f"{a}-{b}" if ok(a) and ok(b) else ""
+
+
 def _build_faa_event(
     kind: str,
     airport: str,
@@ -123,12 +136,14 @@ def parse_faa(xml_text: str) -> list[dict[str, Any]]:
         upper_reason = raw_reason.upper()
         if "CLSD TO" in upper_reason or " EXC " in upper_reason:
             continue
+        # AN35: a closure the FAA lists as daily ('AD AP CLSD DLY 0730-1415', times in UTC) is a scheduled
+        # closure: keep the start, the reopen and the daily window so the pages can say "closed overnight".
         events.append(
             _build_faa_event(
                 "closure",
                 arpt,
                 "closed",
-                {"reopen": _text(ap, "Reopen")},
+                {"reopen": _text(ap, "Reopen"), "start": _text(ap, "Start"), "daily": daily_window(raw_reason)},
             )
         )
 
