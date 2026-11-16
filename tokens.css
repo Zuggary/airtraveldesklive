@@ -1,42 +1,56 @@
 /* Shared design tokens for the desk family (Air Travel Desk and sister desks).
    Structure is shared. Only the accent block differs per desk.
-   Variables only: no selectors other than :root. */
+   Variables only: no selectors other than :root. The light theme lives in style.css (html selector). */
 :root {
   color-scheme: dark;
 
-  /* Palette */
-  --navy: #0b0f14;
-  --surface: #10161e;
-  --surface-alt: #18212c;
-  --border: #2a3544;
-  --text: #e9edf2;
-  --text-muted: #9fadbc;
+  /* Palette (AN34: departures board). Ground, then three raised surfaces. */
+  --navy: #080b0f;
+  --surface: #0e1319;
+  --surface-alt: #151c25;
+  --surface-3: #1b2430;
+  --line: #1f2833;
+  --border: #2c3746;
+  --text: #eef1f5;
+  --board-text: #f6f1e3;
+  --text-muted: #a3afbd;
+  --text-faint: #8391a3;
   --link: #8fcbff;
-  --red: #ff4d3d;
-  --red-text: #ffb4ab;
-  --red-soft: rgba(239, 68, 68, 0.2);
+  --header-bg: rgba(8, 11, 15, 0.9);
+  --map-land: #131b25;
+  --map-sea: #0b1016;
+  --map-edge: #2a3644;
+  --red: #ff5a47;
+  --red-text: #ff9b8f;
+  --red-soft: rgba(255, 90, 71, 0.13);
+  --red-ink: #1d0503;
   --green: #3ccf91;
-  --green-text: #a7f3d0;
-  --green-soft: rgba(52, 211, 153, 0.15);
+  --green-text: #7fe3b7;
+  --green-soft: rgba(60, 207, 145, 0.12);
   --amber: #f5b301;
   --amber-text: #ffd45c;
-  --amber-soft: rgba(242, 179, 61, 0.16);
+  --amber-soft: rgba(245, 179, 1, 0.12);
+  --amber-ink: #1b1400;
+  --none: #2a333f;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
 
   /* Accent block: the only part that changes per desk */
-  --accent: #7cc4ff;
-  --accent-hover: #a6d8ff;
-  --accent-soft: rgba(76, 195, 255, 0.16);
-  --on-accent: #0b0f14;
+  --accent: #8fcbff;
+  --accent-hover: #b5dcff;
+  --accent-soft: rgba(143, 203, 255, 0.14);
+  --on-accent: #080b0f;
 
-  /* Type: Barlow Condensed for codes and the answer, Public Sans for text (files in fonts/) */
-  --font-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
-  --font-text: "Public Sans", Arial, sans-serif;
+  /* Type: Barlow Condensed for codes, numbers and the answer; Public Sans for text (files in fonts/) */
+  --font-display: "Barlow Condensed", "Barlow Fallback", "Arial Narrow", Arial, sans-serif;
+  --font-text: "Public Sans", "Public Fallback", Arial, sans-serif;
 
-  /* Type scale */
+  /* Type scale: display, title, headline, body, caption, micro */
+  --fs-display: clamp(2.35rem, 1.5rem + 3.4vw, 4.1rem);
+  --fs-title: clamp(1.3rem, 1.15rem + 0.6vw, 1.6rem);
   --fs-xs: 0.8125rem;
   --fs-sm: 0.9375rem;
   --fs-md: 1rem;
-  --fs-lg: 1.2rem;
+  --fs-lg: 1.125rem;
   --fs-xl: 1.5rem;
   --lh: 1.5;
 
@@ -47,9 +61,12 @@
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
 
-  /* Shape and layout */
-  --radius: 4px;
+  /* Shape and layout: one radius family */
+  --radius: 14px;
+  --radius-sm: 8px;
   --gutter: 16px;
 
   /* Focus ring */
@@ -57,5 +74,5 @@
 }
 
 @media (min-width: 700px) {
-  :root { --gutter: 24px; }
+  :root { --gutter: 32px; }
 }

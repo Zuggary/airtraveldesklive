@@ -1,4 +1,42 @@
-# Air Travel Desk: design direction (AN32)
+# Air Travel Desk: design direction (AN34, replaces AN32 where they differ)
+
+Winner of the AN34 panel: the "modern departures board" prototype (demo/an34/board), with grafts from "calm" and "map".
+Panel notes: research/AN34-designs.md.
+
+## What the site is in 5 seconds
+- Home: one verdict at display size ("98 of the 100 busiest US airports have no FAA delays right now"), one plain line
+  naming the exceptions, then a big "Check your airport" search with one-tap picks (yours, then trouble now).
+- Airport page: a giant code lockup on a surface tinted by status, and an H1 that is the answer in words
+  ("Flights into San Francisco are held about 2 h 46 min.").
+
+## System
+- Surfaces: ground (--navy), panel (--surface), raised (--surface-alt, --surface-3); hairlines --line and --border.
+- One radius family: 14 px panels, 12 px controls, pills for chips and badges.
+- Type: Barlow Condensed for codes, numbers and verdicts; Public Sans for text. Title size --fs-title; display --fs-display.
+- Status colour is the only strong colour: green clear, sign-yellow delay (dark ink on it), red stop or closed.
+- Dark by default; a warm light theme follows prefers-color-scheme (style.css, html selector, tokens only).
+- Icons are drawn stroke icons on a 24 grid, inline, no outside requests.
+
+## Home order
+Verdict, trouble line, search and picks, source line; map beside it on wide screens (tap a dot for the answer card).
+Then "Delays and closures now" (big departures rows: code, plain meaning, one big number), the 30-airport board
+(rows of links with a 24-hour strip), changes and the 24-hour chart, travel volume (TSA bars, Thanksgiving, BTS),
+the help band, Lantern Drift. Twitch and TV mode live in the footer.
+
+## Airport page order
+Tinted hero (lockup, verdict H1, one explanation, "Flying out of X?" note and "What is a ground delay?" for ground
+delays, status chips, source line) with a regional radar map on wide screens (apmap.js). Then "Right now" tiles
+(FAA, weather now, next 3 hours, daylight; each with its source and age), the help card scaled to the state
+(quiet when clear, three steps when delayed or closed; sticky right rail on wide screens), the last 3 days,
+a typical month (BTS), official pages as an icon grid, hotels folded, facts, sources folded.
+
+## Copy rules (unchanged)
+Every number carries its source and age. "May be owed" / "possibly owed", never "must cover"; the airline decides
+each claim. Arrivals and departures are kept apart for ground delays.
+
+---
+
+# Earlier direction (AN32)
 
 Rules used: `research/FA7-web-design-rules.md` (steps 1 to 3, slop list, font rules).
 
