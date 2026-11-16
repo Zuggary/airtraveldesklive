@@ -327,6 +327,35 @@ def _delay_sizes(entry: dict[str, Any] | None) -> str:
     return ""
 
 
+def _nearby(code: str, airports_map: dict[str, Any], live_cards: dict[str, Any], limit: int = 3, max_miles: int = 150) -> list[tuple[str, str, int, str]]:
+    """Closest other airports of the 100, with straight-line miles and their FAA word now. For a closed airport."""
+    import math
+    me = airports_map.get(code) or {}
+    try:
+        la, lo = float(me["lat"]), float(me["lon"])
+    except (KeyError, TypeError, ValueError):
+        return []
+    out = []
+    for c, info in airports_map.items():
+        if c == code:
+            continue
+        try:
+            lb, ln = float(info["lat"]), float(info["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        p1, p2 = math.radians(la), math.radians(lb)
+        a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(ln - lo) / 2) ** 2
+        miles = int(round(3958.8 * 2 * math.asin(math.sqrt(a))))
+        if miles > max_miles:
+            continue
+        card = live_cards.get(c)
+        level = (card or {}).get("level") if isinstance(card, dict) else None
+        word = {"clear": "clear", "delay": "delays", "stop": "ground stop", "closed": "closed"}.get(str(level), "")
+        out.append((c, str(info.get("name") or c), miles, word))
+    out.sort(key=lambda x: x[2])
+    return out[:limit]
+
+
 def _render_head(
     *,
     title: str,
@@ -731,6 +760,7 @@ def render_airport_page(
     live_updated_utc: str = "",
     now: Any = None,
     history: dict[str, Any] | None = None,
+    alternates: list[tuple[str, str, int, str]] | None = None,
 ) -> str:
     """Render HTML for a single airport page.
 
@@ -962,6 +992,13 @@ def render_airport_page(
             else ""
         ),
         *_what_to_do(live["chip_class"], live),
+        (
+            '        <p class="ap-alt">Other airports nearby, straight-line miles: '
+            + ", ".join(f'<a class="tap" href="{_esc(c)}.html">{_esc(c)}</a> ({m} mi{", " + w if w else ""})' for c, _n, m, w in (alternates or []))
+            + ". We cannot tell you about fares or seats there; ask your airline what it can rebook.</p>"
+            if alternates and live["has"] and not live["stale"] and "badge--stop" in live["chip_class"]
+            else ""
+        ),
         '        <div class="airport-summary-actions">',
         '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
         "        </div>",
@@ -1265,6 +1302,7 @@ def build_pages(
             live_updated_utc=live_updated,
             now=now,
             history=history_data,
+            alternates=_nearby(code, airports_map, live_cards),
         )
         dest = out_dir / f"{code}.html"
         dest.write_text(page_html, encoding="utf-8")

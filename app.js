@@ -338,7 +338,7 @@
     ordered.forEach(function (o) { box.appendChild(makeTile(o.a, tiles)); });
     renderMine(tiles);
     var note = $("board-note");
-    if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. Arrow compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }
+    if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. The word after the status (better, worse, steady) compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }
   }
 
   // AN32: airports saved in this browser only (localStorage, no account).
