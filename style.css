@@ -46,6 +46,43 @@
   }
 }
 
+/* AN38: the theme switch. html[data-theme="light"] forces the light tokens when the device is dark; html[data-theme="dark"] keeps the dark tokens when the device is light (the rule above skips it). */
+html[data-theme="light"] {
+    color-scheme: light;
+    --navy: #f6f4ef;
+    --surface: #ffffff;
+    --surface-alt: #f1eee7;
+    --surface-3: #e8e4db;
+    --line: #e6e1d7;
+    --border: #d5cfc3;
+    --text: #15191e;
+    --board-text: #101418;
+    --text-muted: #4d5764;
+    --text-faint: #646e7a;
+    --link: #0b57a4;
+    --header-bg: rgba(246, 244, 239, 0.9);
+    --map-land: #e7e2d8;
+    --map-sea: #e9eef1;
+    --map-edge: #c4bcad;
+    --red: #cf3222;
+    --red-text: #a8251a;
+    --red-soft: rgba(207, 50, 34, 0.09);
+    --red-ink: #ffffff;
+    --green: #17895c;
+    --green-text: #126c49;
+    --green-soft: rgba(23, 137, 92, 0.1);
+    --amber: #e6a400;
+    --amber-text: #7f5400;
+    --amber-soft: rgba(230, 164, 0, 0.14);
+    --amber-ink: #1b1400;
+    --none: #dcd6ca;
+    --shadow: 0 14px 34px rgba(21, 25, 30, 0.12);
+    --accent: #0b57a4;
+    --accent-hover: #084682;
+    --accent-soft: rgba(11, 87, 164, 0.09);
+    --on-accent: #ffffff;
+}
+
 /* AN34 r2: the hero band is the dark board in both themes (rules for it are near the end of this file). */
 .band, .page-home .site-header {
   --navy: #080b0f; --surface: rgba(14, 19, 25, 0.86); --surface-alt: rgba(21, 28, 37, 0.9); --surface-3: #1b2430;
@@ -1132,3 +1169,16 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .ap-official .guide-pill { min-height: 48px; }
 @media (min-width: 1000px) { .ap-cols { grid-template-columns: minmax(0, 1fr); } .ap-cols > .help-card { max-width: none; } .help-card .stuck-note p { max-width: 80ch; } }
 .flight-pop .small, .flight-pop label { color: var(--text); } .flight-pop p { line-height: 1.5; }
+
+/* ---------- AN38: theme switch button (System, Light, Dark) ---------- */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; padding: 0; margin-left: 0.25rem;
+  background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+.theme-toggle:hover { background: var(--surface-alt); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle svg { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle .ti { display: none; }
+.theme-toggle[data-mode="system"] .ti-system, .theme-toggle[data-mode="light"] .ti-light, .theme-toggle[data-mode="dark"] .ti-dark { display: block; }
+@media (max-width: 760px) {      /* on phones the nav wraps under the brand: the switch stays on the brand row, top right */
+  .header-in { position: relative; }
+  .theme-toggle { position: absolute; top: 0.35rem; right: 0; margin: 0; }
+}

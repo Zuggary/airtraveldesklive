@@ -736,6 +736,10 @@ def _nearby(code: str, airports_map: dict[str, Any], live_cards: dict[str, Any],
     return out[:limit]
 
 
+THEME_SNIPPET = '<script>(function(){try{var t=localStorage.getItem("atd-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})()</script>'
+THEME_BUTTON = '<button class="theme-toggle" type="button" data-theme-toggle data-mode="system" aria-label="Theme: System. Press to change."><svg viewBox="0 0 24 24" aria-hidden="true"><g class="ti ti-system"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></g><g class="ti ti-light"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g><g class="ti ti-dark"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></g></svg></button>'
+
+
 def _render_head(
     *,
     title: str,
@@ -765,6 +769,8 @@ def _render_head(
         '  <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">',
         '  <link rel="icon" href="../favicon.svg" type="image/svg+xml">',
         '  <link rel="icon" href="../favicon.png" type="image/png">',
+        '  ' + THEME_SNIPPET,
+        '  <script src="../theme.js" defer></script>',
         '  <link rel="stylesheet" href="../tokens.css">',
         '  <link rel="stylesheet" href="../style.css">',
         _json_ld_script(breadcrumb),
@@ -797,6 +803,7 @@ def _render_header(current: str = "airports", airports_href: str = "index.html")
         _nav_chip("Stuck?", "../stuck.html", current == "stuck"),
         _nav_chip("About", "../about.html", current == "about", "nav-wide"),
         "      </nav>",
+        "      " + THEME_BUTTON,
         "    </div>",
         "  </header>",
         '  <div class="container">',

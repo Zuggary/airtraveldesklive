@@ -1382,6 +1382,7 @@
     });
     if (window.ResizeObserver) { new ResizeObserver(function () { renderMap(); }).observe(canvas); }
     else { window.addEventListener("resize", renderMap); }
+    try { window.addEventListener("atd-theme", function () { renderMap(); }); } catch (e) { /* old browser */ }
     try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () { renderMap(); }); } catch (e) { /* old browser: keep the first colours */ }
     getJson("us-states.geojson").then(function (g) {
       if (g && g.features) { D.geo = g; bounds = computeBounds(g.features); renderMap(); }

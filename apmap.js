@@ -126,6 +126,7 @@
       img.src = "../data/radar.png?v=" + encodeURIComponent(radar.fetched_utc);
     }
     if (window.ResizeObserver) { new ResizeObserver(draw).observe(canvas); } else { window.addEventListener("resize", draw); }
+    try { window.addEventListener("atd-theme", draw); } catch (e) { /* keep the first colours */ }
     try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", draw); } catch (e) { /* keep the first colours */ }
   });
 })();

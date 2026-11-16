@@ -178,7 +178,7 @@ class TestSiteWiring(unittest.TestCase):
     def test_service_worker_caches_sun_js_and_cache_name_bumped(self) -> None:
         sw = read("sw.js")
         self.assertIn('"./sun.js"', sw)
-        self.assertIn('CACHE_NAME = "atd-offline-v12"', sw)
+        self.assertIn('CACHE_NAME = "atd-offline-v13"', sw)
 
     def test_workflow_publishes_sun_js(self) -> None:
         yml = read(".github/workflows/status.yml")
