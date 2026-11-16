@@ -284,6 +284,8 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .board { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .board-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .board-col { min-width: 0; }
+.board-open { display: block; width: 100%; min-height: 48px; border: 0; border-top: 1px solid var(--line); background: var(--surface-alt); color: var(--link); font: 700 var(--fs-sm)/1 var(--font-text); cursor: pointer; }
+.board-open:hover { background: var(--surface-3); }
 .board-col + .board-col { border-left: 1px solid var(--line); }
 .bh { display: none; }
 .br { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "c s" "n s"; gap: 0 8px; align-items: center; min-height: 58px; padding: 8px 12px; border-top: 1px solid var(--line); color: var(--text); text-decoration: none; }
@@ -329,6 +331,18 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 /* changes, the 24 hour chart and travel volume, side by side on wide screens */
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--space-7); }
 @media (min-width: 1000px) { .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+@media (min-width: 1000px) { .split.split--quiet { grid-template-columns: minmax(0, 1fr); } }
+.split--quiet #changed { order: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: var(--space-4); padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.split--quiet #changed .sec-head { margin: 0; }
+.split--quiet #changed h2 { margin: 0; font-size: var(--fs-md); }
+.split--quiet .changed-summary { font-size: var(--fs-sm); font-weight: 500; color: var(--text-muted); }
+.split--quiet .change-list, .split--quiet .change-note { display: none; }
+@media (min-width: 1000px) {
+  .split--quiet .hist-box { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); column-gap: var(--space-6); align-content: center; padding: 20px 24px; }
+  .split--quiet .hist-svg { grid-column: 1; grid-row: 1 / span 4; max-height: 260px; }
+  .split--quiet .hist-box > :not(.hist-svg) { grid-column: 2; }
+  .split--quiet .hist-box > .hist-note:first-of-type { align-self: end; font-size: var(--fs-sm); color: var(--text-muted); }
+}
 .changed-summary { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
 .change-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 0; }
 .change-item { display: grid; grid-template-columns: 64px 14px 1fr; gap: 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
@@ -361,6 +375,9 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
   .compare-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 0.8fr); }
   .compare-grid:not(:has(.holiday)) { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
   .compare-grid > .tsa-card, .compare-grid > .holiday { grid-row: span 2; }
+  /* AN34: the 7-day bars grow to fill the card, so the TSA card has no empty bottom next to its taller neighbours. */
+  .compare-grid > .tsa-card { display: flex; flex-direction: column; }
+  .compare-grid > .tsa-card .bars { flex: 1 0 120px; height: auto; max-height: 260px; }
   .compare-grid > .compare-card--bts { grid-column: -2; }
 }
 .compare-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; min-width: 0; }
@@ -485,6 +502,7 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .wizard-help { margin: 0 0 12px; font-size: var(--fs-sm); color: var(--text-muted); }
 .wizard-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .radio-group { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 700px) { .radio-group { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .radio-card { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; background: var(--navy); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font-weight: 700; color: var(--text); }
 .radio-card:hover { background: var(--surface-alt); }
 .radio-card:has(.radio-input:checked) { border-color: var(--accent); background: var(--accent-soft); }
@@ -572,6 +590,8 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .ap-explain summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
 .ap-explain[open] summary::before { transform: rotate(45deg); }
 .ap-explain p { margin: 0 0 8px; }
+/* AN34: the H1 already says the status and the tiles below give the weather, so the hero drops the repeat chips. */
+.ap-hero .airport-summary-chips { display: none; }
 .airport-summary-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: var(--space-4); }
 .status-chip { height: 28px; padding: 0 11px; font-size: 0.8125rem; }
 .weather-chip { height: 28px; padding: 0 11px; font-size: 0.8125rem; font-weight: 600; background: var(--surface); color: var(--text-muted); box-shadow: inset 0 0 0 1px var(--line); }
@@ -590,7 +610,8 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
   .ap-cols { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); column-gap: var(--space-7); align-items: start; }
   .ap-cols > * { grid-column: 1; }
   .ap-cols > .ap-now { grid-column: 1 / -1; }
-  .ap-cols > .help-card { grid-column: 2; grid-row: 2 / span 8; position: sticky; top: 84px; align-self: start; }
+  .ap-cols > .ap-side { grid-column: 2; grid-row: 2 / span 8; align-self: start; }
+  .ap-side .guide-pills { grid-template-columns: minmax(0, 1fr); }
 }
 .airport-section { margin-top: var(--space-6); }
 .airport-section h2 { margin: 0 0 12px; font: 700 var(--fs-title)/1.2 var(--font-text); letter-spacing: -0.01em; }
@@ -617,6 +638,8 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .fact--sun .sun-now { font: 700 1.6rem/1.08 var(--font-display); color: var(--board-text); margin: 0; }
 .fact--sun .small { margin: 8px 0 0; font-size: var(--fs-xs); color: var(--text-faint); }
 .updated-text { margin: 0; }
+@media (max-width: 799px) { .fact--sun { grid-column: 1 / -1; } }
+@media (max-width: 420px) { .fact { padding: 14px; } .fact-v, .fact--sun .sun-now { font-size: 1.35rem; } }
 @media (min-width: 800px) {
   .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .fact--faa { grid-column: auto; }
@@ -653,6 +676,9 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .guide-pills { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 @media (min-width: 700px) { .guide-pills { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
 .guide-pill-item { display: block; min-width: 0; }
+@media (max-width: 599px) { .guide-pills { grid-template-columns: minmax(0, 1fr); } .guide-pill { min-height: 52px; } }
+.ap-side > .airport-section:first-child { margin-top: var(--space-6); }
+.ap-side .help-card + .airport-section { margin-top: var(--space-6); }
 .guide-pill { width: 100%; min-height: 60px; padding: 10px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--text); font-weight: 600; font-size: var(--fs-sm); line-height: 1.25; text-decoration: none; }
 .guide-pill:hover { border-color: var(--border); background: var(--surface-alt); }
 .guide-pill .ic { color: var(--accent); }

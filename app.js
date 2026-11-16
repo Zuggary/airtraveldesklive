@@ -404,6 +404,7 @@
   // ---------- 2: search and board ----------
   // Three columns on wide screens, two below 1000 px (the CSS grid matches).
   var BOARD_MQ = window.matchMedia ? window.matchMedia("(min-width: 1000px)") : null;
+  var boardOpen = false, BOARD_FOLD = 10;
   function boardCols() { return BOARD_MQ && BOARD_MQ.matches ? 3 : 2; }
   if (BOARD_MQ) { try { BOARD_MQ.addEventListener("change", function () { renderBoard(); }); } catch (e) { /* old browser: keep the first layout */ } }
 
@@ -421,6 +422,9 @@
     ["Code", "City", "Last 24 h", "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
     var cols = el("div", "board-cols");
     var ncol = boardCols();
+    // AN34: on a phone the board opens with the first 10 (trouble first); one tap shows all of them.
+    var total = ordered.length, folded = ncol === 2 && !boardOpen && total > BOARD_FOLD;
+    if (folded) { ordered = ordered.slice(0, BOARD_FOLD); }
     var per = Math.ceil(ordered.length / ncol) || 1;
     for (var c = 0; c < ncol; c++) {
       var col = el("div", "board-col");
@@ -429,6 +433,12 @@
       if (col.childNodes.length > 1) { cols.appendChild(col); }
     }
     box.appendChild(cols);
+    if (folded) {
+      var more = el("button", "board-open", "Show all " + total + " airports");
+      more.type = "button";
+      more.addEventListener("click", function () { boardOpen = true; renderBoard(); markSelected(); });
+      box.appendChild(more);
+    }
     renderMine(tiles);
     var note = $("board-note");
     if (note) {
@@ -1313,6 +1323,9 @@
     list.textContent = "";
     if (!D.state || !Array.isArray(D.state.board)) { return; }
     var r = A.changedLastHour(D.history, D.state.board, D.state.updated_utc);
+    // AN34: on a quiet hour the block shrinks to one line and the 24 h chart takes the full width.
+    var split = sum.closest ? sum.closest(".split") : null;
+    if (split) { split.classList.toggle("split--quiet", !r.ok || !r.changes.length); }
     if (!r.ok) {
       sum.textContent = "Not enough readings yet to compare with an hour ago.";
       note.textContent = "The site keeps one FAA reading per hour. This fills in after the next hourly reading. Source: FAA NAS status, " + ageText(D.state.updated_utc) + ".";

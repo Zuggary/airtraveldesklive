@@ -331,7 +331,7 @@ def _verdict(entry: dict[str, Any] | None, name: str, short: str, live: dict[str
     place = _esc(short)
     if live.get("stale"):
         word = pt.status_word(entry)
-        return f"{_esc(word)} at {place}, {_esc(live['as_of'])}"
+        return f"Last known: {_esc(word)} at {place}."
     if lvl == "closed":
         return f"{place} is <em>closed</em> to flights."
     if lvl == "stop":
@@ -416,9 +416,8 @@ def _help_card(code: str, lvl: str) -> list[str]:
         '        <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
         '        <div class="stuck-note">',
         (
-            '          <p>If your flight is delayed or cancelled, walk through the step-by-step '
-            '<a class="tap" href="../stuck.html">I\'m stuck at the airport guide</a> for airline commitments, '
-            'refund rules under 14 CFR 260.6, counter scripts and an email draft, or '
+            '          <p>Delayed or cancelled? The <a class="tap" href="../stuck.html">step-by-step guide</a> covers airline commitments, '
+            'refund rules under 14 CFR 260.6, what to say at the counter and an email draft. Or '
             f'<a class="tap" href="{DOWNTIME_URL}" target="_blank" rel="noopener noreferrer">'
             "check what you may be owed</a>. This is plain-language help, not legal advice; your airline decides "
             "every claim, voucher or reimbursement.</p>"
@@ -452,6 +451,11 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
         return local.strftime("%a %b ") + str(local.day) + local.strftime(" %-I %p").replace(" 0", " ")
 
     word = {"c": "no program", "d": "delay", "s": "ground stop or closure", "-": "no reading"}
+    # AN34: start the strip at the first hour we have a reading for, so it does not open on a grey block.
+    lead_gap = 0
+    while lead_gap < len(row) and row[lead_gap] == "-":
+        lead_gap += 1
+    hours, row = hours[lead_gap:], row[lead_gap:]
     cells = []
     for h, c in zip(hours, row):
         dt = pt.parse_utc(h)
@@ -474,7 +478,8 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
         '        <h2 id="history-heading">The last 3 days</h2>',
         f'        <p class="hist-lead">{_esc(head)}</p>',
         f'        <ol class="hist-strip" role="img" aria-label="{_esc(head)} One cell per hour, oldest first, newest on the right.">{"".join(cells)}</ol>',
-        '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure <span class="hh hh--none"></span>no reading</p>',
+        '        <p class="hist-key"><span class="hh hh--clear"></span>no program <span class="hh hh--delay"></span>delay <span class="hh hh--stop"></span>ground stop or closure'
+        + (' <span class="hh hh--none"></span>no reading' if "-" in row else "") + '</p>',
         f'        <p class="small">Source: our hourly record of the FAA NAS status feed, readings {_esc(span)}'
         + (f", copied {_esc(age)}" if age else "")
         + '.</p>',
@@ -831,7 +836,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         "    // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.",
         '    function verdict(a, lvl, stale, label, asOf) {',
         '      var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };',
-        '      if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf)); return h; }',
+        '      if (stale) { h.appendChild(tx("Last known: " + label + " at " + SHORT + ".")); return h; }',
         '      if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }',
         '      if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }',
         '      var best = null, kind = "";',
@@ -1290,14 +1295,16 @@ def render_airport_page(
         f'          <p class="noscript-note">{"Refreshing" if live["stale"] else "Live refresh"} needs JavaScript. The status above is from the last site build; for the FAA\'s own page, see nasstatus.faa.gov.</p>',
         "        </noscript>",
         "      </section>",
+        '      <div class="ap-side">',
         *_help_card(code, lvl),
-        *_render_history(code, tz, history),
-        *ontime_html,
         '      <section class="airport-section" aria-labelledby="official-heading">',
         '        <h2 id="official-heading">Official pages</h2>',
         *official_lines,
         "      </section>",
         *places_html,
+        "      </div>",
+        *_render_history(code, tz, history),
+        *ontime_html,
         *glance_html,
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <details class="more">',
