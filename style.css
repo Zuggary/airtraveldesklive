@@ -1094,3 +1094,4 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .page-home .foot-links { grid-template-columns: minmax(0, 1fr); }
 .owed-panel .refund-line { border: 0; padding: 0; background: none; font-weight: 600; }
 @media (min-width: 700px) { .ap-today .fact--sun { border-left: 1px solid var(--line); padding-left: 20px; } }
+.owed-panel .small .tap, .watch-section p .tap { display: inline; min-height: 0; min-width: 0; padding: 0; }
