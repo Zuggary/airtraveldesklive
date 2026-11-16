@@ -231,19 +231,8 @@ def _render_live(
             chip_wx += f", {wind}"
     badge_cls = "badge badge--stale" if stale else pt.BADGE_CLASS[lvl]
     badge_text = pt.stale_chip_text(entry, updated_utc, tz) if stale else word
-    if stale:
-        status_line = f'            <p class="fact-src">{_esc(word)} {_esc(pt.as_of_text(updated_utc, tz, now))}. Source: {_src_link("FAA NAS status")}.</p>'
-    else:
-        status_line = f'            <p class="fact-src">{_esc(pt.LEVEL_TEXT[lvl])} ({_src_link("FAA NAS status")})</p>'
-    faa = [
-        f'          <div class="fact fact--faa fact--{"stale" if stale else lvl}">',
-        f'            <p class="fact-k">FAA status</p>',
-        f'            <p class="card-status"><span class="{badge_cls}">{_esc(badge_text)}</span></p>',
-    ]
-    if entry.get("reason"):
-        faa.append(f'            <p class="event-reason">Reason: {_esc(pt.reason_plain(entry["reason"]))}</p>')
-    faa += [status_line, "          </div>"]
-    box: list[str] = faa
+    # AN34 round 3: the hero H1 and its checked line are the one status block; the tiles hold weather and daylight.
+    box: list[str] = []
     if wx.get("now_text"):
         wind = pt.wind_text(wx)
         obs = pt.clock_label(wx.get("obs_utc"), tz)
@@ -252,13 +241,13 @@ def _render_live(
         if stale:
             label = "Last weather report"
             seen = f"observed {obs}, " if obs else ""
-            after = f", {seen}{pt.ago_text(obs_age)})"
+            after = f", {seen}{pt.ago_text(obs_age)}"
         else:
             label = "Weather now"
-            after = f", observed {obs}, updated {pt.ago_text(obs_age)})" if obs else f", updated {pt.ago_text(obs_age)})"
+            after = f", observed {obs}, updated {pt.ago_text(obs_age)}" if obs else f", updated {pt.ago_text(obs_age)}"
         box.append(
             f'          <div class="fact fact--wx"><p>{_k(label)}<span class="fact-v">{_esc(value)}</span> '
-            f'<span class="fact-src">({_src_link("aviationweather.gov METAR")}{_esc(after)}</span></p></div>'
+            f'<span class="fact-src">{_src_link("aviationweather.gov METAR")}{_esc(after)}</span></p></div>'
         )
     if wx.get("next3h_text"):
         label = ""
@@ -269,7 +258,7 @@ def _render_live(
         if label:
             box.append(
                 f'          <div class="fact fact--next"><p>{_k(label)}<span class="fact-v">{_esc(wx["next3h_text"])}</span> '
-                f'<span class="fact-src">({_src_link("aviationweather.gov TAF")})</span></p></div>'
+                f'<span class="fact-src">{_src_link("aviationweather.gov TAF")}</span></p></div>'
             )
     alerts = [str(a) for a in (entry.get("alerts") or [])]
     upd = f"last updated {pt.ago_text(age)}" if stale and age is not None else (
@@ -331,7 +320,7 @@ def _verdict(entry: dict[str, Any] | None, name: str, short: str, live: dict[str
     place = _esc(short)
     if live.get("stale"):
         word = pt.status_word(entry)
-        return f"Last known: {_esc(word)} at {place}."
+        return f"{_esc(word)} at {place}."
     if lvl == "closed":
         return f"{place} is <em>closed</em> to flights."
     if lvl == "stop":
@@ -627,14 +616,14 @@ def _render_footer(
         "        </div>",
         '        <div class="foot-col">',
         (
-            '          <p><a class="tap" href="../index.html">Live board</a> &middot; '
-            f'<a class="tap" href="{airports_href}">Airports</a> &middot; '
-            f'<a class="tap" href="{airlines_href}">Airline commitments</a> &middot; '
-            '<a class="tap" href="../about.html">About</a> &middot; '
-            '<a class="tap" href="../sources.html">Data and sources</a> &middot; '
-            '<a class="tap" href="../privacy.html">Privacy</a> &middot; '
-            f'Contact: <a class="tap" href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>'
+            '          <ul class="foot-links"><li><a class="tap" href="../index.html">Live board</a></li>'
+            f'<li><a class="tap" href="{airports_href}">Airports</a></li>'
+            f'<li><a class="tap" href="{airlines_href}">Airline commitments</a></li>'
+            '<li><a class="tap" href="../about.html">About</a></li>'
+            '<li><a class="tap" href="../sources.html">Data and sources</a></li>'
+            '<li><a class="tap" href="../privacy.html">Privacy</a></li></ul>'
         ),
+        f'          <p class="foot-contact">Contact: <a class="tap" href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>',
         "        </div>",
         "      </div>",
         "    </footer>",
@@ -695,6 +684,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '    var verdictEl = document.getElementById("ap-verdict");',
         '    var hero = document.getElementById("ap-hero");',
         "    if (!box) { return; }",
+        '    var INITIAL_LVL = hero ? ((/\\bap-hero--(\\w+)/.exec(hero.className) || [])[1] || "") : "";',
         '    var LEVEL_TEXT = { clear: "Clear: no FAA delay or ground stop listed.", delay: "Delays: FAA delay program in effect.", stop: "Ground stop: FAA ground stop in effect.", closed: "Closed: FAA airport closure in effect." };',
         '    var BADGE_CLASS = { clear: "badge badge--clear", delay: "badge badge--delay", stop: "badge badge--stop", closed: "badge badge--stop" };',
         '    var BADGE_LABEL = { clear: "No FAA delays reported", delay: "Delays", stop: "Ground stop", closed: "Closed" };',
@@ -733,7 +723,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      p.appendChild(document.createTextNode(" "));',
         '      p.appendChild(el("span", "fact-v", value));',
         '      p.appendChild(document.createTextNode(" "));',
-        '      var s = el("span", "fact-src", "(");',
+        '      var s = el("span", "fact-src");',
         '      var a = el("a", "tap", linkText); a.href = "../sources.html"; s.appendChild(a);',
         '      s.appendChild(document.createTextNode(after));',
         '      p.appendChild(s);',
@@ -811,7 +801,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      if (!n) { return; }',
         '      var m = ageMin(iso);',
         '      if (!isStale(m)) { n.hidden = true; return; }',
-        '      n.textContent = "This data is " + oldText(m) + ". It normally updates about every 5 minutes. For the FAA\'s own page, go to ";',
+        '      n.textContent = "This data is " + oldText(m) + ", not live. FAA\'s own page: ";',
         '      var l = el("a", "stale-link", "nasstatus.faa.gov");',
         '      l.href = "https://nasstatus.faa.gov";',
         '      l.target = "_blank";',
@@ -836,7 +826,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         "    // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.",
         '    function verdict(a, lvl, stale, label, asOf) {',
         '      var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };',
-        '      if (stale) { h.appendChild(tx("Last known: " + label + " at " + SHORT + ".")); return h; }',
+        '      if (stale) { h.appendChild(tx(label + " at " + SHORT + ".")); return h; }',
         '      if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }',
         '      if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }',
         '      var best = null, kind = "";',
@@ -849,7 +839,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      h.appendChild(tx("No FAA delays at " + SHORT + " ")); h.appendChild(em("right now")); h.appendChild(tx(".")); return h;',
         '    }',
         '    var checkedLine = document.getElementById("checked-line");',
-        '    var heading = document.getElementById("right-now-heading");',
+        '    var heading = document.getElementById("ap-now-word");',
         '    function setUnavailable() {',
         '      if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }',
         '      if (statusChip) {',
@@ -890,6 +880,8 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";',
         '      if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }',
         '      if (hero) { hero.className = hero.className.replace(/\\bap-hero--\\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }',
+        '      var pulse = document.querySelector("#ap-now-title .pulse");',
+        '      if (pulse) { pulse.className = "pulse pulse--" + (stale ? "stale" : lvl); }',
         '      var w = a.wx;',
         '      if (wxChip) {',
         '        if (w && w.now_text && !stale) {',
@@ -904,20 +896,14 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        }',
         '      }',
         '      box.textContent = "";',
-        '      var faa = el("div", "fact fact--faa fact--" + (stale ? "stale" : lvl));',
-        '      faa.appendChild(el("p", "fact-k", "FAA status"));',
-        '      var statusRow = el("p", "card-status");',
-        '      statusRow.appendChild(el("span", badgeCls, chipText));',
-        '      faa.appendChild(statusRow);',
-        '      if (a.reason) {',
-        '        faa.appendChild(el("p", "event-reason", "Reason: " + reasonPlain(a.reason)));',
-        '      }',
-        '      if (stale) {',
-        '        faa.appendChild(srcLine("fact-src", label + " as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + "). Source: ", "FAA NAS status", "."));',
-        '      } else {',
-        '        faa.appendChild(srcLine("fact-src", LEVEL_TEXT[lvl] + " (", "FAA NAS status", ")"));',
-        '      }',
-        '      box.appendChild(faa);',
+        '      // AN34 round 3: the H1 is the one status block; a stale page names the last FAA reason under it.',
+        '      var reasonEl = document.getElementById("ap-reason");',
+        '      // The pre-rendered lead under the H1 explains the build-time state; when the state has changed since, drop it and name the reason here.',
+        '      var leads = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain, .ap-alt") : [];',
+        '      var changed = (stale ? "stale" : lvl) !== INITIAL_LVL;',
+        '      if (changed) { for (var li = 0; li < leads.length; li++) { leads[li].hidden = true; } }',
+        '      var hasLead = !changed && leads.length > 0;',
+        '      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && (stale || !hasLead) ? "Reason listed: " + reasonPlain(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }',
         '      if (w && w.now_text) {',
         '        var wxText = w.now_text;',
         '        if (w.wind_kt != null) {',
@@ -925,15 +911,15 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        }',
         '        var obsIso = w.obs_utc || data.updated_utc;',
         '        var wxAfter = stale',
-        '          ? ", " + (clockLabel(w.obs_utc) ? "observed " + clockLabel(w.obs_utc) + ", " : "") + agoText(ageMin(obsIso)) + ")"',
-        '          : ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(obsIso, false) + ")";',
+        '          ? ", " + (clockLabel(w.obs_utc) ? "observed " + clockLabel(w.obs_utc) + ", " : "") + agoText(ageMin(obsIso))',
+        '          : ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(obsIso, false);',
         '        box.appendChild(tile("fact--wx", stale ? WX_LABEL.stale : WX_LABEL.fresh, wxText, "aviationweather.gov METAR", wxAfter));',
         '      }',
         '      if (w && w.next3h_text) {',
         '        if (!stale) {',
-        '          box.appendChild(tile("fact--next", "Next 3 hours: ", w.next3h_text, "aviationweather.gov TAF", ")"));',
+        '          box.appendChild(tile("fact--next", "Next 3 hours: ", w.next3h_text, "aviationweather.gov TAF", ""));',
         '        } else if (!forecastExpired(w.next3h_text, w.taf_issue_utc || data.updated_utc)) {',
-        '          box.appendChild(tile("fact--next", "Forecast issued " + clockLabel(w.taf_issue_utc || data.updated_utc) + ": ", w.next3h_text, "aviationweather.gov TAF", ")"));',
+        '          box.appendChild(tile("fact--next", "Forecast issued " + clockLabel(w.taf_issue_utc || data.updated_utc) + ": ", w.next3h_text, "aviationweather.gov TAF", ""));',
         '        }',
         '      }',
         '      var alerts = Array.isArray(a.alerts) ? a.alerts : [];',
@@ -1257,8 +1243,14 @@ def render_airport_page(
         f'          <span class="big-code" aria-hidden="true">{_esc(code)}</span>',
         f'          <p class="ap-name"><strong>{_esc(name)} ({_esc(code)})</strong><span>{_esc(city)}</span></p>',
         "        </div>",
+        f'        <p id="ap-now-title" class="eyebrow ap-eyebrow"><span class="pulse pulse--{_esc(lvl)}" aria-hidden="true"></span><span id="ap-now-word">{"Last known status" if live["stale"] else "Right now"}</span></p>',
         f'        <h1 id="ap-verdict" class="airport-page-title ap-verdict">{_verdict(live_entry, name, short, live, now, tz)}</h1>',
         *_lead(live_entry, short, code, live),
+        (
+            f'        <p id="ap-reason" class="ap-reason">Reason listed: {_esc(pt.reason_plain(live_entry["reason"]))}.</p>'
+            if live["has"] and live["stale"] and (live_entry or {}).get("reason") and pt.effective_level(live_entry) != "clear"
+            else '        <p id="ap-reason" class="ap-reason" hidden></p>'
+        ),
         '        <div class="airport-summary-chips">',
         f'          <span id="status-chip" class="{live["chip_class"]}" aria-live="polite">{_esc(live["chip"])}</span>',
         (
@@ -1284,7 +1276,7 @@ def render_airport_page(
         "      </section>",
         '    <div class="ap-cols">',
         '      <section class="airport-section ap-now" aria-labelledby="right-now-heading">',
-        f'        <h2 id="right-now-heading">{"Last known status" if live["stale"] else "Right now"}</h2>',
+        '        <h2 id="right-now-heading">Weather and daylight</h2>',
         '        <div class="facts">',
         f'        <div id="right-now" class="right-now-box" data-code="{_esc(code)}"{prerendered_attr}>',
         *live["box"],

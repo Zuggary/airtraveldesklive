@@ -67,13 +67,36 @@ def fmt_minutes(minutes: int) -> str:
     return f"{m} min"
 
 
-def national_summary(airports: list[dict[str, Any]], as_of: str = "") -> str:
+def outside_lead(outside: list[dict[str, Any]] | None, stale: bool) -> str:
+    """AN34 round 3: an FAA program at an airport outside the list leads the headline. Same rule as lib.js outsideLead."""
+    seen: dict[str, dict[str, Any]] = {}
+    for e in outside or []:
+        c = str((e or {}).get("airport") or "")
+        if c and c not in seen:
+            seen[c] = e
+    if not seen:
+        return ""
+    if len(seen) > 1:
+        return f"{len(seen)} other airports {'had' if stale else 'have'} an FAA program. "
+    c, e = next(iter(seen.items()))
+    if e.get("kind") == "closure":
+        return f"{c} was listed as closed. " if stale else f"{c} is closed. "
+    if e.get("kind") == "ground_stop":
+        return f"{c} {'had' if stale else 'has'} a ground stop. "
+    return f"{c} {'had' if stale else 'has'} delays. "
+
+
+def national_summary(airports: list[dict[str, Any]], as_of: str = "", outside: list[dict[str, Any]] | None = None) -> str:
     """The home headline: a verdict over every airport we cover. Same rule as lib.js nationalSummary.
 
     as_of is empty when the data is fresh. When it is set ('as of 1:50 AM EST (12 hours ago)') the line
     is dated and has no live words.
     """
     bad = sum(1 for a in airports if a.get("level") in ("stop", "delay"))
+    lead = outside_lead(outside, bool(as_of))
+    if not bad and lead:
+        n = max(len(airports), 30)
+        return f"{lead}The {n} busiest airports " + ("were clear" if as_of else "are clear right now")
     if not bad:
         n = max(len(airports), 30)
         return f"No delays or ground stops were listed at the {n} busiest airports" if as_of else f"No delays or ground stops at the {n} busiest airports right now"
@@ -314,7 +337,9 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     page = template
     page = _slot(page, "nowtitle", "Last known status" if stale else "Right now")
     if airports:
-        page = _slot(page, "summary", verdict_html(national_summary(airports, as_of)))
+        outside = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA"
+                   and e.get("kind") in KIND_RANK and str(e.get("airport") or "") not in by_code]
+        page = _slot(page, "summary", verdict_html(national_summary(airports, as_of, outside)))
         page = _slot(page, "trouble", _esc(nbsp_units(trouble_line(airports, stale))))
     else:
         page = re.sub(r"<!--/?pr:(summary|trouble)-->", "", page)

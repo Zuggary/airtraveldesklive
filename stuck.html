@@ -35,8 +35,8 @@
         <h1 class="stuck-page-title">I'm stuck at the airport</h1>
         <p class="stuck-page-intro">Step-by-step help while you wait. Works offline after your first visit. Nothing you pick or type is stored or sent anywhere.</p>
         <p class="ask-first-jump"><a class="tap" href="#ask-first">Thinking of paying for a meal or hotel? Ask first. What to say and what to get in writing</a></p>
-        <p id="stuck-meta" class="stuck-page-meta">Purpose: help you decide what to do when your flight is delayed or cancelled. Sources: U.S. DOT airline dashboard (updated <span id="dot-updated-date">2025-09-11</span>), 14 CFR 260.6. Last checked 2026-11-14.</p>
         <p id="wizard-progress" class="wizard-progress" aria-live="polite">Step 1 of 4</p>
+        <div class="wizard-bar" aria-hidden="true"><span id="wizard-bar-fill" style="width:25%"></span></div>
         <p id="data-notice" class="stale-notice" role="status" hidden></p>
 
         <noscript>
@@ -91,6 +91,7 @@
           </div>
           <div id="result-body" class="result-body"></div>
         </section>
+        <p id="stuck-meta" class="stuck-page-meta">Purpose: help you decide what to do when your flight is delayed or cancelled. Sources: U.S. DOT airline dashboard (updated <span id="dot-updated-date">2025-09-11</span>), 14 CFR 260.6. Last checked 2026-11-14.</p>
       </div>
 
       <section id="ask-first" class="wizard-shell ask-first" aria-labelledby="ask-first-heading">
@@ -98,7 +99,7 @@
         <p class="ask-lead">Before you pay for a meal or a hotel, ask the airline if it will help. Ask first. Then decide.</p>
         <p class="small">Plain-language help, not legal advice. Each DOT rule below has a link to the U.S. DOT page and the date we read it. This section works without JavaScript.</p>
 
-        <details class="ask-block" open>
+        <details class="ask-block">
           <summary>Why ask first</summary>
           <p>Some airlines pay for a meal or a hotel when they cause the delay or cancellation. Some do not. It depends on the cause and on the airline's own plan.</p>
           <p class="rule">The U.S. DOT says each airline has its own policies for delayed and cancelled passengers. If an airline has made a commitment, DOT can hold it to that. <span class="cite">Source: <a href="https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard" target="_blank" rel="noopener noreferrer">U.S. DOT: Airline Cancellation and Delay Dashboard</a>, read 2026-11-14.</span></p>
@@ -107,7 +108,7 @@
           <p>So ask before you pay. If you pay first, the airline may or may not pay you back.</p>
         </details>
 
-        <details class="ask-block" open>
+        <details class="ask-block">
           <summary>What to say</summary>
           <ul class="ask-lines">
             <li><strong>At the counter:</strong> &ldquo;My flight is [delayed / cancelled]. Does the airline offer a meal or a hotel for this?&rdquo;</li>
@@ -151,7 +152,7 @@
           <p><a class="btn btn-secondary" href="https://airconsumer.dot.gov/consumer/s/oacp-form" target="_blank" rel="noopener noreferrer">Open the DOT complaint form</a></p>
         </details>
 
-        <details class="ask-block" id="ask-message-block" open>
+        <details class="ask-block" id="ask-message-block">
           <summary>Copy-paste message</summary>
           <p>Replace the words in [brackets], then copy it. Use it in chat or email, or read it out on the phone.</p>
           <label class="sr-only" for="ask-message">Message to the airline</label>

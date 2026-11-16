@@ -69,7 +69,7 @@ class TestAirportRound4(unittest.TestCase):
         self.assertIn('class="stale-notice" role="status"', self.sfo)
         self.assertIn("var STALE_MIN = 30;", self.sfo)
         self.assertIn("https://nasstatus.faa.gov", self.sfo)
-        self.assertIn("It normally updates about every 5 minutes. For the FAA", self.sfo)
+        self.assertIn(", not live. FAA's own page:", self.sfo)
 
     def test_one_age_format(self) -> None:
         script = self.sfo.split("<script>")[-1]

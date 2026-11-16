@@ -124,7 +124,7 @@ def stale_text(iso: Any, now: datetime) -> str:
     m = age_minutes(iso, now)
     if not is_stale(m):
         return ""
-    return f"This data is {old_text(m)}. It normally updates about every 5 minutes. For the FAA's own page, go to"
+    return f"This data is {old_text(m)}, not live. FAA's own page:"
 
 
 def as_of_text(iso: Any, tz: str, now: datetime) -> str:

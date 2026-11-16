@@ -178,9 +178,9 @@
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
-      setStale(stale, "The FAA status list is " + oldText(m) + " and could not be refreshed, so it may be out of date. For the FAA's own page, go to");
+      setStale(stale, "The FAA status list is " + oldText(m) + " and could not be refreshed. FAA's own page:");
     } else if (m == null || m > STALE_MIN) {
-      setStale(stale, "This data is " + oldText(m) + ". It normally updates about every 5 minutes. For the FAA's own page, go to");
+      setStale(stale, "This data is " + oldText(m) + ", not live. FAA's own page:");
     } else {
       stale.hidden = true;
     }
@@ -194,7 +194,10 @@
     if (!D.state) { s.textContent = "Unable to load the latest FAA status."; return; }
     var upd = D.state.updated_utc, stale = isStaleIso(upd);
     var list = allAirports.length ? allAirports : airports;
-    var text = A.nationalSummary(list, stale ? asOfText(upd) : "");
+    var have = {};
+    list.forEach(function (a) { have[a.code] = 1; });
+    var outside = faaEvents().filter(function (e) { return !have[String(e.airport || "")]; });
+    var text = A.nationalSummary(list, stale ? asOfText(upd) : "", outside);
     var m = /^(\d+ of the \d+)(.*)$/.exec(text);
     s.textContent = "";
     if (m) { s.appendChild(el("em", "ok", m[1])); s.appendChild(document.createTextNode(m[2])); } else { s.textContent = text; }
@@ -420,24 +423,49 @@
     var head = el("div", "bh");
     head.setAttribute("aria-hidden", "true");
     ["Code", "City", "Last 24 h", "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
-    var cols = el("div", "board-cols");
+    // AN34 round 3: full rows only for airports with an FAA program now or in the last 24 h. The rest,
+    // normal now and all day, fold into one compact grid of codes, so a calm day is not 30 rows of "Normal".
+    var busy = ordered.filter(function (o) { return o.w > 0 || o.a.level !== "clear" || histTrouble(o.a.code); });
+    var quiet = ordered.filter(function (o) { return busy.indexOf(o) < 0; });
     var ncol = boardCols();
-    // AN34: on a phone the board opens with the first 10 (trouble first); one tap shows all of them.
-    var total = ordered.length, folded = ncol === 2 && !boardOpen && total > BOARD_FOLD;
-    if (folded) { ordered = ordered.slice(0, BOARD_FOLD); }
-    var per = Math.ceil(ordered.length / ncol) || 1;
-    for (var c = 0; c < ncol; c++) {
-      var col = el("div", "board-col");
-      col.appendChild(head.cloneNode(true));
-      ordered.slice(c * per, (c + 1) * per).forEach(function (o) { col.appendChild(makeTile(o.a, tiles)); });
-      if (col.childNodes.length > 1) { cols.appendChild(col); }
+    if (busy.length) {
+      var cols = el("div", "board-cols");
+      // AN34: on a phone the board opens with the first 10 (trouble first); one tap shows all of them.
+      var total = busy.length, folded = ncol === 2 && !boardOpen && total > BOARD_FOLD;
+      var shown = folded ? busy.slice(0, BOARD_FOLD) : busy;
+      var nc = Math.min(ncol === 3 && shown.length <= 8 ? 2 : ncol, shown.length);
+      var per = Math.ceil(shown.length / nc) || 1;
+      for (var c = 0; c < nc; c++) {
+        var col = el("div", "board-col");
+        col.appendChild(head.cloneNode(true));
+        shown.slice(c * per, (c + 1) * per).forEach(function (o) { col.appendChild(makeTile(o.a, tiles)); });
+        if (col.childNodes.length > 1) { cols.appendChild(col); }
+      }
+      cols.className = "board-cols board-cols--" + cols.childNodes.length;
+      box.appendChild(cols);
+      if (folded) {
+        var more = el("button", "board-open", "Show all " + total + " airports with a delay today");
+        more.type = "button";
+        more.addEventListener("click", function () { boardOpen = true; renderBoard(); markSelected(); });
+        box.appendChild(more);
+      }
     }
-    box.appendChild(cols);
-    if (folded) {
-      var more = el("button", "board-open", "Show all " + total + " airports");
-      more.type = "button";
-      more.addEventListener("click", function () { boardOpen = true; renderBoard(); markSelected(); });
-      box.appendChild(more);
+    if (quiet.length) {
+      var qw = el("div", "board-quiet" + (busy.length ? "" : " board-quiet--only"));
+      qw.appendChild(el("p", "quiet-head", (busy.length ? "Normal now and all of the last 24 hours" : "All normal now and all of the last 24 hours") + " (" + quiet.length + ")"));
+      var qg = el("div", "quiet-grid");
+      quiet.forEach(function (o) {
+        var q = el("a", "tile qt");
+        q.href = "airports/" + o.a.code + ".html";
+        q.setAttribute("data-code", o.a.code);
+        q.setAttribute("aria-label", o.a.code + ", " + (o.a.short || o.a.name) + ": normal. Open airport page.");
+        if (o.a.code === currentCode) { q.setAttribute("aria-current", "true"); }
+        q.appendChild(el("span", "qt-code", o.a.code));
+        q.appendChild(el("span", "qt-name", o.a.short || o.a.name || o.a.code));
+        qg.appendChild(q);
+      });
+      qw.appendChild(qg);
+      box.appendChild(qw);
     }
     renderMine(tiles);
     var note = $("board-note");
@@ -479,6 +507,11 @@
     l.forEach(function (c) { box.appendChild(makeTile(allByCode[c], tiles)); });
   }
 
+  function histTrouble(code) {
+    var row = D.hist && D.hist.airports && D.hist.airports[code];
+    return typeof row === "string" && /[ds]/.test(row.slice(-24));
+  }
+
   function histCells(code) {
     var row = D.hist && D.hist.airports && D.hist.airports[code];
     var strip = el("span", "hist24");
@@ -504,6 +537,8 @@
     b.appendChild(h);
     var st = el("span", "tile-level");
     if (lvl === "clear") {
+      // AN34 round 3: phones have no 24 h strip, so say in words that this airport had trouble earlier.
+      if (histTrouble(a.code)) { st.appendChild(el("span", "tile-was", "Delays earlier")); }
       st.appendChild(el("span", "dot dot--clear"));
       st.appendChild(el("span", "tile-ok", "Normal"));
     } else {
@@ -972,31 +1007,21 @@
       var now = el("span", "hol-bar hol-bar--now" + (r.nowPct == null ? " hol-bar--none" : ""));
       now.style.height = (r.nowPct == null ? 100 : r.nowPct) + "%";
       bars.appendChild(ly); bars.appendChild(now);
-      col.appendChild(el("span", "hol-mark", r.isRecord ? "\u2605" : r.isBusiest ? "\u25B2" : "\u00A0"));
+      col.appendChild(el("span", "hol-mark", r.isBusiest ? "\u25B2" : "\u00A0"));
       col.appendChild(bars);
       col.appendChild(el("span", "hol-dow", r.dow.slice(0, 2)));
       col.appendChild(el("span", "hol-num", String(r.day)));
       grid.appendChild(col);
     });
     c.appendChild(grid);
+    // AN34 round 3: a 2-item key; days not counted yet have no bar; one takeaway line.
     var key = el("p", "hol-key");
-    key.appendChild(el("span", "hol-sw hol-sw--now"));
-    key.appendChild(document.createTextNode(" This year  "));
-    key.appendChild(el("span", "hol-sw hol-sw--ly"));
-    key.appendChild(document.createTextNode(" Last year  "));
-    key.appendChild(el("span", "hol-sw hol-sw--none"));
-    key.appendChild(document.createTextNode(" Not counted yet  \u2605 TSA record day  \u25B2 Last year's busiest day"));
+    var k1 = el("span", "hol-k"); k1.appendChild(el("span", "hol-sw hol-sw--now")); k1.appendChild(document.createTextNode(" This year")); key.appendChild(k1);
+    var k2 = el("span", "hol-k"); k2.appendChild(el("span", "hol-sw hol-sw--ly")); k2.appendChild(document.createTextNode(" Last year")); key.appendChild(k2);
     c.appendChild(key);
     if (hv.busiest && hv.busiestCount) {
       var rec = hv.record && hv.record.date === hv.busiest;
-      c.appendChild(el("p", "compare-line", "Last year's busiest day that week: " + fmtDayYear(hv.busiest) + ", " + million(hv.busiestCount) + (rec ? ". It is also the TSA record day." : ".")));
-    }
-    if (hv.record && !(hv.busiest && hv.record.date === hv.busiest)) {
-      c.appendChild(el("p", "compare-line", "TSA record day: " + fmtDayYear(hv.record.date) + ", " + million(hv.record.count) + "."));
-    }
-    var l = hv.latest;
-    if (l && l.count) {
-      c.appendChild(el("p", "compare-line", "Latest count: " + fmtDay(l.date) + ", " + million(l.count) + (l.pct != null ? " (" + signed(l.pct) + " against " + fmtDay(l.ly_date) + " last year)" : "") + "."));
+      c.appendChild(el("p", "compare-line", "\u25B2 Last year's busiest day: " + fmtDayYear(hv.busiest) + ", " + million(hv.busiestCount) + (rec ? ", the TSA record." : ".")));
     }
     var table = el("table", "sr-only");
     table.appendChild(el("caption", null, "TSA people screened, Thanksgiving week"));
@@ -1013,7 +1038,7 @@
     });
     table.appendChild(tb);
     c.appendChild(table);
-    c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtDay((hv.fetched || "").slice(0, 10)) + ". Last year's days are lined up by distance from Thanksgiving."));
+    c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtDay((hv.fetched || "").slice(0, 10)) + ". Last year lined up by days to Thanksgiving."));
     return c;
   }
 
@@ -1060,8 +1085,7 @@
       }
       var extra = [];
       if (t.total7 && t.ly_total7) { extra.push("Last 7 days: " + million(t.total7) + (t.pct7 != null ? " (" + signed(t.pct7) + " on last year)" : "") + "."); }
-      if (t.record && t.record.count) { extra.push("Record day: " + million(t.record.count) + ", " + fmtDayYear(t.record.date) + "."); }
-      extra.push("Dashed line: the same day last year. TSA publishes each count a few days late.");
+      extra.push("Dashed line: the same day last year.");
       c.appendChild(el("p", "compare-line small", extra.join(" ")));
       c.appendChild(el("p", "compare-source", src));
       box.appendChild(c);
@@ -1078,13 +1102,21 @@
     }
     var b = D.bts;
     if (b && b.nation && b.nation.ontime != null) {
-      var bsrc = "Source: BTS On-Time Performance, " + b.month_label + ". On time means arriving less than 15 minutes late.";
-      box.appendChild(compareCard("On-time arrivals, all US flights", A.pct(b.nation.ontime),
-        [b.nation.ly_ontime != null ? b.ly_month_label + ": " + A.pct(b.nation.ly_ontime) : ""].filter(Boolean), bsrc, null, "compare-card--bts"));
-      if (b.nation.cancel != null) {
-        box.appendChild(compareCard("Cancelled flights", A.pct(b.nation.cancel),
-          [b.nation.ly_cancel != null ? b.ly_month_label + ": " + A.pct(b.nation.ly_cancel) : ""].filter(Boolean), bsrc, null, "compare-card--bts"));
-      }
+      // AN34 round 3: one card for the BTS month, with the month on the big numbers.
+      var bc = el("article", "compare-card compare-card--bts");
+      bc.appendChild(el("h3", "compare-title", "All US flights, " + b.month_label));
+      var stat = function (big, label, ly) {
+        var d = el("div", "bts-stat");
+        var n = el("p", "compare-big", big);
+        d.appendChild(n);
+        d.appendChild(el("p", "bts-label", label));
+        if (ly != null) { d.appendChild(el("p", "compare-line", b.ly_month_label + ": " + A.pct(ly))); }
+        return d;
+      };
+      bc.appendChild(stat(A.pct(b.nation.ontime), "arrived on time", b.nation.ly_ontime));
+      if (b.nation.cancel != null) { bc.appendChild(stat(A.pct(b.nation.cancel), "were cancelled", b.nation.ly_cancel)); }
+      bc.appendChild(el("p", "compare-source", "Source: BTS On-Time Performance, " + b.month_label + ". On time: less than 15 minutes late."));
+      box.appendChild(bc);
     }
     if (!box.childNodes.length) { box.appendChild(el("p", "empty-state", "Comparison numbers are not available right now.")); }
   }
@@ -1374,7 +1406,7 @@
     var ymax = Math.max(4, max), slotW = (R - L) / SLOTS, bw = Math.max(4, slotW - 4);
     function y(v) { return B - (B - T) * v / ymax; }
     var newest = rows[rows.length - 1];
-    var summary = (A.isStale(ageMin(newest.t)) ? "At the latest reading, " : "Now ") + newest.notGreen + " of " + newest.total + " airports are not clear. The most in the last 24 hours was " + peak.notGreen + ", around " + hourLabel(peak.ms) + ". Source: FAA NAS status, hourly readings, latest " + ageText(newest.t) + ".";
+    var summary = (A.isStale(ageMin(newest.t)) ? "At the latest hourly reading, " : "At the last hourly reading, ") + newest.notGreen + " of " + newest.total + " airports " + (newest.notGreen === 1 ? "was" : "were") + " not clear. The most in the last 24 hours was " + peak.notGreen + ", around " + hourLabel(peak.ms) + ". Source: FAA NAS status, hourly readings, latest " + ageText(newest.t) + ".";
 
     var svg = svgEl("svg", { "class": "hist-svg", viewBox: "0 0 " + W + " " + H, role: "img", "aria-labelledby": "hist-title hist-desc", focusable: "false" });
     svg.appendChild(svgEl("title", { id: "hist-title" }, "Airports not clear, by hour, last 24 hours"));

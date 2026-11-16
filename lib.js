@@ -148,11 +148,25 @@
   // AN34: the home headline is a verdict over all the airports we cover, not a list of counts.
   // "98 of the 100 busiest US airports have no FAA delays right now". troubleLine names the exceptions.
   function isClosedAirport(a) { return a.level === "stop" && (a.events || []).some(function (e) { return e && e.kind === "closure"; }); }
-  function nationalSummary(airports, asOf) {
+  // AN34 round 3: an FAA program at an airport outside the list leads the headline, so the headline never
+  // says "no delays" above a closure card. outside: FAA events ({airport, kind}) at airports not in the list.
+  function outsideLead(outside, stale) {
+    var seen = {}, list = [];
+    (outside || []).forEach(function (e) { var c = String(e && e.airport || ""); if (c && !seen[c]) { seen[c] = 1; list.push(e); } });
+    if (!list.length) { return ""; }
+    if (list.length > 1) { return list.length + " other airports " + (stale ? "had" : "have") + " an FAA program. "; }
+    var e = list[0], c = String(e.airport);
+    if (e.kind === "closure") { return c + (stale ? " was listed as closed. " : " is closed. "); }
+    if (e.kind === "ground_stop") { return c + (stale ? " had" : " has") + " a ground stop. "; }
+    return c + (stale ? " had" : " has") + " delays. ";
+  }
+  function nationalSummary(airports, asOf, outside) {
     var bad = 0;
     for (var i = 0; i < airports.length; i++) { if (airports[i].level === "stop" || airports[i].level === "delay") { bad++; } }
+    var n = airports.length > 30 ? airports.length : 30, lead = outsideLead(outside, !!asOf);
+    if (!bad && lead) { return lead + "The " + n + " busiest airports " + (asOf ? "were clear" : "are clear right now"); }
     // AN34: when the data is old (asOf set) the headline is past tense and carries no time; the banner and the checked line date it.
-    if (!bad) { return asOf ? "No delays or ground stops were listed at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports" : "No delays or ground stops at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports right now"; }
+    if (!bad) { return asOf ? "No delays or ground stops were listed at the " + n + " busiest airports" : "No delays or ground stops at the " + n + " busiest airports right now"; }
     var ok = airports.length - bad;
     return ok + " of the " + airports.length + " busiest US airports " + (asOf ? "had no FAA delays at the last check" : (ok === 1 ? "has" : "have") + " no FAA delays right now");
   }

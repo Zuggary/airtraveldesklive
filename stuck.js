@@ -426,6 +426,8 @@
         stepEls[k].hidden = (k !== n);
       }
       progressEl.textContent = n === 4 ? "Step 4 of 4 · Your plan" : ("Step " + n + " of 4");
+      var barFill = document.getElementById("wizard-bar-fill");
+      if (barFill) { barFill.style.width = (n * 25) + "%"; }
       if (n === 4) { renderResult(); }
       if (moveFocus) {
         var focusTarget = n === 4 ? resultSummary : document.getElementById("step-" + n + "-heading");

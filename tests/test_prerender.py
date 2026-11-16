@@ -152,7 +152,8 @@ class TestAirportPrerender(_Built):
         den = visible_text(self.pages["DEN"])
         self.assertIn("Weather now: thunderstorms, wind 24 kt gusting 35 kt", den)
         self.assertIn("FAA NAS status, checked 2:50 AM MST (8 min ago)", den)
-        self.assertIn("Reason: thunderstorms", den)
+        # AN34 round 3: the reason is in the lead under the H1, not in a repeat FAA tile.
+        self.assertIn("because of thunderstorms", den)
         ord_text = visible_text(self.pages["ORD"])
         self.assertIn("wind calm (0 kt)", ord_text)
 
@@ -178,7 +179,7 @@ class TestAirportPrerender(_Built):
             later = datetime(2026, 11, 14, 14, 0, tzinfo=timezone.utc)
             bap.build_pages(data_dir=d, out_dir=out, sitemap_path=None, build_date="2026-11-14", now=later)
             atl = visible_text((out / "ATL.html").read_text(encoding="utf-8"))
-        self.assertIn("This data is 4 hours old.", atl)
+        self.assertIn("This data is 4 hours old, not live.", atl)
         self.assertIn("FAA NAS status, last checked 4:50 AM EST (4 hours ago)", atl)
 
     def test_description_states_the_status_in_plain_words(self):
@@ -300,7 +301,7 @@ class TestHomePrerender(_Built):
     def test_stale_notice_when_data_is_old(self):
         later = datetime(2026, 11, 14, 14, 0, tzinfo=timezone.utc)
         page = ph.prerender((ROOT / "index.html").read_text(encoding="utf-8"), self.data, later)
-        self.assertIn("This data is 4 hours old.", visible_text(page))
+        self.assertIn("This data is 4 hours old, not live.", visible_text(page))
         self.assertNotIn('role="status" hidden', page.split('id="stale-notice"')[1].split("</p>")[0])
 
     def test_no_data_keeps_fallback_text(self):
@@ -563,9 +564,11 @@ class TestStaleHonesty(unittest.TestCase):
         atl = self.stale["ATL"]
         text = visible_text(atl)
         self.assertIn("As of 4:50 AM EST: no FAA delays reported", text)
-        self.assertIn("No FAA delays reported as of 4:50 AM EST (12 hours ago)", text)
+        # AN34 round 3: one status block (eyebrow, H1, checked line); no repeat FAA tile.
+        self.assertIn("Last known status No FAA delays reported at Atlanta.", text)
+        self.assertNotIn('class="card-status"', atl)
         self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
-        self.assertIn("This data is 12 hours old.", text)
+        self.assertIn("This data is 12 hours old, not live.", text)
         chip = re.search(r'<span id="status-chip" class="([^"]+)"', atl).group(1)
         self.assertIn("badge--stale", chip)
         self.assertNotIn("badge--clear", chip)
@@ -579,7 +582,7 @@ class TestStaleHonesty(unittest.TestCase):
         for code in ("ATL", "DEN", "SFO"):
             page = self.stale[code]
             self.assertLess(page.index('id="stale-notice"'), page.index('id="status-chip"'), code)
-            self.assertLess(page.index('id="stale-notice"'), page.index('class="card-status"'))
+            self.assertLess(page.index('id="stale-notice"'), page.index('id="ap-verdict"'))
             self.assertNotIn('id="stale-notice" class="stale-notice" role="status" hidden', page)
         # The fresh page keeps the notice hidden.
         self.assertIn('id="stale-notice" class="stale-notice" role="status" hidden', self.fresh["ATL"])
@@ -678,6 +681,18 @@ class TestBrowserHelpersAgree(unittest.TestCase):
         now = int(LATER.timestamp() * 1000)
         self.assertTrue(_js("ATD.forecastExpired('clear through 2 am Pacific', '2026-11-14T08:51:00Z', '', DATA.n)", n=now))
         self.assertFalse(_js("ATD.forecastExpired('clear through 4 pm Mountain', '2026-11-14T09:30:00Z', '', DATA.n)", n=now))
+
+    def test_outside_program_leads_the_headline(self):
+        # AN34 round 3: a closure at an airport outside the list must not sit under a "no delays" headline.
+        out = [{"airport": "SNA", "kind": "closure"}]
+        for stale, as_of, want in ((True, "as of 1:50 AM PST (12 hours ago)", "SNA was listed as closed. The 30 busiest airports were clear"),
+                                   (False, "", "SNA is closed. The 30 busiest airports are clear right now")):
+            self.assertEqual(ph.national_summary([], as_of, out), want)
+            self.assertEqual(_js("ATD.nationalSummary([], DATA.a, DATA.o)", a=as_of, o=out), want)
+        two = out + [{"airport": "PSP", "kind": "ground_delay"}]
+        self.assertEqual(ph.national_summary([], "", two), _js("ATD.nationalSummary([], '', DATA.o)", o=two))
+        self.assertTrue(ph.national_summary([], "", two).startswith("2 other airports have an FAA program."))
+        self.assertEqual(ph.national_summary([], ""), "No delays or ground stops at the 30 busiest airports right now")
 
     def test_stale_summary_and_latest(self):
         s = _js("ATD.nationalSummary([], DATA.a)", a="as of 1:50 AM PST (12 hours ago)")
