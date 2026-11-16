@@ -105,8 +105,6 @@ jobs:
           cp airports/*.html _site/airports/
           mkdir -p _site/airlines
           cp airlines/*.html _site/airlines/
-          mkdir -p _site/assets/illustrations
-          cp assets/illustrations/*.webp assets/illustrations/library.json _site/assets/illustrations/
           mkdir -p _site/assets/art
           cp assets/art/*.avif assets/art/*.jpg _site/assets/art/
           mkdir -p _site/data

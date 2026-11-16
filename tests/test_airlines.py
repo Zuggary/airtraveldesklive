@@ -239,7 +239,7 @@ class TestEachPage(_Base):
                     self.assertFalse(re.match(r"https?:", l.get("href", "")), name)
             self.assertNotIn("adsbygoogle", html_text)
             self.assertNotIn("<iframe", html_text)
-            self.assertNotIn("illustrations", html_text)   # no illustration on these pages
+            self.assertNotIn("assets/illustrations", html_text)   # no old art on these pages
 
     def test_four_pill_nav_and_footer(self) -> None:
         for name in [a["id"] for a in self.dot["airlines"]] + ["index"]:

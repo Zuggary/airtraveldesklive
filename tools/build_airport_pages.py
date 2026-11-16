@@ -31,8 +31,6 @@ DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesk
 CONTACT_EMAIL = "hello@airtraveldesklive.com"
 BTS_DEFINITION_SHORT = "BTS counts a flight on time if it arrives less than 15 minutes late"
 
-ILLUS_DIR = ROOT / "assets" / "illustrations"
-
 # AN17: airport type for the hero illustration. Every other airport is a hub.
 # AN23: the other 70 airports are typed by hand from where the field sits. Coastal: on or next to open water or a bay.
 # Mountain: in or beside mountains or on a high plateau. Desert: in a desert basin. Inland fields stay "hub".
@@ -51,37 +49,6 @@ def airport_type(code: str) -> str:
 def _stable_index(code: str, n: int) -> int:
     """Stable choice from an airport code (no hash(), which changes between runs)."""
     return sum((i + 1) * ord(ch) for i, ch in enumerate(code)) % n
-
-
-def pick_hero_illustration(code: str, library: dict[str, Any]) -> dict[str, Any] | None:
-    """Choose a 'meaning' image of the airport's type from library.json, or None when there is none."""
-    kind = airport_type(code)
-    pool = sorted(
-        (i for i in library.get("images") or []
-         if i.get("category") == f"airport-{kind}" and i.get("role") == "meaning"),
-        key=lambda i: i.get("file", ""),
-    )
-    return pool[_stable_index(code, len(pool))] if pool else None
-
-
-def _render_hero_illustration(code: str) -> list[str]:
-    """Hero figure for an airport page. A missing library or image gives no figure."""
-    return []  # AN32: a generic drawing that says "it does not show this airport" does not help a traveler
-    library = _load_json(ILLUS_DIR / "library.json")
-    img = pick_hero_illustration(code, library)
-    if not img or not (ILLUS_DIR / img["file"]).is_file():
-        return []
-    kind = airport_type(code)
-    return [
-        '      <div class="illus-card">',
-        '      <figure class="illus illus--hero">',
-        f'        <img src="../assets/illustrations/{_esc(img["file"])}" alt="{_esc(img["alt"])}" '
-        f'width="{int(library.get("width", 1280))}" height="{int(library.get("height", 720))}" loading="lazy" decoding="async">',
-        '        <figcaption class="illus-tag">Illustration</figcaption>',
-        "      </figure>",
-        f'      <p class="illus-caption">Illustration of a {kind} airport. It does not show {_esc(code)}.</p>',
-        "      </div>",
-    ]
 
 
 SITEMAP_BEGIN = "<!-- airports:begin -->"
@@ -565,19 +532,109 @@ def _help_card(code: str, lvl: str) -> list[str]:
 
 
 ART_SIZES = (1440, 2880)
+ART_STATE_SIZES = (720, 1440)
+ART_NOTE = "Pictures on this site are generated illustrations, not photos of real events or airports."
 
 
-def _hero_art(kind: str, prefix: str = "../") -> list[str]:
-    """AN34 r2: the GPU-made night-airfield picture behind a hero band, by airport type (design/art-log.md).
-    Decoration only (empty alt): it shows a kind of airport at night, never this airport or an event."""
-    base = f"{prefix}assets/art/airport-{kind}"
+def solar_is_day(lat: float, lon: float, when: datetime) -> bool:
+    """AN38: True when the sun is above the horizon at lat/lon (NOAA low-precision formula, good to about a degree)."""
+    import math
+    utc = when.astimezone(timezone.utc)
+    n = utc.timetuple().tm_yday
+    hours = utc.hour + utc.minute / 60.0
+    g = 2 * math.pi / 365.0 * (n - 1 + (hours - 12) / 24.0)
+    eq = 229.18 * (0.000075 + 0.001868 * math.cos(g) - 0.032077 * math.sin(g) - 0.014615 * math.cos(2 * g) - 0.040849 * math.sin(2 * g))
+    decl = (0.006918 - 0.399912 * math.cos(g) + 0.070257 * math.sin(g) - 0.006758 * math.cos(2 * g)
+            + 0.000907 * math.sin(2 * g) - 0.002697 * math.cos(3 * g) + 0.00148 * math.sin(3 * g))
+    tst = (hours * 60 + eq + 4 * lon) % 1440
+    ha = math.radians(tst / 4 - 180)
+    la = math.radians(lat)
+    alt = math.degrees(math.asin(math.sin(la) * math.sin(decl) + math.cos(la) * math.cos(decl) * math.cos(ha)))
+    return alt > -0.833
+
+
+def _hero_is_day(airport_info: dict[str, Any], now: Any) -> bool:
+    """Day or night at the airport at build time. The page script corrects it on load. No position: night art."""
+    try:
+        return solar_is_day(float(airport_info.get("lat")), float(airport_info.get("lon")), now)
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+
+def hero_art_key(kind: str, lvl: str, is_day: bool) -> str:
+    """AN38: which hero picture the airport state and the time of day choose. Same rule as ATDHeroArt in the page script."""
+    if lvl == "night":
+        return "ap-sched-night"
+    if lvl in ("delay", "stop", "closed"):
+        return f"ap-{lvl}-{'day' if is_day else 'night'}"
+    return "ap-clear-day" if is_day else f"airport-{kind}"
+
+
+def _hero_art(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../") -> list[str]:
+    """AN34 r2 and AN38: the GPU-made airfield picture behind a hero band. It follows the airport's state (clear, delay,
+    ground stop, closed, closed overnight) and the time of day; airport-type night art is the clear-night picture
+    (design/art-log.md). Decoration only (empty alt): it shows a kind of airfield, never this airport or an event."""
+    key = hero_art_key(kind, lvl, is_day)
+    base = f"{prefix}assets/art/{key}"
+    sizes = ART_SIZES if key.startswith("airport-") else ART_STATE_SIZES
+    avif = ", ".join(f"{base}-{w}.avif {w}w" for w in sizes)
+    jpg = ", ".join(f"{base}-{w}.jpg {w}w" for w in sizes)
     return [
-        '        <div class="band-art" aria-hidden="true"><picture>',
-        f'          <source type="image/avif" srcset="{base}-1440.avif 1440w, {base}-2880.avif 2880w" sizes="100vw">',
-        f'          <img src="{base}-1440.jpg" srcset="{base}-1440.jpg 1440w, {base}-2880.jpg 2880w" sizes="100vw" alt="" '
-        'width="2880" height="1620" decoding="async" fetchpriority="low">',
+        f'        <div class="band-art" aria-hidden="true" data-art="{key}"><picture>',
+        f'          <source type="image/avif" srcset="{avif}" sizes="100vw">',
+        f'          <img src="{base}-{sizes[0]}.jpg" srcset="{jpg}" sizes="100vw" alt="" '
+        'width="1440" height="810" decoding="async" fetchpriority="low">',
         "        </picture></div>",
     ]
+
+
+HERO_ART_JS = r"""  <script>
+  (function () {
+    "use strict";
+    var KIND = __KIND__, LAT = __LAT__, LON = __LON__;
+    var box = document.querySelector("#ap-hero .band-art");
+    var hero = document.getElementById("ap-hero");
+    if (!box || !hero) { return; }
+    var lvlNow = (/\bap-hero--(\w+)/.exec(hero.className) || [])[1] || "clear";
+    function isDay() {
+      try { if (LAT === null || !window.Sun) { return null; } var ms = Date.now(); return window.Sun.altitude(LAT, LON, ms, window.Sun.subsolar(ms)) > -0.833; } catch (e) { return null; }
+    }
+    function keyFor(lvl, day) {
+      if (lvl === "night") { return "ap-sched-night"; }
+      if (lvl === "delay" || lvl === "stop" || lvl === "closed") { return "ap-" + lvl + (day ? "-day" : "-night"); }
+      return day ? "ap-clear-day" : "airport-" + KIND;
+    }
+    function paint(key) {
+      if (box.getAttribute("data-art") === key) { return; }
+      var sizes = key.indexOf("airport-") === 0 ? [1440, 2880] : [720, 1440];
+      var base = "../assets/art/" + key;
+      function set(ext) { return sizes.map(function (w) { return base + "-" + w + "." + ext + " " + w + "w"; }).join(", "); }
+      var src = box.querySelector("source"), img = box.querySelector("img");
+      if (!src || !img) { return; }
+      src.setAttribute("srcset", set("avif"));
+      img.setAttribute("srcset", set("jpg"));
+      img.setAttribute("src", base + "-" + (key.indexOf("airport-") === 0 ? 1440 : 720) + ".jpg");
+      box.setAttribute("data-art", key);
+    }
+    function update(lvl) {
+      if (lvl) { lvlNow = lvl; }
+      var d = isDay();
+      if (d === null) { return; }
+      paint(keyFor(lvlNow, d));
+    }
+    window.ATDHeroArt = update;
+    update();
+  })();
+  </script>"""
+
+
+def _hero_art_script(kind: str, lat: Any, lon: Any) -> str:
+    """AN38: swaps the hero picture when the airport state changes (the status script calls ATDHeroArt) and at dusk or dawn."""
+    try:
+        la, lo = float(lat), float(lon)
+    except (TypeError, ValueError):
+        la = lo = None
+    return HERO_ART_JS.replace("__KIND__", json.dumps(kind)).replace("__LAT__", json.dumps(la)).replace("__LON__", json.dumps(lo))
 
 
 def _airline_home(url: Any) -> str:
@@ -823,6 +880,7 @@ def _render_footer(
         '        <div class="foot-col">',
         '          <p class="foot-h">Air Travel Desk</p>',
         f"          <p>{_esc(note)}</p>",
+        f'          <p class="foot-art">{ART_NOTE}</p>',
         "        </div>",
         '        <div class="foot-col">',
         (
@@ -895,12 +953,25 @@ def airport_js() -> str:
     if "\u0000" in live or "AIRPORT\u0000" in live:
         raise ValueError("airport.js: a per-airport value was left in the shared script")
     sun = _strip_script_tags(_sun_now_script())
-    return AIRPORT_JS_HEAD + "var ATD_ME = document.currentScript;\n" + sun + "\n" + live + "\n"
+    hero = _strip_script_tags(HERO_ART_JS).replace(
+        "var KIND = __KIND__, LAT = __LAT__, LON = __LON__;",
+        'var KIND = (ATD_ME && ATD_ME.getAttribute("data-kind")) || "inland";\n'
+        '    var LAT = ATD_ME && ATD_ME.getAttribute("data-lat") ? parseFloat(ATD_ME.getAttribute("data-lat")) : null;\n'
+        '    var LON = ATD_ME && ATD_ME.getAttribute("data-lon") ? parseFloat(ATD_ME.getAttribute("data-lon")) : null;')
+    if "__KIND__" in hero or "__LAT__" in hero:
+        raise ValueError("airport.js: hero art placeholders were left in the shared script")
+    return AIRPORT_JS_HEAD + "var ATD_ME = document.currentScript;\n" + sun + "\n" + hero + "\n" + live + "\n"
 
 
-def _airport_js_tag(code: str, tz: str, short: str) -> str:
+def _airport_js_tag(code: str, tz: str, short: str, kind: str = "", lat: Any = None, lon: Any = None) -> str:
+    extra = ""
+    try:
+        if lat is not None and lon is not None:
+            extra = f' data-lat="{float(lat):.4f}" data-lon="{float(lon):.4f}"'
+    except (TypeError, ValueError):
+        extra = ""
     return (f'  <script src="../{AIRPORT_JS_NAME}" data-code="{_esc(code)}" data-tz="{_esc(tz)}" '
-            f'data-short="{_esc(short or code)}" defer></script>')
+            f'data-short="{_esc(short or code)}"' + (f' data-kind="{_esc(kind)}"' if kind else "") + extra + ' defer></script>')
 
 
 def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
@@ -1213,6 +1284,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";',
         '      if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }',
         '      if (hero) { hero.className = hero.className.replace(/\\bap-hero--\\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }',
+        '      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "clear" : lvl); }',
         '      scaleHelp(stale ? "stale" : lvl);',
         '      var pulse = document.querySelector("#ap-now-title .pulse");',
         '      if (pulse) { pulse.className = "pulse pulse--" + (stale ? "stale" : lvl); }',
@@ -1590,7 +1662,7 @@ def render_airport_page(
             else '      <p id="stale-notice" class="stale-notice" role="status" hidden></p>'
         ),
         f'      <section id="ap-hero" class="ap-hero band ap-hero--{_esc(lvl)}" aria-labelledby="ap-verdict">',
-        *_hero_art(airport_type(code)),
+        *_hero_art(airport_type(code), lvl, _hero_is_day(airport_info, now)),
         '       <div class="ap-hero-main">',
         f'        <p id="ap-now-title" class="dateline ap-eyebrow"><span id="ap-now-word">{"Last known status" if live["stale"] else _esc(pt.airport_dateline(live_updated_utc, tz, short) or "Latest FAA check")}</span></p>',
         '        <div class="lockup">',
@@ -1673,7 +1745,7 @@ def render_airport_page(
         "    </main>",
         _render_footer(),
         '  <script src="../sun.js" defer></script>' if tz else "",
-        _airport_js_tag(code, tz, short),
+        _airport_js_tag(code, tz, short, airport_type(code), airport_info.get("lat") if tz else None, airport_info.get("lon") if tz else None),
         '  <script src="../apmap.js" defer></script>' if regional else "",
         '<script src="/count.js" defer></script>',
         "</body>",

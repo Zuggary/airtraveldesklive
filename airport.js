@@ -30,6 +30,44 @@ var ATD_ME = document.currentScript;
   })();
   (function () {
     "use strict";
+    var KIND = (ATD_ME && ATD_ME.getAttribute("data-kind")) || "inland";
+    var LAT = ATD_ME && ATD_ME.getAttribute("data-lat") ? parseFloat(ATD_ME.getAttribute("data-lat")) : null;
+    var LON = ATD_ME && ATD_ME.getAttribute("data-lon") ? parseFloat(ATD_ME.getAttribute("data-lon")) : null;
+    var box = document.querySelector("#ap-hero .band-art");
+    var hero = document.getElementById("ap-hero");
+    if (!box || !hero) { return; }
+    var lvlNow = (/\bap-hero--(\w+)/.exec(hero.className) || [])[1] || "clear";
+    function isDay() {
+      try { if (LAT === null || !window.Sun) { return null; } var ms = Date.now(); return window.Sun.altitude(LAT, LON, ms, window.Sun.subsolar(ms)) > -0.833; } catch (e) { return null; }
+    }
+    function keyFor(lvl, day) {
+      if (lvl === "night") { return "ap-sched-night"; }
+      if (lvl === "delay" || lvl === "stop" || lvl === "closed") { return "ap-" + lvl + (day ? "-day" : "-night"); }
+      return day ? "ap-clear-day" : "airport-" + KIND;
+    }
+    function paint(key) {
+      if (box.getAttribute("data-art") === key) { return; }
+      var sizes = key.indexOf("airport-") === 0 ? [1440, 2880] : [720, 1440];
+      var base = "../assets/art/" + key;
+      function set(ext) { return sizes.map(function (w) { return base + "-" + w + "." + ext + " " + w + "w"; }).join(", "); }
+      var src = box.querySelector("source"), img = box.querySelector("img");
+      if (!src || !img) { return; }
+      src.setAttribute("srcset", set("avif"));
+      img.setAttribute("srcset", set("jpg"));
+      img.setAttribute("src", base + "-" + (key.indexOf("airport-") === 0 ? 1440 : 720) + ".jpg");
+      box.setAttribute("data-art", key);
+    }
+    function update(lvl) {
+      if (lvl) { lvlNow = lvl; }
+      var d = isDay();
+      if (d === null) { return; }
+      paint(keyFor(lvlNow, d));
+    }
+    window.ATDHeroArt = update;
+    update();
+  })();
+  (function () {
+    "use strict";
     var CODE = (ATD_ME && ATD_ME.getAttribute("data-code")) || "";
     var TZ = (ATD_ME && ATD_ME.getAttribute("data-tz")) || "";
     var SHORT = (ATD_ME && ATD_ME.getAttribute("data-short")) || CODE;
@@ -331,6 +369,7 @@ var ATD_ME = document.currentScript;
       var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";
       if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }
       if (hero) { hero.className = hero.className.replace(/\bap-hero--\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }
+      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "clear" : lvl); }
       scaleHelp(stale ? "stale" : lvl);
       var pulse = document.querySelector("#ap-now-title .pulse");
       if (pulse) { pulse.className = "pulse pulse--" + (stale ? "stale" : lvl); }

@@ -233,18 +233,16 @@ class TestAirportOrder(_Built):
             'id="stuck-heading"', 'id="about-page-heading"', 'class="glance-details"')]
         self.assertEqual(order, sorted(order))
 
-    def test_illustration_keeps_caption_and_tag(self):
+    def test_no_illustration_pill_or_card(self):
         page = self.pages["SFO"]
-        if "illus-card" not in page:
-            self.skipTest("no illustration library in this checkout")
-        self.assertIn("Illustration of a coastal airport. It does not show SFO.", visible_text(page))
-        self.assertIn('class="illus-tag">Illustration<', page)
-        self.assertIn('width="1280" height="720"', page)
-
-    def test_illustration_card_css(self):
+        self.assertNotIn("illus-tag", page)
+        self.assertNotIn("Illustration of a", visible_text(page))
         css = (ROOT / "style.css").read_text(encoding="utf-8")
-        self.assertRegex(css, r"\.illus--hero\s*\{[^}]*max-width:\s*420px")
-        self.assertRegex(css, r"\.illus img\s*\{[^}]*aspect-ratio:\s*16 / 9")
+        self.assertNotIn(".illus", css)
+
+    def test_hero_art_is_in_the_band(self):
+        page = self.pages["SFO"]
+        self.assertIn('class="band-art" aria-hidden="true" data-art="', page)
 
 
 class TestLinkWording(_Built):

@@ -125,3 +125,9 @@ source and its age. No "may be owed" wording changes: "possibly owed", never "mu
   No fetch, no tracking, no query string; unknown code shows the airline list.
 - The FAA data age is stated once per page (the line under the verdict; the stale banner when old). Official links sit under the hero.
 - Charts that have no data are left out (Thanksgiving week with no counted day shows the countdown only).
+
+## AN38 art rules
+- Art sits in the layout: hero bands bleed to the band edge; step and card-head pictures fade out through a CSS mask and have no card, border or pill.
+- The airport hero follows the airport: clear (type art at night, a day scene by day), delay (a line of waiting aircraft, amber), ground stop (aircraft at the gates, red stop bar), closed (red X of lights), scheduled overnight closure (moonlit, quiet). Same rule in Python (`hero_art_key`) and in the page script (`ATDHeroArt`).
+- The stuck guide shows art for the situation (delayed, cancelled) at the head of "Do this now" and one picture each for the meal, hotel, rebooking and refund steps. Two paintings each: night for the dark page, pale for the light page.
+- No motion. No picture claims a real event, aircraft or airport. One quiet footer line says so.

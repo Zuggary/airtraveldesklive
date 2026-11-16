@@ -348,58 +348,6 @@
   }
 
   // Latest: the desk's actionable ticker items (newest first). A line shows its source and age.
-  // AN17: illustrations. Files and alt text are copied from assets/illustrations/library.json (a test checks this).
-  // Only 'meaning' images are used here. The "Illustration" tag is always shown with the picture.
-  var ILLUSTRATIONS = {
-    "ground-stop": { "file": "ground-stop-2.webp", "alt": "Illustration: A plain aircraft silhouette stopped before a striped barrier on a taxiway." },
-    "closure": { "file": "closure-1.webp", "alt": "Illustration: A runway outline with a big X across its centre line." },
-    "delay": { "file": "delay-2.webp", "alt": "Illustration: One big round clock face without numerals beside a row of plain luggage carts." },
-    "storm-hub": { "file": "storm-hub-2.webp", "alt": "Illustration: A large cloud with rain lines over a runway seen from the side." },
-    "fog": { "file": "fog-4.webp", "alt": "Illustration: A row of runway lights shrinking into mist." },
-    "wind": { "file": "wind-4.webp", "alt": "Illustration: A windsock and an airport tower in strong wind." },
-    "snow-ice": { "file": "snow-ice-1.webp", "alt": "Illustration: Large flat snowflakes falling over a runway." },
-    "holding": { "file": "holding-5.webp", "alt": "Illustration: An aircraft silhouette and a big dotted ring above clouds." },
-    "holiday": { "file": "holiday-1.webp", "alt": "Illustration: A long row of plain suitcases in a line." },
-    "tsa-record": { "file": "tsa-record-1.webp", "alt": "Illustration: A long row of plain grey trays on a conveyor belt." }
-  };
-
-  // Illustration category for one Latest item, from its kind, its tag, then whole words in its text. "" = none.
-  function illustrationCategory(it) {
-    var kind = String(it.kind || "").toLowerCase().replace(/[\s-]+/g, "_");
-    if (kind === "ground_stop") { return "ground-stop"; }
-    if (kind === "closure") { return "closure"; }
-    if (kind === "delay" || kind === "ground_delay") { return "delay"; }
-    if (kind === "owed") { return ""; }
-    var hay = (String(it.tag || "") + " " + String(it.text || "")).toLowerCase();
-    if (/\b(thunderstorms?|storms?|tornado(es)?)\b/.test(hay)) { return "storm-hub"; }
-    if (/\b(fog|ifr|lifr)\b/.test(hay)) { return "fog"; }
-    if (/\b(wind|winds|gusts?|gusty)\b/.test(hay)) { return "wind"; }
-    if (/\b(snow|ice|icing|freezing)\b/.test(hay)) { return "snow-ice"; }
-    if (/\bholding\b/.test(hay)) { return "holding"; }
-    if (/\bground stops?\b/.test(hay)) { return "ground-stop"; }
-    return "";
-  }
-
-  // A figure with a lazy 16:9 image and a visible "Illustration" tag. w/h are the display size in pixels.
-  function illustrationFigure(cat, extraClass, w, h) {
-    return null; // AN32: generic drawings are gone from the pages; the map above is kept for the tests
-    var info = ILLUSTRATIONS[cat];
-    if (!info) { return null; }
-    var fig = el("figure", "illus " + extraClass);
-    var img = document.createElement("img");
-    img.src = "assets/illustrations/" + info.file;
-    img.alt = info.alt;
-    img.width = w;
-    img.height = h;
-    img.loading = "lazy";
-    img.decoding = "async";
-    // Offline and never visited: drop the picture, keep the text.
-    img.addEventListener("error", function () { if (fig.parentNode) { fig.parentNode.removeChild(fig); } });
-    fig.appendChild(img);
-    fig.appendChild(el("figcaption", "illus-tag", "Illustration"));
-    return fig;
-  }
-
   function renderLatest() {
     var box = document.getElementById("latest-box"), list = document.getElementById("latest-list");
     if (!box || !list) { return; } // AN32: the home page no longer shows the Latest feed
@@ -407,9 +355,7 @@
     var items = D.state ? A.latestItems(D.state.ticker, 6, Date.now()) : [];
     box.hidden = !items.length;
     items.forEach(function (it) {
-      var thumb = illustrationFigure(illustrationCategory(it), "illus--thumb", 96, 54);
-      var li = el("li", "latest-item" + (thumb ? " latest-item--thumb" : ""));
-      if (thumb) { li.appendChild(thumb); }
+      var li = el("li", "latest-item");
       li.appendChild(el("span", "latest-tag", it.tag || ""));
       li.appendChild(el("span", "latest-text", it.text));
       var when = it.as_of_utc || it.t_utc;
@@ -1055,8 +1001,6 @@
   function compareCard(title, big, lines, source, illusCat, extraCls) {
     var c = el("article", "compare-card" + (extraCls ? " " + extraCls : ""));
     c.appendChild(el("h3", "compare-title", title));
-    var fig = illusCat ? illustrationFigure(illusCat, "illus--card", 1280, 720) : null;
-    if (fig) { c.appendChild(fig); }
     c.appendChild(el("p", "compare-big", big));
     lines.forEach(function (l) { c.appendChild(el("p", "compare-line", l)); });
     c.appendChild(el("p", "compare-source", source));
@@ -1066,8 +1010,6 @@
   function holidayCard(hv) {
     var c = el("article", "compare-card compare-card--wide holiday");
     c.appendChild(el("h3", "compare-title", "Thanksgiving week, this year and last"));
-    var holFig = illustrationFigure("holiday", "illus--card", 1280, 720);
-    if (holFig) { c.appendChild(holFig); }
     var dl = hv.daysTo > 0 ? hv.daysTo + (hv.daysTo === 1 ? " day" : " days") + " left" : hv.daysTo === 0 ? "Thanksgiving is today" : "Thanksgiving was " + (-hv.daysTo) + " days ago";
     c.appendChild(el("p", "compare-big", dl));
     c.appendChild(el("p", "compare-line", "Thanksgiving is " + fmtDay(hv.thanksgiving) + "." + (hv.rows.some(function (r) { return r.count != null; }) ? " Bars show people screened by TSA, in millions." : " TSA has not posted this year's counts for that week yet.")));

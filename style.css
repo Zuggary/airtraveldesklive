@@ -876,14 +876,18 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 .idx--delay { background: linear-gradient(var(--amber-soft), var(--amber-soft)), var(--surface); }
 .idx--stop, .idx--closed { background: linear-gradient(var(--red-soft), var(--red-soft)), var(--surface); }
 
-/* AN17 illustrations: kept for older pages; the pages no longer show them */
-.illus { position: relative; margin: 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--surface-alt); }
-.illus img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
-.illus-tag { position: absolute; left: 6px; bottom: 6px; padding: 1px 7px; border-radius: 999px; background: var(--navy); color: var(--text); font-size: var(--fs-xs); font-weight: 700; }
-.illus--hero { margin: 0 0 6px; max-width: 420px; }
-.illus--step { margin: 8px 0 4px; max-width: 360px; }
-.illus--card { margin: 0 0 10px; max-width: 280px; }
-.illus-card, .illus-caption { display: none; }
+/* AN38 art: pictures sit in the layout. They bleed to the band or column edge, fade out through a mask and take their
+   tint from the theme tokens. No card, no pill. The page type has one quiet line about generated art in its footer. */
+.foot-art { font-size: var(--fs-xs); color: var(--text-faint); }
+.art-strip { position: relative; margin: 10px 0 6px; max-width: 560px; aspect-ratio: 16 / 5; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 22%, black 78%, transparent 100%), linear-gradient(180deg, transparent 0, black 30%, black 70%, transparent 100%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 0, black 22%, black 78%, transparent 100%), linear-gradient(180deg, transparent 0, black 30%, black 70%, transparent 100%); mask-composite: intersect; }
+.art-strip img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.art-head { position: relative; margin: -18px -18px 12px; height: clamp(120px, 24vw, 200px); overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 8%, black 92%, transparent 100%), linear-gradient(180deg, black 0, black 55%, transparent 100%); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 0, black 8%, black 92%, transparent 100%), linear-gradient(180deg, black 0, black 55%, transparent 100%); mask-composite: intersect; }
+.art-head img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; }
+/* two paintings of each scene (night and pale): stuck.js picks by the theme switch or the system setting */
+.art-note { margin: 0 0 10px; font-size: var(--fs-xs); color: var(--text-faint); }
 
 @media (prefers-reduced-motion: no-preference) {
   .br, .pick, .guide-pill, .airport-index-card, .event-card, .chip, .btn { transition: background-color 120ms, border-color 120ms, opacity 120ms; }
@@ -973,8 +977,8 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 .ap-hero .band-art img { object-position: 78% 55%; }
 .ap-hero .band-art::after {
   background:
-    linear-gradient(90deg, rgba(7, 10, 14, 0.9) 0%, rgba(7, 10, 14, 0.62) 50%, rgba(7, 10, 14, 0.3) 100%),
-    linear-gradient(0deg, rgba(7, 10, 14, 0.7) 0%, transparent 45%);
+    linear-gradient(90deg, rgba(7, 10, 14, 0.82) 0%, rgba(7, 10, 14, 0.5) 50%, rgba(7, 10, 14, 0.12) 100%),
+    linear-gradient(0deg, rgba(7, 10, 14, 0.55) 0%, transparent 40%);
 }
 .ap-name span { display: block; }
 @media (min-width: 1000px) {
@@ -1148,7 +1152,10 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .ap-folds > .airport-section { margin-top: 0; }
 /* phones: a flat dark panel, no photo behind the words */
 @media (max-width: 699px) {
-  .ap-hero .band-art { display: none; }
+  .ap-hero .band-art { inset: 0 0 auto 0; height: 126px; -webkit-mask-image: linear-gradient(180deg, black 0, black 60%, transparent 100%); mask-image: linear-gradient(180deg, black 0, black 60%, transparent 100%); }
+  .ap-hero { padding-top: 108px; }
+  .ap-hero .band-art img { object-position: 70% 100%; }
+  .ap-hero .band-art::after { background: linear-gradient(180deg, rgba(7, 10, 14, 0.15) 0%, rgba(7, 10, 14, 0.5) 100%); }
   .ap-today .fact + .fact { border-left: 0; padding-left: 0; }
   .ap-today .fact { padding-right: 0; }
 }

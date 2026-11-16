@@ -85,18 +85,24 @@
     ]
   };
 
-  // AN17: one illustration each for the meal step and the hotel step. Rebooking and refund steps stay plain text.
-  // The file names and alt text are copied from assets/illustrations/library.json (a test checks this).
-  var STEP_ILLUSTRATIONS = {
-    "stuck-meal": { "file": "stuck-meal-1.webp", "alt": "Illustration: A plain tray with a cup and a plate." },
-    "stuck-hotel": { "file": "stuck-hotel-1.webp", "alt": "Illustration: A plain bed shape with a moon and stars." }
+  // AN38: art for the result. Each step that is about a meal, a hotel, rebooking or a refund gets its own picture,
+  // and the card head shows the situation (delayed or cancelled). Files are in assets/art/. All are decoration (empty alt).
+  var STEP_ART = {
+    "meal": "step-meal",
+    "hotel": "step-hotel",
+    "rebook": "step-rebook",
+    "refund": "step-refund"
   };
+  var STATE_ART = { delayed: "state-delayed", cancelled: "state-cancelled" };
 
-  // Which illustration a step gets: only a step that tells you to ask for a hotel or a meal. Hotel wins.
-  function stepIllustrationKey(stepText) {
-    if (!/\bask\b/i.test(stepText)) { return ""; }
-    if (/\bhotel\b/i.test(stepText)) { return "stuck-hotel"; }
-    if (/\bmeal\b/i.test(stepText)) { return "stuck-meal"; }
+  // Which art a step gets, from what the step is about. Hotel, then meal, then refund, then rebooking. "" = none.
+  function stepArtKey(stepText) {
+    if (/\bask\b/i.test(stepText)) {
+      if (/\bhotel\b/i.test(stepText)) { return "hotel"; }
+      if (/\bmeal\b/i.test(stepText)) { return "meal"; }
+    }
+    if (/\brefund\b/i.test(stepText)) { return "refund"; }
+    if (/\b(rebook\w*|earlier flight|next flight|other flights|standby)\b/i.test(stepText)) { return "rebook"; }
     return "";
   }
 
@@ -323,21 +329,57 @@
     return node;
   }
 
-  // A figure with a visible "Illustration" tag, a fixed 16:9 box and a lazy image.
-  // If the picture cannot load (offline), the figure is removed and the text still works.
-  function illustrationFigure(info) {
-    var fig = el("figure", "illus illus--step");
+  // Art that sits in the layout: a masked strip under a step, or the head of the card. Decoration, so alt is empty
+  // and it is hidden from screen readers. Offline and never visited: the picture is dropped and the text stays.
+  // Two paintings of each scene: a night one for the dark page and a pale one for the light page. The theme switch
+  // (html[data-theme]) or the system setting picks; syncArt re-picks when either changes.
+  function lightPage() {
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "light") { return true; }
+    if (t === "dark") { return false; }
+    try { return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches); } catch (e) { return false; }
+  }
+
+  function artPath(base, ext) {
+    return "assets/art/" + base + (lightPage() ? "-light" : "") + "-960." + ext;
+  }
+
+  function artFigure(base, cls) {
+    var fig = el("div", cls);
+    fig.setAttribute("aria-hidden", "true");
+    fig.setAttribute("data-art", base);
+    var pic = document.createElement("picture");
+    var src = document.createElement("source");
+    src.type = "image/avif";
+    src.srcset = artPath(base, "avif");
+    pic.appendChild(src);
     var img = document.createElement("img");
-    img.src = "assets/illustrations/" + info.file;
-    img.alt = info.alt;
-    img.width = 1280;
-    img.height = 720;
+    img.src = artPath(base, "jpg");
+    img.alt = "";
+    img.width = 960;
+    img.height = 540;
     img.loading = "lazy";
     img.decoding = "async";
     img.addEventListener("error", function () { if (fig.parentNode) { fig.parentNode.removeChild(fig); } });
-    fig.appendChild(img);
-    fig.appendChild(el("figcaption", "illus-tag", "Illustration"));
+    pic.appendChild(img);
+    fig.appendChild(pic);
     return fig;
+  }
+
+  function syncArt() {
+    var figs = document.querySelectorAll("[data-art]");
+    for (var i = 0; i < figs.length; i++) {
+      var base = figs[i].getAttribute("data-art"), s = figs[i].querySelector("source"), m = figs[i].querySelector("img");
+      if (s && m && figs[i].className.indexOf("art-") === 0) { s.srcset = artPath(base, "avif"); m.src = artPath(base, "jpg"); }
+    }
+  }
+
+  function watchArtTheme() {
+    window.addEventListener("atd-theme", syncArt);
+    try {
+      var mq = window.matchMedia("(prefers-color-scheme: light)");
+      if (mq.addEventListener) { mq.addEventListener("change", syncArt); }
+    } catch (e) { /* old browser: the picture stays as first chosen */ }
   }
 
   function renderRadioGroup(container, name, options, selectedValue, onChange) {
@@ -393,6 +435,7 @@
   }
 
   function init() {
+    watchArtTheme();
     initAskFirst();
     var state = {
       step: 1,
@@ -476,13 +519,17 @@
       secA.appendChild(el("h2", "result-heading", "Do this now"));
       var ol = el("ol", "result-steps");
       var steps = STEPS_BY_SITUATION[state.situationId] || STEPS_BY_SITUATION.delayed;
-      var shownIllus = {};
+      var shownArt = {};
+      var headArt = STATE_ART[state.situationId];
+      if (headArt) {
+        secA.insertBefore(artFigure(headArt, "art-head"), secA.firstChild);
+      }
       steps.forEach(function (stepText) {
         var li = el("li", null, stepText);
-        var key = stepIllustrationKey(stepText);
-        if (key && !shownIllus[key]) {
-          shownIllus[key] = true;
-          li.appendChild(illustrationFigure(STEP_ILLUSTRATIONS[key]));
+        var key = stepArtKey(stepText);
+        if (key && !shownArt[key]) {
+          shownArt[key] = true;
+          li.appendChild(artFigure(STEP_ART[key], "art-strip"));
         }
         ol.appendChild(li);
       });
@@ -733,8 +780,9 @@
     REFUND_QUOTE: REFUND_QUOTE,
     PLAIN_READING: PLAIN_READING,
     DOWNTIME_URL: DOWNTIME_URL,
-    STEP_ILLUSTRATIONS: STEP_ILLUSTRATIONS,
-    stepIllustrationKey: stepIllustrationKey,
+    STEP_ART: STEP_ART,
+    STATE_ART: STATE_ART,
+    stepArtKey: stepArtKey,
     buildScripts: buildScripts,
     buildCommitmentsModel: buildCommitmentsModel,
     buildEmailDraft: buildEmailDraft,
