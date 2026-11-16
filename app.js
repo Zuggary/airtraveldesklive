@@ -2,8 +2,6 @@
   "use strict";
 
   var A = window.ATD;
-  var REFRESH_MS = 60000;
-  var TICK_MS = 30000;
   var SLOW_MS = 30 * 60000;
   var STALE_MIN = A.STALE_MIN;   // one limit for "live" wording; lib.js and the Python build use the same 30
   var TWITCH_SRC = "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true";
@@ -20,6 +18,7 @@
   var currentCode = "";
   var cardRefs = null;
   var slowLoaded = false;
+  var lastSlow = 0;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -197,7 +196,7 @@
     if (m != null) { var dd = new Date(Date.parse(upd)); try { dl = A.dateline({ weekday: dd.toLocaleDateString("en-US", { weekday: "long" }), hour: dd.getHours(), clock: fmtTime(dd) }); } catch (e) { /* keep the plain label */ } }
     ($("now-title") || $("now-heading")).textContent = stale0 ? "Last known status" : dl;
     // AN35: this line is the one place the FAA data age is stated (the stale banner states it when the data is old).
-    line.textContent = m == null ? "Update time unavailable" : A.faaAgePlain(m, clock, stale0);
+    line.textContent = m == null ? "Update time unavailable" : (stale0 ? A.faaAgePlain(m, clock, true) : "FAA data as of " + clock + ".");
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
@@ -1588,6 +1587,7 @@
   }
 
   function loadSlow() {
+    lastSlow = Date.now();
     return Promise.all([
       getJson("data/places.json"), getJson("data/security-waits.json"), getJson("data/dot-commitments.json"),
       getJson("data/bts.json", true), getJson("data/tsa.json", true), getJson("data/airport-guide.json"),
@@ -1623,11 +1623,18 @@
       var code = A.airportFromSearch(window.location.search, Object.keys(allByCode));
       return loadSlow().then(function () { if (code) { openAirport(code, true); } });
     });
-    // Poll only while the tab is visible; refresh at once when the viewer comes back.
-    window.setInterval(function () { if (!document.hidden) loadLive(); }, REFRESH_MS);
-    window.setInterval(tick, TICK_MS);
-    window.setInterval(function () { if (!document.hidden) loadSlow(); }, SLOW_MS);
-    document.addEventListener("visibilitychange", function () { if (!document.hidden) loadLive(); });
+    // AN43: no timed refresh. AdSense placement policy bars refreshing a page or a page element without
+    // the user asking (support.google.com/adsense/answer/1346295). Data loads once, then only on "Refresh".
+    var btn = $("refresh-btn");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        if (btn.disabled) { return; }
+        btn.disabled = true; btn.textContent = "Refreshing\u2026";
+        var done = function () { tick(); btn.disabled = false; btn.textContent = "Refresh"; };
+        var slowDue = Date.now() - lastSlow > SLOW_MS;
+        loadLive().then(function () { return slowDue ? loadSlow() : null; }).then(done, done);
+      });
+    }
   }
 
   init();

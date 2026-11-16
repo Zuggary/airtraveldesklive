@@ -81,7 +81,10 @@
             <p id="search-empty" class="search-empty" hidden>No match among the 100 busiest airports.</p>
           </div>
           <div id="chips" class="chips" aria-label="Quick picks"></div>
-          <p id="updated-line" class="src updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
+          <div class="updated-row">
+            <p id="updated-line" class="src updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
+            <button id="refresh-btn" type="button" class="chip refresh-btn" aria-describedby="updated-line">Refresh</button>
+          </div>
         </div>
 
         <figure id="map-section" class="mapcard">
