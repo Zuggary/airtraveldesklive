@@ -332,7 +332,10 @@
     box.textContent = "";
     var tiles = {};
     ((D.state && D.state.board) || []).forEach(function (t) { tiles[t.code] = t; });
-    airports.forEach(function (a) { box.appendChild(makeTile(a, tiles)); });
+    var weight = { red: 3, orange: 2, yellow: 1 };
+    var ordered = airports.map(function (a, i) { return { a: a, i: i, w: (tiles[a.code] && weight[tiles[a.code].status]) || 0 }; });
+    ordered.sort(function (x, y) { return (y.w - x.w) || (x.i - y.i); }); // worst first, then the usual order
+    ordered.forEach(function (o) { box.appendChild(makeTile(o.a, tiles)); });
     renderMine(tiles);
     var note = $("board-note");
     if (note) { note.textContent = "Bar = FAA average delay; a full bar is 2 hours. Arrow compares with an hour ago. Source: FAA, " + (D.state ? ageText(D.state.updated_utc) : "time unknown") + "."; }

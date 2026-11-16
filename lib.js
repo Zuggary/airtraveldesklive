@@ -306,7 +306,7 @@
   // ---------- FA20: changed in the last hour, and the 24 h history chart ----------
   var RANK = { green: 0, yellow: 1, orange: 2, red: 3 };
   function rankOf(level) { return RANK.hasOwnProperty(level) ? RANK[level] : 0; }
-  function levelOf(v) { return v && (v.level || v.status) || "green"; }
+  function levelOf(v) { return v && (v.status || v.level) || "green"; } // state.board has both: level is amber, status is orange; history readings have level only
 
   // Airports whose level differs from the history reading nearest to 60 minutes before the board time.
   // History readings are hourly, so a usable reading is 20 to 120 minutes old. board: state.board[] ({code, status}).

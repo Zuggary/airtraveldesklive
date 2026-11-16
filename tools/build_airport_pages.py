@@ -314,6 +314,19 @@ def _what_to_do(chip_class: str, live: dict[str, Any]) -> list[str]:
     return ['        <ul class="ap-do" aria-label="What to do now">', *[f"          <li>{_esc(x)}</li>" for x in lines], "        </ul>"]
 
 
+def _delay_sizes(entry: dict[str, Any] | None) -> str:
+    """'Flights are leaving about 2 hours and 20 minutes late on average, up to 7 hours and 7 minutes.' from FAA program fields."""
+    for ev in (entry or {}).get("events") or []:
+        if not isinstance(ev, dict) or ev.get("kind") not in ("ground_delay", "delay"):
+            continue
+        avg, mx = str(ev.get("avg") or "").strip(), str(ev.get("max") or "").strip()
+        if avg and mx:
+            return f"The FAA lists delays of about {avg} on average, up to {mx}."
+        if avg or mx:
+            return f"The FAA lists delays of {'about ' + avg + ' on average' if avg else 'up to ' + mx}."
+    return ""
+
+
 def _render_head(
     *,
     title: str,
@@ -943,6 +956,11 @@ def render_airport_page(
             if live["has"] and not live["stale"] and (live_entry or {}).get("reason")
             else ""
         ),
+        (
+            f'        <p class="ap-why">{_esc(_delay_sizes(live_entry))}</p>'
+            if live["has"] and not live["stale"] and _delay_sizes(live_entry)
+            else ""
+        ),
         *_what_to_do(live["chip_class"], live),
         '        <div class="airport-summary-actions">',
         '          <a class="btn btn-accent" href="../stuck.html">I\'m stuck guide</a>',
@@ -983,6 +1001,8 @@ def render_airport_page(
         "      </section>",
         *places_html,
         *glance_html,
+        "      </div>",
+        "    </div>",
         '      <section class="airport-section" aria-labelledby="sources-heading">',
         '        <h2 id="sources-heading">Where this page\'s data comes from</h2>',
         '        <ul class="airport-sources">',
@@ -993,8 +1013,6 @@ def render_airport_page(
         '        <h2 id="about-page-heading">About this page</h2>',
         '        <p class="small">This page is independent and not affiliated with the airport, the FAA or any airline. Data sources and dates are listed above. Read <a class="tap" href="../about.html">About Air Travel Desk</a> for how these pages are made.</p>',
         "      </section>",
-        "      </div>",
-        "    </div>",
         "    </main>",
         _render_footer(),
         _sun_now_script() if tz else "",
