@@ -75,11 +75,13 @@ def national_summary(airports: list[dict[str, Any]], as_of: str = "") -> str:
     """
     bad = sum(1 for a in airports if a.get("level") in ("stop", "delay"))
     if not bad:
-        base = f"No delays or ground stops at the {max(len(airports), 30)} busiest airports"
-        return f"{base} {as_of}" if as_of else f"{base} right now"
+        n = max(len(airports), 30)
+        return f"No delays or ground stops were listed at the {n} busiest airports" if as_of else f"No delays or ground stops at the {n} busiest airports right now"
     ok = len(airports) - bad
+    if as_of:
+        return f"{ok} of the {len(airports)} busiest US airports had no FAA delays at the last check"
     verb = "has" if ok == 1 else "have"
-    return f"{ok} of the {len(airports)} busiest US airports {verb} no FAA delays {as_of or 'right now'}"
+    return f"{ok} of the {len(airports)} busiest US airports {verb} no FAA delays right now"
 
 
 def _is_closed(a: dict[str, Any]) -> bool:

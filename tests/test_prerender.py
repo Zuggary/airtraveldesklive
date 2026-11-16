@@ -611,7 +611,6 @@ class TestStaleHonesty(unittest.TestCase):
             self.assertNotIn(w, text, w)
         self.assertNotIn(" live ", text.replace("Watch live", "").replace("live video", "").replace("Live board", ""))
         self.assertIn("Last known status", text)
-        self.assertIn("as of 4:50 AM EST (12 hours ago)", text)
         self.assertIn("FAA NAS status, last checked 4:50 AM EST (12 hours ago)", text)
         self.assertLess(self.stale_home.index('id="stale-notice"'), self.stale_home.index('id="summary"'))
         self.assertNotIn('role="status" hidden', self.stale_home.split('id="stale-notice"')[1].split("</p>")[0])
@@ -622,7 +621,8 @@ class TestStaleHonesty(unittest.TestCase):
             _write(d / "state.json", {"updated_utc": UPDATED, "events": []})
             page = ph.prerender(self.template, d, LATER)
         text = visible_text(page)
-        self.assertIn("No delays or ground stops at the 30 busiest airports as of 4:50 AM EST (12 hours ago)", text)
+        # AN34: the headline carries no time when the data is old; the banner and the checked line date it.
+        self.assertIn("No delays or ground stops were listed at the 30 busiest airports", text)
         self.assertIn("No FAA delays or ground stops were listed as of 4:50 AM EST (12 hours ago).", text)
         self.assertNotIn("right now", text)
 
@@ -681,7 +681,7 @@ class TestBrowserHelpersAgree(unittest.TestCase):
 
     def test_stale_summary_and_latest(self):
         s = _js("ATD.nationalSummary([], DATA.a)", a="as of 1:50 AM PST (12 hours ago)")
-        self.assertEqual(s, "No delays or ground stops at the 30 busiest airports as of 1:50 AM PST (12 hours ago)")
+        self.assertEqual(s, "No delays or ground stops were listed at the 30 busiest airports")
         self.assertIn("right now", _js("ATD.nationalSummary([])"))
         self.assertNotIn("right now", _js("ATD.impactText({kind:'closure'}, 'Denver', true)"))
         items = [{"text": "SFO · clear through 2 am Pacific (next 3 h)", "kind": "wx", "as_of_utc": "2026-11-14T08:51:00Z", "t_utc": "2026-11-14T09:50:00Z"},

@@ -151,9 +151,10 @@
   function nationalSummary(airports, asOf) {
     var bad = 0;
     for (var i = 0; i < airports.length; i++) { if (airports[i].level === "stop" || airports[i].level === "delay") { bad++; } }
-    if (!bad) { return "No delays or ground stops at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports " + (asOf || "right now"); }
+    // AN34: when the data is old (asOf set) the headline is past tense and carries no time; the banner and the checked line date it.
+    if (!bad) { return asOf ? "No delays or ground stops were listed at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports" : "No delays or ground stops at the " + (airports.length > 30 ? airports.length : 30) + " busiest airports right now"; }
     var ok = airports.length - bad;
-    return ok + " of the " + airports.length + " busiest US airports " + (ok === 1 ? "has" : "have") + " no FAA delays " + (asOf || "right now");
+    return ok + " of the " + airports.length + " busiest US airports " + (asOf ? "had no FAA delays at the last check" : (ok === 1 ? "has" : "have") + " no FAA delays right now");
   }
 
   // One plain sentence per airport with an FAA program, worst first (closed, stop, then the longest delay). Max 3.
