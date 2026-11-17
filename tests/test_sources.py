@@ -76,6 +76,20 @@ class TestSourcesPage(unittest.TestCase):
             self.assertIn(s["terms"], self.text, s["id"])
             self.assertIn(s["licence"].replace("©", "&copy;") if "&copy;" in self.text else s["licence"], self.text, s["id"])
 
+    def test_story_sources_match_build_data(self) -> None:
+        section = re.search(r'<section aria-labelledby="story-sources-heading">(.*?)</section>', self.text, re.S).group(1)
+        self.assertIn("Story sources</h2>", section)
+        self.assertIn("Some on-air airport stories draw facts from Wikipedia", section)
+        self.assertIn("rephrased, not copied", section)
+        story = build_sources.STORY_SOURCES
+        self.assertIn('href="%s"' % story["terms"], section)
+        self.assertIn(story["licence"], section)
+        self.assertEqual(len(story["articles"]), 5)
+        for article in story["articles"]:
+            self.assertIn('href="%s"' % article["page"], section)
+            self.assertIn(article["name"], section)
+        self.assertIn(story["photo_credits"], section)
+
     def test_every_site_feed_in_about_is_listed(self) -> None:
         about, _ = parse_html("about.html")
         for name in ("FAA NAS status", "National Weather Service", "aviationweather.gov", "adsb.lol", "OpenStreetMap",
@@ -158,6 +172,7 @@ class TestBuildSources(unittest.TestCase):
             self.assertEqual(by["aviationweather"]["checked"], "2026-11-14T09:44:42Z")
             self.assertIsNone(by["nhc"]["checked"])
             self.assertIsNone(by["spc"]["checked"])
+            self.assertEqual(doc["story_sources"], build_sources.STORY_SOURCES)
             self.assertEqual(doc["generated_utc"], "2026-11-14T10:00:00Z")
             self.assertEqual(len(doc["sources"]), len(build_sources.SOURCES))
 

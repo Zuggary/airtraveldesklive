@@ -96,6 +96,24 @@ SOURCES: list[dict[str, Any]] = [
      "update": "Every few minutes", "file": None, "key": None, "kind": "stream"},
 ]
 
+STORY_SOURCES: dict[str, Any] = {
+    "description": "Some on-air airport stories draw facts from Wikipedia (CC BY-SA 4.0), rephrased, not copied.",
+    "licence": "CC BY-SA 4.0",
+    "terms": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "articles": [
+        {"name": title, "page": "https://en.wikipedia.org/wiki/" + title.replace(" ", "_")}
+        for title in (
+            "Washington Dulles International Airport",
+            "Miami International Airport",
+            "Newark Liberty International Airport",
+            "Harry Reid International Airport",
+            "Dallas Fort Worth International Airport",
+        )
+    ],
+    "photo_credits": "Photo credits on airport cards link to Wikimedia Commons file pages with author and licence.",
+}
+
+
 NOT_USED: list[str] = [
     "Airline websites and apps: not read. Airline status pages are linked, never copied.",
     "Paid flight-tracking sites (FlightAware, Flightradar24): their terms do not allow this use.",
@@ -131,7 +149,7 @@ def build(data_dir: Path, now: Optional[datetime] = None) -> dict[str, Any]:
             "licence": s["licence"], "used_for": s["used_for"], "update": s["update"],
             "kind": s["kind"], "file": s["file"], "checked": checked,
         })
-    return {"generated_utc": iso_utc(now), "sources": out, "not_used": NOT_USED}
+    return {"generated_utc": iso_utc(now), "sources": out, "story_sources": STORY_SOURCES, "not_used": NOT_USED}
 
 
 def main(argv: Optional[list[str]] = None) -> int:
