@@ -19,7 +19,7 @@ try:
 except ImportError:  # pragma: no cover
     ZoneInfo = None  # type: ignore[assignment]
 
-FALLBACK_STATUS = "Live status loads here; the FAA's own page is nasstatus.faa.gov"
+FALLBACK_STATUS = "Checking the FAA's status page; if this stays blank see nasstatus.faa.gov"
 STALE_MIN = 30
 
 WORD_CLEAR = "No FAA delays reported"
@@ -172,12 +172,26 @@ def stale_notice_html(iso: Any, now: datetime) -> str:
     return f'{escape(main)} <span class="sn-long">FAA\'s own page:</span> {STALE_LINK_HTML}'
 
 
+def short_check_text(iso: Any, tz: str, now: datetime) -> str:
+    """Compact home verdict clock, with a day for readings over a day old."""
+    dt = parse_utc(iso)
+    if not dt:
+        return "time unknown"
+    local = dt.astimezone(ZoneInfo(tz))
+    minutes = age_minutes(iso, now)
+    day = (local.strftime("%a") if minutes < 10080 else f"{local.strftime('%b')} {local.day}") + " " if minutes >= 1440 else ""
+    return f"{day}{local.strftime('%I:%M %p').lstrip('0')} ({ago_text(minutes)})"
+
+
 def as_of_text(iso: Any, tz: str, now: datetime) -> str:
     """'as of 1:50 AM PST (12 hours ago)', or 'as of an unknown time'."""
     clock = clock_label(iso, tz)
     if not clock:
         return "as of an unknown time"
-    return f"as of {clock} ({ago_text(age_minutes(iso, now))})"
+    dt = parse_utc(iso)
+    if tz and ZoneInfo is not None:
+        dt = dt.astimezone(ZoneInfo(tz))
+    return f"as of {dt.strftime('%b')} {dt.day}, {dt.year}, {clock} ({ago_text(age_minutes(iso, now))})"
 
 
 ZONE_IDS = {
@@ -412,3 +426,16 @@ def airport_dateline(updated_utc: str, tz: str, place: str) -> str:
     except Exception:  # unknown zone name
         return ""
     return f"{dateline(local)} in {place}"
+
+
+def fallback_status(state: dict[str, Any], now: datetime | None = None) -> str:
+    """A dated build fallback; never infer a clear reading from absent data."""
+    iso = state.get("faa_updated_utc") or state.get("updated_utc")
+    if now is not None and (is_stale(age_minutes(iso, now)) or "FAA" in state.get("stale_feeds", [])):
+        return "Last FAA check " + short_check_text(iso, "America/New_York", now)
+    clock = clock_label(iso, "America/New_York")
+    if not clock:
+        return FALLBACK_STATUS
+    events = [e for e in state.get("events", []) if e.get("source") == "FAA"]
+    summary = f"{len(events)} FAA programs listed" if events else ("No FAA program listed" if state.get("board") else "airport readings unavailable")
+    return f"Latest FAA check {clock}: {summary}"

@@ -246,11 +246,11 @@ var ATD_ME = document.currentScript;
       var end = forecastEnd(text, issuedIso, TZ);
       return end == null || end <= Date.now();
     }
-    function showStale(iso) {
+    function showStale(iso, forced) {
       var n = document.getElementById("stale-notice");
       if (!n) { return; }
       var m = ageMin(iso);
-      if (!isStale(m)) { n.hidden = true; return; }
+      if (!forced && !isStale(m)) { n.hidden = true; return; }
       n.textContent = "This data is " + oldText(m) + ", not live. ";
       n.appendChild(el("span", "sn-long", "FAA's own page: "));
       var l = el("a", "stale-link");
@@ -291,7 +291,7 @@ var ATD_ME = document.currentScript;
     // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.
     function verdict(a, lvl, stale, label, asOf) {
       var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };
-      if (stale) { h.appendChild(tx(label + " at " + SHORT + ".")); return h; }
+      if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf + ".")); return h; }
       if (lvl === "night") { var sc = nightSchedule(a); h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed overnight")); h.appendChild(tx(sc ? ", reopens about " + sc.reopen + " local time." : ".")); return h; }
       if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }
       if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }
@@ -338,8 +338,8 @@ var ATD_ME = document.currentScript;
     }
     function render(data) {
       var updMin = ageMin(data && data.updated_utc);
-      var stale = isStale(updMin);
-      showStale(data && data.updated_utc);
+      var stale = isStale(updMin) || ((data && data.stale_feeds) || []).indexOf("FAA") >= 0;
+      showStale(data && data.updated_utc, stale);
       if (heading) { heading.textContent = stale ? "Last known status" : (datelineText(data && data.updated_utc) || "Latest FAA check"); }
       var a = data && data.airports && data.airports[CODE];
       if (checkedLine && a) {
@@ -397,10 +397,11 @@ var ATD_ME = document.currentScript;
         var wxText = w.now_text + (w.temp_f != null ? ", " + Math.round(w.temp_f) + "\u00b0F" : "");
         if (w.wind_kt != null) { wxText += ", wind " + windText(w, true); }
         var obsIso = w.obs_utc || data.updated_utc;
-        var wxAfter = stale
+        var wxStale = stale || isStale(ageMin(obsIso));
+        var wxAfter = wxStale
           ? ", " + (clockLabel(w.obs_utc) ? "observed " + clockLabel(w.obs_utc) + ", " : "") + agoText(ageMin(obsIso))
           : ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(obsIso, false);
-        box.appendChild(tile("fact--wx", stale ? WX_LABEL.stale : WX_LABEL.fresh, wxText, "aviationweather.gov METAR", wxAfter));
+        box.appendChild(tile("fact--wx", wxStale ? WX_LABEL.stale : WX_LABEL.fresh, wxText, "aviationweather.gov METAR", wxAfter));
       }
       // AN35: the next 3 hours sit in the hero (above the fold), with the TAF source and its age. Same rule as _render_live.
       var nx = document.getElementById("ap-next3");

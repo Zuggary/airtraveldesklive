@@ -123,7 +123,7 @@ class TestPagesFromFixtures(unittest.TestCase):
         for code, html in self.pages.items():
             text = _text(html)
             if code in self.missing:
-                self.assertIn("Live status loads here", text, code)
+                self.assertIn("Checking the FAA", text, code)
                 self.assertNotIn("No FAA delays reported", text, code)
                 self.assertNotIn('data-prerendered="1"', html, code)
             else:

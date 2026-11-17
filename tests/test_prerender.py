@@ -173,7 +173,7 @@ class TestAirportPrerender(_Built):
             out = Path(t) / "out"
             bap.build_pages(data_dir=d, out_dir=out, sitemap_path=None, build_date="2026-11-14", now=NOW)
             den = (out / "DEN.html").read_text(encoding="utf-8")
-        self.assertIn("Live status loads here; the FAA's own page is nasstatus.faa.gov", visible_text(den))
+        self.assertIn("Checking the FAA's status page; if this stays blank see nasstatus.faa.gov", visible_text(den))
         self.assertNotIn("No FAA delays reported", visible_text(den).split("Official pages")[0])
 
     def test_stale_data_shows_age_notice_text(self):
@@ -313,7 +313,7 @@ class TestHomePrerender(_Built):
         with tempfile.TemporaryDirectory() as t:
             page = ph.prerender((ROOT / "index.html").read_text(encoding="utf-8"), Path(t), NOW)
         text = visible_text(page)
-        self.assertIn("Live status loads here; the FAA's own page is nasstatus.faa.gov", text)
+        self.assertIn("Last FAA check time unknown", text)
         self.assertNotIn("<!--pr:", page)
 
     def test_command_line_writes_file_and_survives_bad_template(self):
@@ -337,7 +337,7 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
         cls.tpl = (ROOT / "index.html").read_text(encoding="utf-8")
 
     def test_template_is_clean_with_sensible_fallback(self):
-        self.assertIn("Live status loads here; the FAA's own page is nasstatus.faa.gov", self.tpl)
+        self.assertIn("Checking the FAA's status page; if this stays blank see nasstatus.faa.gov", self.tpl)
         for bad in BAD_STRINGS:
             self.assertNotIn(bad, self.tpl)
         for slot in ("summary", "updated", "events", "tsa", "stale"):
@@ -573,8 +573,8 @@ class TestStaleHonesty(unittest.TestCase):
         # AN34 round 3: one status block (eyebrow, H1, checked line); no repeat FAA tile.
         # AN34 round 4: the dateline line sits above the code lockup; stale, it reads "Last known status".
         self.assertIn("Last known status", text)
-        self.assertIn("No FAA delays reported at Atlanta.", text)
-        self.assertLess(text.index("Last known status"), text.index("No FAA delays reported at Atlanta."))
+        self.assertIn("No FAA delays reported at Atlanta, as of", text)
+        self.assertLess(text.index("Last known status"), text.index("No FAA delays reported at Atlanta, as of"))
         self.assertNotIn('class="card-status"', atl)
         self.assertIn("Source: FAA NAS status, last checked 4:50 AM EST.", text)
         self.assertIn("This data is 12 hours old, not live.", text)
@@ -625,7 +625,7 @@ class TestStaleHonesty(unittest.TestCase):
             self.assertNotIn(w, text, w)
         self.assertNotIn(" live ", text.replace("Watch live", "").replace("live video", "").replace("Live board", ""))
         self.assertIn("Last known status", text)
-        self.assertIn("FAA NAS status, last checked 4:50 AM EST.", text)
+        self.assertIn("FAA NAS status. See last check above.", text)
         self.assertLess(self.stale_home.index('id="stale-notice"'), self.stale_home.index('id="summary"'))
         self.assertNotIn('role="status" hidden', self.stale_home.split('id="stale-notice"')[1].split("</p>")[0])
 
@@ -635,9 +635,9 @@ class TestStaleHonesty(unittest.TestCase):
             _write(d / "state.json", {"updated_utc": UPDATED, "events": []})
             page = ph.prerender(self.template, d, LATER)
         text = visible_text(page)
-        # AN34: the headline carries no time when the data is old; the banner and the checked line date it.
-        self.assertIn("No delays or ground stops were listed at the 30 busiest airports", text)
-        self.assertIn("No FAA delays or ground stops were listed as of 4:50 AM EST (12 hours ago).", text)
+        # The stale verdict explicitly dates the limited FAA listing evidence.
+        self.assertIn("Last FAA check 4:50 AM (12 hours ago)", text)
+        self.assertIn("No FAA programs listed.", text)
         self.assertNotIn("right now", text)
 
     def test_fresh_home_keeps_live_words(self):
@@ -697,19 +697,19 @@ class TestBrowserHelpersAgree(unittest.TestCase):
     def test_outside_program_leads_the_headline(self):
         # AN34 round 3: a closure at an airport outside the list must not sit under a "no delays" headline.
         out = [{"airport": "SNA", "kind": "closure"}]
-        for stale, as_of, want in ((True, "as of 1:50 AM PST (12 hours ago)", "SNA was listed as closed. The 30 busiest airports were clear"),
-                                   (False, "", "SNA is closed. The 30 busiest airports are clear right now")):
+        for stale, as_of, want in ((True, "as of 1:50 AM PST (12 hours ago)", "Last FAA check 1:50 AM PST (12 hours ago)"),
+                                   (False, "", "SNA is closed. Airport readings unavailable")):
             self.assertEqual(ph.national_summary([], as_of, out), want)
             self.assertEqual(_js("ATD.nationalSummary([], DATA.a, DATA.o)", a=as_of, o=out), want)
         two = out + [{"airport": "PSP", "kind": "ground_delay"}]
         self.assertEqual(ph.national_summary([], "", two), _js("ATD.nationalSummary([], '', DATA.o)", o=two))
         self.assertTrue(ph.national_summary([], "", two).startswith("2 other airports have an FAA program."))
-        self.assertEqual(ph.national_summary([], ""), "No delays or ground stops at the 30 busiest airports right now")
+        self.assertEqual(ph.national_summary([], ""), "Airport readings unavailable")
 
     def test_stale_summary_and_latest(self):
         s = _js("ATD.nationalSummary([], DATA.a)", a="as of 1:50 AM PST (12 hours ago)")
-        self.assertEqual(s, "No delays or ground stops were listed at the 30 busiest airports")
-        self.assertIn("right now", _js("ATD.nationalSummary([])"))
+        self.assertEqual(s, "Last FAA check 1:50 AM PST (12 hours ago)")
+        self.assertIn("right now", _js("ATD.nationalSummary([{level:'clear'}])"))
         self.assertNotIn("right now", _js("ATD.impactText({kind:'closure'}, 'Denver', true)"))
         items = [{"text": "SFO · clear through 2 am Pacific (next 3 h)", "kind": "wx", "as_of_utc": "2026-11-14T08:51:00Z", "t_utc": "2026-11-14T09:50:00Z"},
                  {"text": "DEN · ground stop", "kind": "ground_stop", "t_utc": "2026-11-14T09:50:00Z"}]

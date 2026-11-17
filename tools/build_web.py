@@ -232,6 +232,7 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
         write_json(out_dir / "board-history.json", ex["history"])
     write_json(out_dir / "state.json", payload)
     cards = build_airport_cards(events, payload["board"], nws_by_airport, faa_updated, near_fetch=near_fetch, skip_near=skip_slow or nws_map is not None and near_fetch is None, extras=ex)
+    cards["stale_feeds"] = stale
     write_json(out_dir / "airports.json", cards)
     if not skip_slow:
         build_bts(out_dir)

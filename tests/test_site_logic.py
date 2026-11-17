@@ -124,7 +124,7 @@ class TestSummaryAndCountdown(unittest.TestCase):
         from tools import prerender_home as ph
         self.assertEqual(ph.trouble_line(ap2), want)  # the build and the browser say the same
         self.assertEqual(js("ATD.troubleLine(DATA.ap)", ap=[]), "")
-        self.assertIn("No delays", js("ATD.nationalSummary([])"))
+        self.assertEqual("Airport readings unavailable", js("ATD.nationalSummary([])"))
 
     def test_countdown(self):
         self.assertEqual(js("ATD.countdown(1000*60*60, 0)"), "ends in 1 h")

@@ -69,7 +69,8 @@
         <div class="hero-main">
           <p id="stale-notice" class="stale-notice" role="status" hidden><!--pr:stale--><!--/pr:stale--></p>
           <h2 id="now-heading" class="dateline"><span id="now-title"><!--pr:nowtitle-->Latest FAA check<!--/pr:nowtitle--></span></h2>
-          <h1 id="summary" class="verdict" aria-live="polite"><!--pr:summary-->Live status loads here; the FAA's own page is nasstatus.faa.gov<!--/pr:summary--></h1>
+          <h1 id="summary" class="verdict" aria-live="polite"><!--pr:summary-->Checking the FAA's status page; if this stays blank see nasstatus.faa.gov<!--/pr:summary--></h1>
+          <p class="small">No FAA program does not guarantee your flight is on time: check your airline.</p>
           <p class="lede"><span id="trouble-line"><!--pr:trouble--><!--/pr:trouble--></span></p>
 
           <div id="airports" class="search">
@@ -89,7 +90,7 @@
           <div class="live-card" id="live-card">
             <div class="live-card-thumb"><img src="assets/live/stream-thumb.jpg" width="320" height="180" alt="" loading="lazy" decoding="async"><span class="live-card-tag">LIVE</span></div>
             <div class="live-card-text">
-              <p class="live-card-title">Live now: delays read aloud</p>
+              <p class="live-card-title">On air: delays read aloud</p>
               <p class="live-card-sub">The FAA board on air, with a voice, around the clock.</p>
               <button type="button" class="chip chip--button" data-watch-open aria-controls="watch-drawer">Watch live</button>
             </div>
@@ -97,14 +98,15 @@
         </div>
 
         <figure id="map-section" class="mapcard">
+          <p id="map-date" class="dateline"><!--pr:mapdate--><!--/pr:mapdate--></p>
           <div class="map-wrap">
-            <canvas id="map" role="img" aria-label="Map of the lower 48 states with radar and the 30 busiest airports. Airports with delays are marked in amber, ground stops and closures in red."></canvas>
+            <canvas id="map" role="img" aria-label="Map of the lower 48 states with radar and the 30 busiest airports. Listed delays are marked in amber, ground stops and closures in red."></canvas>
           </div>
           <figcaption>
             <ul class="legend" aria-label="Map key">
-              <li><span class="swatch swatch--clear" aria-hidden="true"></span>Normal</li>
+              <li><span class="swatch swatch--clear" aria-hidden="true"></span>No FAA program listed</li>
               <li><span class="swatch swatch--delay" aria-hidden="true"></span>Delay</li>
-              <li><span class="swatch swatch--stop" aria-hidden="true"></span>Ground stop or closed</li>
+              <li><span class="swatch swatch--stop" aria-hidden="true"></span>Ground stop or closure listed</li>
             </ul>
             <span class="map-help">Tap a dot for that airport.</span>
             <span class="credit">Radar: NOAA MRMS. Outlines: Natural Earth. Airport status: FAA.</span>
@@ -123,13 +125,14 @@
         <button type="button" id="mine-clear" class="mine-clear">Clear</button>
         <span id="mine-undo" class="mine-undo" hidden aria-live="polite"></span>
       </div>
+      <p id="mine-date" class="dateline" hidden></p>
       <div id="mine-list" class="board-grid board-grid--mine"></div>
       <p class="board-note">Airports you star or open show here. Saved in this browser only.</p>
     </div>
 
     <section id="trouble" class="sec" aria-labelledby="trouble-heading">
       <div class="sec-head">
-        <h2 id="trouble-heading">Delays and closures now</h2>
+        <h2 id="trouble-heading">Delays and closures</h2>
       </div>
       <div id="events" class="events-list"><!--pr:events--><!--/pr:events--></div>
     </section>
@@ -140,8 +143,9 @@
       <div class="container">
       <div class="sec-head">
         <h2 id="board-heading">The 30 busiest US airports</h2>
-        <p>We watch all 100 busiest airports, and the headline counts all 100. This board lists the 30 busiest plus any other airport with trouble now. Trouble first, then traffic. Tap a row.</p>
+        <p>We watch all 100 busiest airports, and the headline counts all 100. This board lists the 30 busiest plus any other airport with a listed FAA program. Trouble first, then traffic. Tap a row.</p>
       </div>
+      <p id="board-date" class="dateline"><!--pr:boarddate--><!--/pr:boarddate--></p>
       <p id="board-note" class="board-note"></p>
       <div id="board" class="board"></div>
       <p class="board-more"><a class="more-link" href="/airports/">All 100 busiest airports, with a page for each</a></p>

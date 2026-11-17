@@ -214,12 +214,14 @@
     return c + (stale ? " had" : " has") + " delays. ";
   }
   function nationalSummary(airports, asOf, outside, nowMs) {
+    if (asOf) { return "Last FAA check " + asOf.replace(/^as of /, ""); }
+    if (!airports.length) { return outsideLead(outside, !!asOf, nowMs) + "Airport readings unavailable"; }
     var bad = 0;
     for (var i = 0; i < airports.length; i++) { if ((airports[i].level === "stop" || airports[i].level === "delay") && !isScheduledOnly(airports[i], nowMs)) { bad++; } }
     var n = airports.length > 30 ? airports.length : 30, lead = outsideLead(outside, !!asOf, nowMs);
-    if (!bad && lead) { return lead + "The " + n + " busiest airports " + (asOf ? "were clear" : "are clear right now"); }
-    // AN34: when the data is old (asOf set) the headline is past tense and carries no time; the banner and the checked line date it.
-    if (!bad) { return asOf ? "No delays or ground stops were listed at the " + n + " busiest airports" : "No delays or ground stops at the " + n + " busiest airports right now"; }
+    if (!bad && lead && !asOf) { return lead + "The " + n + " busiest airports " + (asOf ? "were clear" : "are clear right now"); }
+    // Stale absence is a dated FAA listing, not a claim about flight punctuality.
+    if (!bad) { return "No delays or ground stops at the " + n + " busiest airports right now"; }
     var ok = airports.length - bad;
     return ok + " of the " + airports.length + " busiest US airports " + (asOf ? "had no FAA delays at the last check" : (ok === 1 ? "has" : "have") + " no FAA delays right now");
   }
@@ -265,7 +267,7 @@
     // AN35: an airport inside its daily closed hours gets one calm sentence, not a count. Same rule as prerender_home.trouble_line.
     var nights = stale ? [] : airports.filter(function (a) { return nightReopen(a, nowMs); });
     nights.slice(0, 2).forEach(function (a) { out.push((a.short || a.name || a.code) + " (" + a.code + ") is closed overnight, reopens about " + nightReopen(a, nowMs) + " local time."); });
-    if (list.length > 3) { out.push((list.length - 3) + (list.length - 3 === 1 ? " more airport has" : " more airports have") + " an FAA program."); }
+    if (list.length > 3) { out.push((list.length - 3) + (stale ? " more airports had" : (list.length - 3 === 1 ? " more airport has" : " more airports have")) + " an FAA program."); }
     return out.join(" ");
   }
 
@@ -286,16 +288,16 @@
     var avg = fmtFaaDuration(ev.avg || (ev.fields && ev.fields.avg) || "");
     var max = fmtFaaDuration(ev.max || (ev.fields && ev.fields.max) || "");
     var dir = ev.direction || (ev.fields && ev.fields.direction) || "";
-    if (ev.kind === "ground_stop") { return "Flights bound for " + place + " are held at their departure airports until the stop ends."; }
+    if (ev.kind === "ground_stop") { return "Flights bound for " + place + (stale ? " were held at their departure airports." : " are held at their departure airports until the stop ends."); }
     if (ev.kind === "closure") { return stale ? place + " was listed as closed to flights." : place + " is closed to flights right now."; }
     if (ev.kind === "ground_delay") {
-      var s = "Flights bound for " + place + " are held at their departure airports";
+      var s = "Flights bound for " + place + (stale ? " were held at their departure airports" : " are held at their departure airports");
       if (avg) { s += ", about " + avg + " on average"; }
       if (max) { s += " and up to " + max; }
       return s + ".";
     }
     var d = dir ? dir.toLowerCase() + " " : "";
-    var t = "Expect " + d + "delays at " + place;
+    var t = (stale ? "FAA listed " : "Expect ") + d + "delays at " + place;
     if (avg) { t += " of about " + avg; }
     return t + ".";
   }
@@ -497,7 +499,7 @@
 
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
-    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, troubleLine: troubleLine, reasonWords: reasonWords, dateline: dateline,
+    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, dateline: dateline,
     closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,

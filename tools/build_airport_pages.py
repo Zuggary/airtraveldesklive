@@ -304,7 +304,7 @@ def _render_live(
             "level": "none",
         }
     age = pt.age_minutes(updated_utc, now)
-    stale = pt.is_stale(age)
+    stale = pt.is_stale(age) or bool(entry.get("_feed_stale"))
     at = (pt.parse_utc(updated_utc) or now) if stale else now  # a scheduled closure is judged at the data's own time when stale
     lvl = pt.effective_level(entry, at)
     word = pt.status_word(entry, at)
@@ -327,7 +327,7 @@ def _render_live(
         obs = pt.clock_label(wx.get("obs_utc"), tz)
         obs_age = pt.age_minutes(wx.get("obs_utc") or updated_utc, now)
         value = pt.weather_summary(wx)
-        if stale:
+        if stale or pt.is_stale(obs_age):
             label = "Last weather report"
             seen = f"observed {obs}, " if obs else ""
             after = f", {seen}{pt.ago_text(obs_age)}"
@@ -415,7 +415,7 @@ def _verdict(entry: dict[str, Any] | None, name: str, short: str, live: dict[str
     place = _esc(short)
     if live.get("stale"):
         word = pt.status_word(entry, pt.parse_utc(live.get("updated_utc")) or now)
-        return f"{_esc(word)} at {place}."
+        return f"{_esc(word)} at {place}, {_esc(live['as_of'])}."
     if lvl == "night":
         sched = _night_schedule(entry, now)
         return f"{place} is <em>closed overnight</em>" + (f", reopens about {_esc(sched['reopen'])} local time." if sched else ".")
@@ -1187,11 +1187,11 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var end = forecastEnd(text, issuedIso, TZ);',
         '      return end == null || end <= Date.now();',
         '    }',
-        '    function showStale(iso) {',
+        '    function showStale(iso, forced) {',
         '      var n = document.getElementById("stale-notice");',
         '      if (!n) { return; }',
         '      var m = ageMin(iso);',
-        '      if (!isStale(m)) { n.hidden = true; return; }',
+        '      if (!forced && !isStale(m)) { n.hidden = true; return; }',
         '      n.textContent = "This data is " + oldText(m) + ", not live. ";',
         '      n.appendChild(el("span", "sn-long", "FAA\'s own page: "));',
         '      var l = el("a", "stale-link");',
@@ -1232,7 +1232,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         "    // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.",
         '    function verdict(a, lvl, stale, label, asOf) {',
         '      var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };',
-        '      if (stale) { h.appendChild(tx(label + " at " + SHORT + ".")); return h; }',
+        '      if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf + ".")); return h; }',
         '      if (lvl === "night") { var sc = nightSchedule(a); h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed overnight")); h.appendChild(tx(sc ? ", reopens about " + sc.reopen + " local time." : ".")); return h; }',
         '      if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }',
         '      if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }',
@@ -1279,8 +1279,8 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '    }',
         '    function render(data) {',
         '      var updMin = ageMin(data && data.updated_utc);',
-        '      var stale = isStale(updMin);',
-        '      showStale(data && data.updated_utc);',
+        '      var stale = isStale(updMin) || ((data && data.stale_feeds) || []).indexOf("FAA") >= 0;',
+        '      showStale(data && data.updated_utc, stale);',
         '      if (heading) { heading.textContent = stale ? "Last known status" : (datelineText(data && data.updated_utc) || "Latest FAA check"); }',
         '      var a = data && data.airports && data.airports[CODE];',
         '      if (checkedLine && a) {',
@@ -1338,10 +1338,11 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        var wxText = w.now_text + (w.temp_f != null ? ", " + Math.round(w.temp_f) + "\\u00b0F" : "");',
         '        if (w.wind_kt != null) { wxText += ", wind " + windText(w, true); }',
         '        var obsIso = w.obs_utc || data.updated_utc;',
-        '        var wxAfter = stale',
+        '        var wxStale = stale || isStale(ageMin(obsIso));',
+        '        var wxAfter = wxStale',
         '          ? ", " + (clockLabel(w.obs_utc) ? "observed " + clockLabel(w.obs_utc) + ", " : "") + agoText(ageMin(obsIso))',
         '          : ", observed " + clockLabel(w.obs_utc) + ", " + ageLabel(obsIso, false);',
-        '        box.appendChild(tile("fact--wx", stale ? WX_LABEL.stale : WX_LABEL.fresh, wxText, "aviationweather.gov METAR", wxAfter));',
+        '        box.appendChild(tile("fact--wx", wxStale ? WX_LABEL.stale : WX_LABEL.fresh, wxText, "aviationweather.gov METAR", wxAfter));',
         '      }',
         '      // AN35: the next 3 hours sit in the hero (above the fold), with the TAF source and its age. Same rule as _render_live.',
         '      var nx = document.getElementById("ap-next3");',
@@ -1697,6 +1698,7 @@ def render_airport_page(
         f'          <p class="ap-name"><strong>{_esc(name)} ({_esc(code)})</strong><span>{_esc(city)}</span></p>',
         "        </div>",
         f'        <h1 id="ap-verdict" class="airport-page-title ap-verdict">{_verdict(live_entry, name, short, live, now, tz)}</h1>',
+        '        <p class="small">No FAA program does not guarantee your flight is on time: check your airline.</p>',
         *_lead(live_entry, short, code, live, now),
         (
             f'        <p id="ap-reason" class="ap-reason">Reason listed: {_esc(pt.reason_plain(live_entry["reason"]))}.</p>'
@@ -1850,7 +1852,7 @@ def render_index_page(
     live_cards = live_cards or {}
     now = now or pt.now_utc()
     live_age = pt.age_minutes(live_updated_utc, now) if live_updated_utc else None
-    live_ok = bool(live_cards) and not pt.is_stale(live_age)
+    live_ok = bool(live_cards) and not pt.is_stale(live_age) and not any(c.get("_feed_stale") for c in live_cards.values() if isinstance(c, dict))
     trouble = []
     for code in codes:
         card = live_cards.get(code)
@@ -1872,7 +1874,7 @@ def render_index_page(
                 rate_line = ""      # no BTS number for this airport: show nothing instead of 'unavailable' on every card
             card = live_cards.get(code)
             lv = pt.effective_level(card, now) if live_ok and isinstance(card, dict) else "none"
-            word = {"clear": "Normal", "delay": "Delays", "stop": "Ground stop", "closed": "Closed", "night": "Closed overnight"}.get(lv, "")
+            word = {"clear": "No FAA program listed", "delay": "Delays", "stop": "Ground stop", "closed": "Closed", "night": "Closed overnight"}.get(lv, "")
             hay = " ".join([code, name, city, STATE_NAMES.get(st, "")]).lower()
             sections.append(f'          <li class="airport-index-card idx--{lv}" data-q="{_esc(hay)}">')
             sections.append(
@@ -2032,6 +2034,10 @@ def build_pages(
     # Static facts come from desk/airports.py; the live data file adds the live parts.
     airports_map: dict[str, Any] = {}
     live_cards = airports_data.get("airports") or {}
+    if "FAA" in airports_data.get("stale_feeds", []):
+        for card in live_cards.values():
+            if isinstance(card, dict):
+                card["_feed_stale"] = True
     for code in desk_airports.BUSIEST_100:
         _, lat, lon = desk_airports.AIRPORTS[code]
         info = {

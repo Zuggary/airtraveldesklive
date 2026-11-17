@@ -6,7 +6,7 @@
   var STALE_MIN = A.STALE_MIN;   // one limit for "live" wording; lib.js and the Python build use the same 30
   var DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive";
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  var LEVEL_WORD = { clear: "Clear", delay: "Delay", stop: "Ground stop" };
+  var LEVEL_WORD = { clear: "No FAA program listed", delay: "Delay", stop: "Ground stop" };
   var FALLBACK_LEVEL = { green: "clear", amber: "delay", red: "stop" };
 
   var D = { hist: null, history: null, state: null, cards: null, places: null, guide: null, security: null, commit: null, bts: null, tsa: null, radarMeta: null, radarImg: null, geo: null };
@@ -64,7 +64,7 @@
 
   // AN35: the moment a scheduled closure is judged at: now, or the data's own time when the data is stale.
   function atMs() {
-    var u = D.state && D.state.updated_utc, ms = Date.parse(u || "");
+    var u = D.state && (D.state.faa_updated_utc || D.state.updated_utc), ms = Date.parse(u || "");
     return isFinite(ms) && A.isStale(ageMin(u)) ? ms : Date.now();
   }
   function ageMin(iso) {
@@ -79,16 +79,28 @@
   }
 
   // True when the FAA data is older than STALE_MIN (or has no time). Live words are not used then.
-  function isStaleIso(iso) { return A.isStale(ageMin(iso)); }
+  function isStaleIso(iso) { return A.isStale(ageMin(iso)) || !!(D.state && (D.state.stale_feeds || []).indexOf("FAA") >= 0) || !!(D.cards && (D.cards.stale_feeds || []).indexOf("FAA") >= 0); }
   function asOfText(iso, tz) {
     var ms = Date.parse(iso || "");
     var clock = isFinite(ms) ? fmtTime(new Date(ms), tz) : "";
-    return "as of " + (clock || "an unknown time") + (isFinite(ms) ? " (" + ageText(iso) + ")" : "");
+    return "as of " + (clock ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: tz || undefined }).format(new Date(ms)) + ", " + clock : "an unknown time") + (isFinite(ms) ? " (" + ageText(iso) + ")" : "");
+  }
+  function shortCheckText(iso) {
+    var ms = Date.parse(iso || ""), m = ageMin(iso);
+    if (!isFinite(ms)) { return "time unknown"; }
+    var d = new Date(ms);
+    var day = m >= 1440 ? new Intl.DateTimeFormat("en-US", m >= 10080 ? {month:"short",day:"numeric"} : {weekday:"short"}).format(d) + " " : "";
+    var clock = new Intl.DateTimeFormat("en-US", {hour:"numeric",minute:"2-digit"}).format(d);
+    return day + clock + " (" + ageText(iso) + ")";
   }
   function staleChipText(word, iso, tz) {
-    var ms = Date.parse(iso || "");
-    var clock = isFinite(ms) ? fmtTime(new Date(ms), tz) : "";
-    return "As of " + (clock || "an unknown time") + ": " + word.charAt(0).toLowerCase() + word.slice(1);
+    return /closed|closure/i.test(word) ? "Closure listed" : /^No FAA/.test(word) ? "No FAA program listed" : "Delay listed";
+  }
+
+  // Historical row labels stay compact even when a source time differs.
+  function rowStatus(word, a) {
+    if (!isStaleIso(D.state && (D.state.faa_updated_utc || D.state.updated_utc))) { return word; }
+    return word === "No FAA program listed" ? word : /clos/i.test(word) ? "Closure listed" : "Delay listed";
   }
 
   // ---------- data -> airport list ----------
@@ -155,7 +167,7 @@
   }
 
   function renderFreshness() {
-    var upd = D.state && D.state.updated_utc;
+    var upd = D.state && (D.state.faa_updated_utc || D.state.updated_utc);
     var m = ageMin(upd);
     var line = $("updated-line"), stale = $("stale-notice");
     if (!D.state) {
@@ -164,13 +176,18 @@
       return;
     }
     var clock = m == null ? "" : fmtTime(new Date(Date.parse(upd)));
-    var stale0 = A.isStale(m);
+    var stale0 = isStaleIso(upd);
+    ["board-date", "mine-date", "map-date"].forEach(function (id) {
+      var label = $(id);
+      if (label) { label.textContent = ""; label.hidden = true; }
+    });
+    if ($("trouble-heading")) { $("trouble-heading").textContent = "Delays and closures" + (stale0 ? " (last check)" : " now"); }
     // AN34 round 4: a dateline (the visitor's day and clock of the FAA check) in place of a pulsing "Right now".
     var dl = "Latest FAA check";
     if (m != null) { var dd = new Date(Date.parse(upd)); try { dl = A.dateline({ weekday: dd.toLocaleDateString("en-US", { weekday: "long" }), hour: dd.getHours(), clock: fmtTime(dd) }); } catch (e) { /* keep the plain label */ } }
     ($("now-title") || $("now-heading")).textContent = stale0 ? "Last known status" : dl;
     // AN35: this line is the one place the FAA data age is stated (the stale banner states it when the data is old).
-    line.textContent = m == null ? "Update time unavailable" : (stale0 ? A.faaAgePlain(m, clock, true) : "FAA data as of " + clock + ".");
+    line.textContent = m == null ? "Update time unavailable" : (stale0 ? "FAA NAS status. See last check above." : "FAA data as of " + clock + ".");
     var staleFeeds = (D.state.stale_feeds || []);
     if (staleFeeds.indexOf("FAA") >= 0) {
       // The job kept the last good FAA list because the FAA fetch failed; never present it as fresh.
@@ -188,16 +205,21 @@
   function renderSummary() {
     var s = $("summary"), tl = $("trouble-line");
     if (!D.state) { s.textContent = "Unable to load the latest FAA status."; return; }
-    var upd = D.state.updated_utc, stale = isStaleIso(upd);
+    var upd = D.state.faa_updated_utc || D.state.updated_utc, stale = isStaleIso(upd);
     var list = allAirports.length ? allAirports : airports;
     var have = {};
     list.forEach(function (a) { have[a.code] = 1; });
     var outside = faaEvents().filter(function (e) { return !have[String(e.airport || "")]; });
-    var text = A.nationalSummary(list, stale ? asOfText(upd) : "", outside, atMs());
+    var text = A.nationalSummary(list, stale ? shortCheckText(upd) : "", outside, atMs());
+    s.setAttribute("data-stale", String(stale));
     var m = /^(\d+ of the \d+)(.*)$/.exec(text);
     s.textContent = "";
     if (m) { s.appendChild(el("em", "ok", m[1])); s.appendChild(document.createTextNode(m[2])); } else { s.textContent = text; }
-    if (tl) { tl.textContent = nbspUnits(A.troubleLine(list, stale, atMs())); }
+    if (tl) {
+      var lede = A.troubleLine(list, stale, atMs());
+      if (stale) { lede = A.outsideLead(outside, true, atMs()) + (lede || "No FAA programs were listed at the " + Math.max(list.length, 30) + " busiest airports.") + " Current conditions unknown."; }
+      tl.textContent = nbspUnits(lede);
+    }
     renderChips();
   }
 
@@ -208,13 +230,14 @@
     c.href = "/airports/" + a.code;
     c.appendChild(el("span", "dot dot--" + lvl));
     c.appendChild(el("span", "pick-code", a.code));
-    var tail = "Normal";
+    var tail = "No FAA program listed";
     if (lvl !== "clear") {
       var closed = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
       var mins = null;
       (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });
       tail = closed ? "Closed" : lvl === "stop" ? "Ground stop" : mins != null ? nbspUnits(A.fmtMinutes(mins)) : "Delays";
     }
+    tail = rowStatus(tail, a);
     c.appendChild(el("span", "pick-tail", tail));
     return c;
   }
@@ -233,7 +256,7 @@
       mine.forEach(function (c) { if (allByCode[c]) { box.appendChild(chipFor(allByCode[c])); } });
     }
     if (trouble.length) {
-      box.appendChild(el("span", "picks-label", "Trouble now"));
+      box.appendChild(el("span", "picks-label", isStaleIso(D.state && (D.state.faa_updated_utc || D.state.updated_utc)) ? "Programs at last check" : "Trouble now"));
       trouble.forEach(function (a) { box.appendChild(chipFor(a)); });
     }
     if (!mine.length && !trouble.length) {
@@ -309,6 +332,7 @@
     card.appendChild(el("p", "event-impact", nbspUnits(A.impactText(ev, place, isStaleIso(D.state.updated_utc), ev.tz || a.tz, atMs()))));
     if (ev.reason && String(ev.reason).toLowerCase() !== "closed") { card.appendChild(el("p", "event-reason", "Reason: " + reasonText(ev.reason))); }
     var fig = eventFigure(ev, ev.tz || a.tz);
+    if (isStaleIso(D.state.updated_utc)) { fig.big = fig.big.replace("Open now", "Listed open").replace("Closed", "Closure listed"); fig.small = fig.small.replace("reopens about", "listed reopening").replace("closes again about", "listed closing"); }
     var big = el("p", "event-big");
     big.appendChild(el("b", null, nbspUnits(fig.big)));
     big.appendChild(el("small", null, fig.small));
@@ -345,7 +369,7 @@
     var list = faaEvents();
     if (!list.length) {
       var staleNow = isStaleIso(D.state.updated_utc);
-      box.appendChild(el("p", "empty-state", staleNow ? "No FAA delays or ground stops were listed " + asOfText(D.state.updated_utc) + "." : "No FAA delays or ground stops are listed right now."));
+      box.appendChild(el("p", "empty-state", staleNow ? "No FAA programs listed." : "No FAA delays or ground stops are listed right now."));
       return;
     }
     list.forEach(function (ev) { box.appendChild(eventCard(ev)); });
@@ -369,9 +393,9 @@
     ordered.sort(function (x, y) { return (y.w - x.w) || (x.i - y.i); }); // worst first, then the usual order
     var head = el("div", "bh");
     head.setAttribute("aria-hidden", "true");
-    ["Code", "City", "Past 24 h", "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
+    ["Code", "City", "Past 24 h", isStaleIso(D.state && (D.state.faa_updated_utc || D.state.updated_utc)) ? "FAA at last check" : "FAA now"].forEach(function (h) { head.appendChild(el("span", null, h)); });
     // AN34 round 3: full rows only for airports with an FAA program now or in the last 24 h. The rest,
-    // normal now and all day, fold into one compact grid of codes, so a calm day is not 30 rows of "Normal".
+    // normal now and all day, fold into one compact grid of codes, so a calm day is not 30 rows of "No FAA program listed".
     var busy = ordered.filter(function (o) { return o.w > 0 || o.a.level !== "clear" || histTrouble(o.a.code); });
     var quiet = ordered.filter(function (o) { return busy.indexOf(o) < 0; });
     var ncol = boardCols();
@@ -404,7 +428,7 @@
       qw.addEventListener("toggle", function () { quietOpen = qw.open; });
       var qs = el("summary", "quiet-head");
       qs.appendChild(el("span", "quiet-n", String(quiet.length)));
-      qs.appendChild(document.createTextNode(busy.length ? " more airports normal all day" : " airports, all normal all day"));
+      qs.appendChild(document.createTextNode(isStaleIso(D.state && (D.state.faa_updated_utc || D.state.updated_utc)) ? " airports with no FAA program listed" : busy.length ? " more airports normal all day" : " airports, all normal all day"));
       qs.appendChild(el("span", "quiet-codes", quiet.slice(0, 8).map(function (o) { return o.a.code; }).join(" ") + (quiet.length > 8 ? " \u2026" : "")));
       qw.appendChild(qs);
       var qg = el("div", "quiet-grid");
@@ -525,7 +549,7 @@
     b.href = "/airports/" + a.code;
     b.setAttribute("data-code", a.code);
     var word = tv ? tv.word : LEVEL_WORD[lvl];
-    b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + (lvl === "clear" ? "normal" : word) + (tv && tv.detail ? ", " + tv.detail : "") + (tv && tv.trendWord ? ", " + tv.trendWord : "") + ". Open airport page.");
+    b.setAttribute("aria-label", a.code + ", " + (a.short || a.name) + ": " + (lvl === "clear" ? "No FAA program listed" : word) + (tv && tv.detail ? ", " + tv.detail : "") + (tv && tv.trendWord ? ", " + tv.trendWord : "") + ". Open airport page.");
     if (a.code === currentCode) { b.setAttribute("aria-current", "true"); }
     b.appendChild(el("span", "tile-code", a.code));
     b.appendChild(el("span", "tile-name", a.short || a.name || a.code));
@@ -536,12 +560,12 @@
     if (lvl === "clear") {
       st.appendChild(el("span", "dot dot--clear"));
       // AN34 round 4: amber or red in the 24 h strip beside a clear airport means trouble earlier, now over; say so.
-      st.appendChild(el("span", "tile-ok", histTrouble(a.code) ? "Clear now" : "Normal"));
+      st.appendChild(el("span", "tile-ok", isStaleIso(D.state && (D.state.faa_updated_utc || D.state.updated_utc)) ? rowStatus("No FAA program listed", a) : "No FAA program listed now"));
     } else {
       var mins = null;
       (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });
       var closed = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
-      st.appendChild(el("span", "badge badge--" + lvl, closed ? "Closed" : mins != null ? nbspUnits(shortDur(mins)) : word));
+      st.appendChild(el("span", "badge badge--" + lvl, isStaleIso(D.state && D.state.updated_utc) ? rowStatus(closed ? "Closure listed" : word, a) : closed ? "Closed" : mins != null ? nbspUnits(shortDur(mins)) : word));
     }
     if (tv && tv.trendMark && lvl !== "clear") { st.appendChild(el("span", "tile-trend", { "\u2191": "worse", "\u2193": "better", "\u2192": "steady" }[tv.trendMark] || "")); }
     b.appendChild(st);
@@ -561,7 +585,7 @@
         b.setAttribute("data-code", a.code);
         b.appendChild(el("span", "result-code", a.code));
         b.appendChild(el("span", "result-name", (a.short || a.name) + (a.city ? ", " + a.city.split(", ").pop() : "")));
-        b.appendChild(el("span", "result-level", a.level === "clear" ? "Normal" : (LEVEL_WORD[a.level] || "Normal")));
+        b.appendChild(el("span", "result-level", isStaleIso(cardUpdated()) ? staleChipText(LEVEL_WORD[a.level] || "Status unavailable", cardUpdated(), a.tz) : (a.level === "clear" ? "No FAA program listed" : (LEVEL_WORD[a.level] || "Status unavailable"))));
         b.addEventListener("click", function () { setLast(a.code); });
         li.appendChild(b);
         list.appendChild(li);
@@ -606,7 +630,7 @@
     return a;
   }
 
-  function cardUpdated() { return (D.cards && D.cards.updated_utc) || (D.state && D.state.updated_utc); }
+  function cardUpdated() { return (D.cards && D.cards.updated_utc) || (D.state && (D.state.faa_updated_utc || D.state.updated_utc)); }
 
   function appendFaaStatus(box, a) {
     var lvl = A.LEVEL_RANK.hasOwnProperty(a.level) ? a.level : "clear";
@@ -621,7 +645,7 @@
     var evs = a.events || [];
     if (!evs.length) {
       box.appendChild(el("p", null, stale
-        ? "No FAA delay or ground stop was listed for " + (a.short || a.code) + " " + asOfText(cardUpdated(), a.tz) + "."
+        ? "No FAA delay or ground stop was listed for " + (a.short || a.code) + " at the last check."
         : "No FAA delay or ground stop is listed for " + (a.short || a.code) + " right now."));
     }
     evs.forEach(function (ev) {
@@ -657,15 +681,15 @@
     if (evs.length) {
       return evs.map(function (ev) { return A.impactText(ev, a.short || a.code, stale, a.tz, atMs()); }).join(" ");
     }
-    if (a.level === "stop") { return "FAA ground stop in effect"; }
-    if (a.level === "delay") { return "FAA delay program in effect"; }
+    if (a.level === "stop") { return stale ? "FAA ground stop was listed" : "FAA ground stop in effect"; }
+    if (a.level === "delay") { return stale ? "FAA delay program was listed" : "FAA delay program in effect"; }
     return "No FAA delay or ground stop";
   }
 
   function renderGuideNow(box, a) {
     if (!box) { return; }
     box.textContent = "";
-    var upd = (D.cards && D.cards.updated_utc) || (D.state && D.state.updated_utc);
+    var upd = (D.cards && D.cards.updated_utc) || (D.state && (D.state.faa_updated_utc || D.state.updated_utc));
     box.appendChild(el("p", "guide-now-line", isStaleIso(upd)
       ? "Last known status, " + asOfText(upd, a.tz) + ": " + faaPlainStatus(a, true)
       : "Right now: " + faaPlainStatus(a) + " \u00B7 updated " + ageText(upd)));
@@ -689,7 +713,7 @@
     if (b && b.ontime != null) {
       facts.appendChild(el("li", null, "On-time arrivals, " + D.bts.month_label + ": " + A.pct(b.ontime) + (b.ly_ontime != null ? " (" + D.bts.ly_month_label + ": " + A.pct(b.ly_ontime) + ")" : "") + " (BTS)"));
     }
-    var upd = D.cards && D.cards.updated_utc || (D.state && D.state.updated_utc);
+    var upd = D.cards && D.cards.updated_utc || (D.state && (D.state.faa_updated_utc || D.state.updated_utc));
     facts.appendChild(el("li", null, (isStaleIso(upd) ? "FAA status last checked " : "FAA data ") + (isStaleIso(upd) ? ageText(upd) : A.oldText(ageMin(upd)))));
     box.appendChild(facts);
     renderGuideNow(r.guideNow, a);

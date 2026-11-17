@@ -452,7 +452,7 @@
         </div>
         <div id="hist-line" class="hist-line off"></div>
         <div id="disruptions-list" class="disruptions-list">
-          <div class="empty-state">No FAA delays right now</div>
+          <div class="empty-state">Checking FAA status</div>
         </div>
       </section>
 
@@ -460,7 +460,7 @@
         <div id="board-head" class="panel-header">
           <div class="panel-title">30 busiest airports</div>
           <div class="board-key">
-            <span><i style="background:#22c55e"></i>clear</span>
+            <span><i style="background:#22c55e"></i>No FAA program listed</span>
             <span><i style="background:#eab308"></i>delay</span>
             <span><i style="background:#f97316"></i>ground delay</span>
             <span><i style="background:#dc2626"></i>stop</span>
@@ -1250,7 +1250,7 @@
   function wxLine(code) {
     const h = wxFor(code);
     if (!h || !h.now_text) return "";
-    let t = "Weather: " + h.now_text + " now";
+    let t = "Weather report: " + h.now_text;
     if (h.next3h_text) t += " · forecast: " + h.next3h_text;
     return t + " · aviationweather.gov · " + ageMin(h.obs_utc) + " min ago";
   }
@@ -1826,6 +1826,7 @@
 
   // ---------- disruptions (paged) ----------
   function countdownHtml(ev) {
+    if (faaStale()) return "";
     if (ev.kind !== "ground_stop") return "";
     if (!ev.end_utc) return '<span class="ev-count noend">end time not given</span>';
     return '<span class="ev-count" data-end="' + escapeHtml(ev.end_utc) + '"></span>';
@@ -1833,11 +1834,11 @@
 
   function renderDisruptions(events) {
     const listEl = document.getElementById("disruptions-list");
-    const key = JSON.stringify(events) + "|" + events.map((e) => wxLine(e.airport) + holdLine(e.airport, e.tz)).join("|");
+    const key = faaStale() + "|" + JSON.stringify(events) + "|" + events.map((e) => wxLine(e.airport) + holdLine(e.airport, e.tz)).join("|");
     if (key === lastCardsKey) return;
     lastCardsKey = key;
     if (events.length === 0) {
-      listEl.innerHTML = '<div class="empty-state">No FAA delays right now</div>';
+      listEl.innerHTML = '<div class="empty-state">' + (faaStale() ? 'No FAA program was listed ' + escapeHtml(faaAsOf()) : 'No FAA program listed now') + '</div>';
       pages = [[]];
       updateCount(0);
       return;
@@ -1857,7 +1858,7 @@
             '<span class="status-chip status-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>' +
           '</div>' +
           '<div class="event-body">' +
-            '<div class="event-meta"><span class="event-kind">' + escapeHtml(KIND_LABELS[kind] || kind) + '</span>' +
+            '<div class="event-meta"><span class="event-kind">' + escapeHtml((KIND_LABELS[kind] || kind)) + '</span>' +
               (numbers ? ' <span class="event-numbers">· ' + escapeHtml(numbers) + '</span>' : '') + '</div>' +
             '<div class="event-side">' +
               (ev.tz ? '<span class="ev-local">Local <span class="lt">' + escapeHtml(local) + '</span></span>' : '') +
@@ -1877,9 +1878,9 @@
   function updateCount(total) {
     const el = document.getElementById("disruptions-count");
     if (pages.length > 1) {
-      el.textContent = total + " active · page " + ((pageIdx % pages.length) + 1) + "/" + pages.length;
+      el.textContent = total + (faaStale() ? " listed at last check" : " active") + " · page " + ((pageIdx % pages.length) + 1) + "/" + pages.length;
     } else {
-      el.textContent = total + " active";
+      el.textContent = total + (faaStale() ? " listed at last check" : " active") + "";
     }
   }
 
@@ -1929,10 +1930,10 @@
       const fill = typeof t.fill === "number" ? t.fill : (st === "green" ? 0 : st === "red" ? 1 : 0.3);
       const cls = "tile st-" + st;
       if (d.className !== cls) d.className = cls;
-      d.title = t.code + " · " + (t.text || "clear") + (t.trend ? " · " + TREND_WORD[t.trend] : "") + " · FAA";
+      d.title = t.code + " · " + (t.text && !/^clear$/i.test(t.text) ? t.text : "No FAA program listed") + (t.trend ? " · " + TREND_WORD[t.trend] : "") + " · FAA";
       d.firstChild.style.width = (fill * 100).toFixed(1) + "%";
       const m = d.querySelector(".mins");
-      const txt = t.text || (st === "green" ? "clear" : "");
+      const txt = (t.text && !/^clear$/i.test(t.text) ? t.text : (st === "green" ? "No FAA program listed" : ""));
       if (m.textContent !== txt) {
         const had = m.textContent !== "";
         m.textContent = txt;
@@ -2181,7 +2182,7 @@
     let txt = "";
     if (h && typeof h.now_count === "number" && typeof h.week_ago_count === "number") {
       const hr = (h.hour_utc || "").replace("T", " ").replace("Z", " UTC");
-      txt = "FAA delays now " + h.now_count + " · this hour last week " + h.week_ago_count + " · FAA log, " + hr;
+      txt = "FAA delays " + (faaStale() ? faaAsOf() + " " : "now ") + h.now_count + " · this hour last week " + h.week_ago_count + " · FAA log, " + hr;
     }
     const was = el.classList.contains("off");
     el.textContent = txt;
@@ -2200,6 +2201,7 @@
     return m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago";
   }
   function ingestTicker(items) {
+    if (faaStale()) return;
     const now = Date.now();
     for (const it of items || []) {
       if (!it || !it.id || tickShown[it.id] || tickQueue.some((q) => q.id === it.id)) continue;
@@ -2229,6 +2231,7 @@
     tickStandby = standby;
   }
   function tickStep() {
+    if (faaStale()) { tickQueue.length = 0; }
     const now = Date.now();
     if (now < tickUntil) return;
     const nx = tickQueue.shift();
@@ -2249,21 +2252,29 @@
   }
   function updateTickerText(lines) { /* the voice lines no longer scroll here; see ingestTicker */ }
 
+  function faaStale() {
+    const ms = Date.parse(currentState.faa_updated_utc || currentState.updated_utc || "");
+    return !Number.isFinite(ms) || Date.now() - ms > 20 * 60 * 1000 || (currentState.stale_feeds || []).indexOf("FAA") >= 0;
+  }
+  function faaAsOf() {
+    const ms = Date.parse(currentState.faa_updated_utc || currentState.updated_utc || "");
+    return "as of " + (Number.isFinite(ms) ? new Date(ms).toLocaleString("en-US", {timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short"}) + " (" + ageText(new Date(ms).toISOString()) + ")" : "an unknown time");
+  }
   function updateStaleBanner() {
     const banner = document.getElementById("stale-banner");
     const detail = document.getElementById("stale-detail");
     const staleFeeds = Array.isArray(currentState.stale_feeds) ? currentState.stale_feeds : [];
-    let isOld = false;
+    let isOld = faaStale();
     if (currentState.updated_utc) {
       const ms = Date.parse(currentState.updated_utc);
-      if (!Number.isNaN(ms) && (Date.now() - ms) > 20 * 60 * 1000) isOld = true;
+      if (!Number.isFinite(ms) || (Date.now() - ms) > 20 * 60 * 1000) isOld = true;
     }
     if (isOld || staleFeeds.length > 0) {
       banner.classList.add("visible");
       const parts = [];
       if (isOld) parts.push("no update in 20 min");
       if (staleFeeds.length > 0) parts.push("feeds: " + staleFeeds.join(", "));
-      detail.textContent = "Data stale: " + parts.join("; ");
+      detail.textContent = "FAA status " + faaAsOf() + ". Data stale: " + parts.join("; ");
     } else {
       banner.classList.remove("visible");
       detail.textContent = "";
@@ -2307,8 +2318,8 @@
       if (mk.className !== mc) { mk.className = mc; mk.title = day ? "daytime" : "night"; }
       const chip = document.getElementById("chip-" + k);
       const n = zc[k] ? zc[k].affected : null;
-      const ct = n == null ? "--" : n === 0 ? "clear" : n + (n === 1 ? " delay" : " delays");
-      if (chip.textContent !== ct) { chip.textContent = ct; chip.className = "zchip" + (n ? " hit" : ""); chip.title = n == null ? "" : n + " of " + (zc[k].hubs) + " busiest-30 airports in this zone have an FAA program"; }
+      const ct = (n == null ? "--" : n === 0 ? "No FAA program listed" : n + (n === 1 ? " delay" : " delays"));
+      if (chip.textContent !== ct) { chip.textContent = ct; chip.className = "zchip" + (n ? " hit" : ""); chip.title = n == null ? "" : n + " of " + (zc[k].hubs) + " busiest-30 airports in this zone " + (faaStale() ? "had" : "have") + " an FAA program"; }
     }
     document.getElementById("clock-UTC").textContent = fmtClock("UTC", false).format(now);
     document.querySelectorAll(".event-card").forEach((c) => {
@@ -2452,6 +2463,7 @@
     try {
       const r = await fetch(stateUrl, { cache: "no-store" });
       const st = await r.json();
+      if (!st.updated_utc || Date.now() - Date.parse(st.faa_updated_utc || st.updated_utc) > 20 * 60 * 1000 || (st.stale_feeds || []).indexOf("FAA") >= 0) { lastRecap = ""; return; }
       const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
       for (const l of lines) {
         if (/^Right now/.test(l.text)) lastRecap = l.text;
@@ -2471,7 +2483,9 @@
     // Start with the latest lines only, so turning voice on does not replay the whole log.
     try {
       const r = await fetch(stateUrl, { cache: "no-store" });
-      const st = await r.json(); const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
+      const st = await r.json();
+      if (!st.updated_utc || Date.now() - Date.parse(st.faa_updated_utc || st.updated_utc) > 20 * 60 * 1000 || (st.stale_feeds || []).indexOf("FAA") >= 0) { say("FAA data is stale. Check nasstatus.faa.gov."); return; }
+      const lines = Array.isArray(st.last_lines) ? st.last_lines : [];
       lines.forEach(l => seen.add(key(l)));
       const recap = [...lines].reverse().find(l => /^Right now/.test(l.text));
       say("Air Travel Desk. " + (recap ? recap.text : (lines.length ? lines[lines.length - 1].text : "Watching FAA airport status.")));

@@ -261,8 +261,8 @@ class TestHomeScheduledClosure(unittest.TestCase):
             ms = int(now.timestamp() * 1000)
             self.assertEqual(self.js("ATD.nationalSummary([], DATA.a, DATA.o, DATA.n)", a="as of 1:50 AM" if stale else "", o=out, n=ms),
                              ph.national_summary([], "as of 1:50 AM" if stale else "", out, now))
-        self.assertEqual(ph.national_summary([], "", out, NIGHT), "SNA is closed overnight, reopens about 6:15 AM local time. The 30 busiest airports are clear right now")
-        self.assertEqual(ph.national_summary([], "", out, DAY), "No delays or ground stops at the 30 busiest airports right now")
+        self.assertEqual(ph.national_summary([], "", out, NIGHT), "SNA is closed overnight, reopens about 6:15 AM local time. Airport readings unavailable")
+        self.assertEqual(ph.national_summary([], "", out, DAY), "Airport readings unavailable")
 
     def test_scheduled_airport_is_not_trouble_and_gets_one_calm_line(self):
         card = sna_card()
@@ -288,7 +288,7 @@ class TestHomeScheduledClosure(unittest.TestCase):
     def test_home_one_age_line_and_board_note(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("We watch all 100 busiest airports", index)
-        self.assertIn("lists the 30 busiest plus any other airport with trouble now", index)
+        self.assertIn("lists the 30 busiest plus any other airport with a listed FAA program", index)
         self.assertEqual(index.count("We watch all 100 busiest airports"), 1)
         app = (ROOT / "app.js").read_text(encoding="utf-8")
         self.assertNotIn("We check every 5 minutes", app)

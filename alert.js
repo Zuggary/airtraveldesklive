@@ -83,7 +83,7 @@
     top.appendChild(el(doc, "span", "atd-alert-tag", "BREAKING"));
     if (model.label) { top.appendChild(el(doc, "span", "atd-alert-label", model.label)); }
     inner.appendChild(top);
-    inner.appendChild(el(doc, "p", "atd-alert-h", model.headline));
+    inner.appendChild(el(doc, "p", "atd-alert-h", "Report as of " + (model.updatedMs === null ? "an unknown time" : timeText(model.updatedMs)) + ": " + model.headline));
     if (model.status) { inner.appendChild(el(doc, "p", "atd-alert-status", model.status)); }
     if (model.points.length) {
       var det = el(doc, "details", "atd-alert-more");
