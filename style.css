@@ -382,9 +382,11 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 }
 @media (min-width: 1000px) {
   .board-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .bh { display: grid; grid-template-columns: 44px minmax(0, 1fr) 64px 92px; gap: 10px; padding: 8px 14px; font-size: 0.72rem; color: var(--text-faint); border-bottom: 1px solid var(--line); }
+  .bh { display: grid; grid-template-columns: 44px minmax(0, 1fr) 64px 124px; gap: 10px; padding: 8px 14px; font-size: 0.72rem; color: var(--text-faint); border-bottom: 1px solid var(--line); }
   .bh span:last-child { text-align: right; }
-  .br { grid-template-columns: 44px minmax(0, 1fr) 64px 92px; grid-template-areas: "c n h s"; gap: 10px; padding: 6px 14px; }
+  .br { grid-template-columns: 44px minmax(0, 1fr) 64px 124px; grid-template-areas: "c n h s"; gap: 10px; padding: 6px 14px; }
+  .tile-level { max-width: 124px; white-space: nowrap; justify-content: flex-end; min-width: 0; }
+  .br .tile-trend { display: none; }      /* AN52: the status column is a fixed 124px, so a long status never sits on the 24 h bars */
   .board-col .br:nth-child(2) { border-top: 0; }
   .hist24 { display: grid; grid-area: h; }
 }
@@ -928,7 +930,7 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 /* the board: one state per row (FAA now), with a small 24 h strip on phones too */
 .tile-ok { display: inline; }
 @media (max-width: 639px) {
-  .br { grid-template-columns: minmax(0, 1fr) 76px auto; grid-template-areas: "c h s" "n h s"; gap: 0 12px; }
+  .br { grid-template-columns: minmax(0, 1fr) 76px 104px; grid-template-areas: "c h s" "n h s"; gap: 0 12px; }      /* AN52: fixed status column so the strips line up and a long status never sits on them */
   .hist24 { display: grid; grid-area: h; height: 14px; align-self: center; }
 }
 .board-quiet > summary { list-style: none; cursor: pointer; min-height: 48px; margin: 0; flex-wrap: wrap; font-size: var(--fs-sm); }
@@ -1263,3 +1265,6 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .live-card-title { margin: 0 0 2px; font-weight: 700; font-size: 1rem; line-height: 1.25; }
 .live-card-sub { margin: 0 0 8px; font-size: 0.8125rem; line-height: 1.35; color: var(--text-muted); }
 .live-card .chip { min-height: 44px; }
+
+.sec-head p { max-width: 70ch; min-width: 0; overflow-wrap: anywhere; }
+.board-band .sec-head { min-width: 0; }
