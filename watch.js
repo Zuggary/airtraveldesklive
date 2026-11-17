@@ -106,7 +106,13 @@
       box.insertBefore(f, sound);
     }
     function checkMuted() {
-      try { sound.hidden = !(embedPlayer && embedPlayer.getMuted()); } catch (e) { sound.hidden = true; }
+      try {
+        if (!embedPlayer) { sound.hidden = true; return; }
+        var paused = embedPlayer.isPaused();
+        if (paused) { sound.textContent = "\u25B6 Tap to play with sound"; sound.hidden = false; }
+        else if (embedPlayer.getMuted()) { sound.textContent = "Tap for sound"; sound.hidden = false; }
+        else { sound.hidden = true; }
+      } catch (e) { sound.hidden = true; }
     }
     function mountPlayer() {
       var holder = el(doc, "div", "watch-holder");
@@ -122,7 +128,7 @@
             var ifr = holder.querySelector("iframe");
             if (ifr) { showIframe(ifr); }
             try { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); embedPlayer.play(); } catch (e) { /* keep going */ }
-            win.setTimeout(checkMuted, 1500);
+            win.setTimeout(checkMuted, 2000);
           });
           embedPlayer.addEventListener(win.Twitch.Player.PLAYING, function () { win.setTimeout(checkMuted, 800); });
         } catch (e) { if (holder.parentNode) { holder.parentNode.removeChild(holder); } embedPlayer = null; fallbackIframe(); }
@@ -137,8 +143,9 @@
       embedWait = win.setTimeout(function () { if (!done) { done = true; if (holder.parentNode) { holder.parentNode.removeChild(holder); } fallbackIframe(); } }, 4000);
     }
     sound.addEventListener("click", function () {
-      try { if (embedPlayer) { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); } } catch (e) { /* ignore */ }
+      try { if (embedPlayer) { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); embedPlayer.play(); } } catch (e) { /* ignore */ }
       sound.hidden = true;
+      win.setTimeout(checkMuted, 1500);
     });
 
     function setOpen(next, fromTeaser) {

@@ -57,6 +57,8 @@ class WatchTest(unittest.TestCase):
         self.assertIn("muted: false", js)
         self.assertIn("setMuted(false)", js)
         self.assertIn("Tap for sound", js)
+        self.assertIn("Tap to play with sound", js)
+        self.assertIn("isPaused()", js)
         self.assertNotIn("muted=true", js)
         self.assertIn("https://player.twitch.tv/js/embed/v1.js", js)
         self.assertNotIn("player.twitch.tv", (ROOT / "index.html").read_text(encoding="utf-8"))      # nothing from Twitch before the press
