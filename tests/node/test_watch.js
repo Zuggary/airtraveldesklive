@@ -3,7 +3,7 @@ const w = require("../../watch.js");
 const src = w.playerSrc(w.CHANNEL, w.PARENTS);
 assert.ok(src.startsWith("https://player.twitch.tv/?channel=airtraveldesklive"));
 assert.ok(src.includes("&parent=www.airtraveldesklive.com") && src.includes("&parent=airtraveldesklive.com"));
-assert.ok(src.endsWith("&muted=true"));
+assert.ok(src.endsWith("&muted=false&autoplay=true"));
 const now = Date.parse("2026-11-17T01:00:00Z");
 assert.strictEqual(w.liveState({ live: true, checked_utc: "2026-11-17T00:56:00Z" }, now), "live");
 assert.strictEqual(w.liveState({ live: false, checked_utc: "2026-11-17T00:56:00Z" }, now), "off");

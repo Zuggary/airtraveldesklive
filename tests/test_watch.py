@@ -52,6 +52,15 @@ class WatchTest(unittest.TestCase):
             self.assertIn(guard, js)
         self.assertIn("SKIP_SCRIPTS", js)
 
+    def test_sound_on_at_the_press_with_a_tap_for_sound_fallback(self):
+        js = (ROOT / "watch.js").read_text(encoding="utf-8")
+        self.assertIn("muted: false", js)
+        self.assertIn("setMuted(false)", js)
+        self.assertIn("Tap for sound", js)
+        self.assertNotIn("muted=true", js)
+        self.assertIn("https://player.twitch.tv/js/embed/v1.js", js)
+        self.assertNotIn("player.twitch.tv", (ROOT / "index.html").read_text(encoding="utf-8"))      # nothing from Twitch before the press
+
     def test_node_unit(self):
         r = subprocess.run(["node", str(ROOT / "tests/node/test_watch.js")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)

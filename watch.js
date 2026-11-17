@@ -9,10 +9,10 @@
   var STALE_MS = 15 * 60 * 1000;
   var LIVE_POLL_MS = 5 * 60 * 1000;
 
-  /* The player address: the channel, the two site domains as parent, muted so a phone does not start loud. Pure. */
+  /* The player address (fallback when the embed script is unavailable): the channel, the two site domains as parent, sound on, autoplay. The press is the user gesture. Pure. */
   function playerSrc(channel, parents) {
     return "https://player.twitch.tv/?channel=" + encodeURIComponent(channel) +
-      parents.map(function (p) { return "&parent=" + encodeURIComponent(p); }).join("") + "&muted=true";
+      parents.map(function (p) { return "&parent=" + encodeURIComponent(p); }).join("") + "&muted=false&autoplay=true";
   }
 
   function el(doc, tag, cls, text) {
@@ -83,22 +83,71 @@
     var hideTimer = null;
     var reduce = win.matchMedia && win.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+
+    /* The player: Twitch's own embed script (loaded only on the press, from player.twitch.tv) so we can turn the sound on and see whether the browser
+       forced it muted; if that script does not load in 4 s, a plain iframe with sound on and autoplay. A "Tap for sound" pill shows when the browser kept it muted. */
+    var embedPlayer = null, embedWait = null;
+    var sound = el(doc, "button", "watch-sound", "Tap for sound");
+    sound.type = "button";
+    sound.hidden = true;
+    box.insertBefore(sound, mini);
+    function showIframe(node) {
+      node.classList.add("watch-player");
+      node.setAttribute("title", "Air Travel Desk live video on Twitch");
+    }
+    function fallbackIframe() {
+      if (box.querySelector("iframe") || !isOpen) { return; }
+      var f = doc.createElement("iframe");
+      f.src = playerSrc(CHANNEL, PARENTS);
+      f.allowFullscreen = true;
+      f.setAttribute("allow", "autoplay; fullscreen");
+      f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      showIframe(f);
+      box.insertBefore(f, sound);
+    }
+    function checkMuted() {
+      try { sound.hidden = !(embedPlayer && embedPlayer.getMuted()); } catch (e) { sound.hidden = true; }
+    }
+    function mountPlayer() {
+      var holder = el(doc, "div", "watch-holder");
+      box.insertBefore(holder, sound);
+      var done = false;
+      function build() {
+        if (done || !isOpen) { return; }
+        done = true;
+        win.clearTimeout(embedWait);
+        try {
+          embedPlayer = new win.Twitch.Player(holder, { channel: CHANNEL, parent: PARENTS, muted: false, autoplay: true, width: "100%", height: "100%" });
+          embedPlayer.addEventListener(win.Twitch.Player.READY, function () {
+            var ifr = holder.querySelector("iframe");
+            if (ifr) { showIframe(ifr); }
+            try { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); embedPlayer.play(); } catch (e) { /* keep going */ }
+            win.setTimeout(checkMuted, 1500);
+          });
+          embedPlayer.addEventListener(win.Twitch.Player.PLAYING, function () { win.setTimeout(checkMuted, 800); });
+        } catch (e) { if (holder.parentNode) { holder.parentNode.removeChild(holder); } embedPlayer = null; fallbackIframe(); }
+      }
+      if (win.Twitch && win.Twitch.Player) { build(); return; }
+      var sc = doc.createElement("script");
+      sc.src = "https://player.twitch.tv/js/embed/v1.js";
+      sc.async = true;
+      sc.onload = build;
+      sc.onerror = function () { done = true; if (holder.parentNode) { holder.parentNode.removeChild(holder); } fallbackIframe(); };
+      doc.head.appendChild(sc);
+      embedWait = win.setTimeout(function () { if (!done) { done = true; if (holder.parentNode) { holder.parentNode.removeChild(holder); } fallbackIframe(); } }, 4000);
+    }
+    sound.addEventListener("click", function () {
+      try { if (embedPlayer) { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); } } catch (e) { /* ignore */ }
+      sound.hidden = true;
+    });
+
     function setOpen(next, fromTeaser) {
       if (next === isOpen) { return; }
       isOpen = next;
       btn.setAttribute("aria-expanded", next ? "true" : "false");
       win.clearTimeout(hideTimer);
       if (next) {
-        if (!box.querySelector("iframe")) {
-          var f = doc.createElement("iframe");
-          f.src = playerSrc(CHANNEL, PARENTS);
-          f.title = "Air Travel Desk live video on Twitch";
-          f.allowFullscreen = true;
-          f.setAttribute("allow", "autoplay; fullscreen");
-          f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-          f.className = "watch-player";
-          box.insertBefore(f, mini);
-        }
+        if (!box.querySelector("iframe")) { mountPlayer(); }
         drawer.hidden = false;
         if (reduce) { drawer.classList.add("open"); } else { win.requestAnimationFrame(function () { win.requestAnimationFrame(function () { drawer.classList.add("open"); }); }); }
         if (win.scrollY > 120) { win.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); }
@@ -106,8 +155,11 @@
       } else {
         drawer.classList.remove("open");
         undock();
-        var old = box.querySelector("iframe");
-        if (old) { box.removeChild(old); }                       /* removing the player stops the video and its sound */
+        win.clearTimeout(embedWait);
+        embedPlayer = null;
+        sound.hidden = true;
+        var old = box.querySelector(".watch-holder, iframe");
+        while (old) { old.parentNode.removeChild(old); old = box.querySelector(".watch-holder, iframe"); }                       /* removing the player stops the video and its sound */
         hideTimer = win.setTimeout(function () { if (!isOpen) { drawer.hidden = true; } }, reduce ? 0 : 320);
       }
     }
