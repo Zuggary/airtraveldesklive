@@ -110,6 +110,7 @@ class TestAirportPagesGenerator(unittest.TestCase):
         cls.bts = json.loads((cls.data_dir / "bts.json").read_text(encoding="utf-8"))
 
         cls.allowed_urls: set[str] = {
+            "https://www.youtube.com/@AirTravelDeskLive/live", "https://www.twitch.tv/airtraveldesklive",
             DOWNTIME_URL,
             f"{SITE_URL}/",
             f"{SITE_URL}/og.png",

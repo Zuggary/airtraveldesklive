@@ -69,7 +69,7 @@ class TestAirportPolish(unittest.TestCase):
             self.assertRegex(nav, r'href="/airports/" aria-current="page">Airports<')
 
     def test_stuck_button_is_accent(self) -> None:
-        lead = r'id="flight-btn" class="btn btn-accent">Check my flight'
+        lead = r'id="flight-btn" class="btn btn-accent">Check flight status with your airline'
         self.assertRegex(self.sfo, lead)
         self.assertIn("I&#x27;m stuck guide" if "I&#x27;m stuck guide" in self.sfo else "I'm stuck guide", self.sfo)
         css = (ROOT / "style.css").read_text(encoding="utf-8")

@@ -11,5 +11,5 @@ assert(stuck.indexOf('Do this first') < stuck.indexOf('id="airline-options"'));
 assert(read("stuck.js").includes('receipts.open = true'));
 const sw = read("sw.js");
 for (const asset of ["./stuck", "./stuck.js", "./style.css"]) assert(sw.includes('"' + asset + '"'));
-assert(sw.includes('atd-offline-v16'));
+assert(sw.includes('atd-offline-v17'));
 console.log("Immediate help checks passed");

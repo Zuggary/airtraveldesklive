@@ -46,7 +46,7 @@ class TestStuckStaticChecks(unittest.TestCase):
         # AN25: the DOT and eCFR pages cited in the "Ask before you pay" section are listed, with read dates and
         # exact quotes, in data/ask-first-sources.json. No other external URL is allowed.
         listed = {s["url"] for s in json.loads(read_text("data/ask-first-sources.json"))["sources"]}
-        allowed = listed | {DOWNTIME_URL}
+        allowed = {"https://www.youtube.com/@AirTravelDeskLive/live", "https://www.twitch.tv/airtraveldesklive"} | listed | {DOWNTIME_URL}
         for name, text in (("stuck.html", self.stuck_html), ("stuck.js", self.stuck_js)):
             found = URL_RE.findall(text)
             for url in found:
@@ -96,7 +96,7 @@ class TestStuckStaticChecks(unittest.TestCase):
             privacy,
         )
         self.assertNotIn("stores nothing in your browser", privacy)
-        self.assertIn("player.twitch.tv", privacy)
+        self.assertIn("www.youtube.com", privacy)
 
     def test_workflow_copies_all_public_root_files(self):
         yml = read_text(".github/workflows/status.yml")

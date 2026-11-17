@@ -112,7 +112,7 @@ class TestAboutPage(unittest.TestCase):
         emails = set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", self.text))
         self.assertEqual(emails, {"hello@airtraveldesklive.com"})
         self.assertEqual(
-            self.text.count("@"),
+            self.text.replace("https://www.youtube.com/@AirTravelDeskLive/live", "").count("@"),
             self.text.count("hello@airtraveldesklive.com"),
             "No '@' other than hello@airtraveldesklive.com should appear in about.html",
         )

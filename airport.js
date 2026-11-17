@@ -392,8 +392,9 @@ var ATD_ME = document.currentScript;
       var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";
       if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }
       if (hero) { hero.className = hero.className.replace(/\bap-hero--\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }
-      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "clear" : lvl); }
+      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "stale" : lvl); }
       scaleHelp(stale ? "stale" : lvl);
+      var map = document.getElementById("ap-map"); if (map) { map.setAttribute("data-status", stale || unknown ? "stale" : lvl); }
       var pulse = document.querySelector("#ap-now-title .pulse");
       if (pulse) { pulse.className = "pulse pulse--" + (stale ? "stale" : lvl); }
       var w = a.wx;

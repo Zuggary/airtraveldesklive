@@ -19,6 +19,8 @@
     try { return window.getComputedStyle(canvas).getPropertyValue(name).trim() || fb; } catch (e) { return fb; }
   }
   function level(a) {
+    var age = Date.now() - Date.parse(cards && cards.updated_utc || "");
+    if (!isFinite(age) || age > 30 * 60000 || age < -5 * 60000 || (cards.stale_feeds || []).indexOf("FAA") >= 0 || ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { return "none"; }
     if ((a.events || []).some(function (e) { return e && e.kind === "closure"; })) { return "stop"; }
     return a.level === "stop" || a.level === "delay" ? a.level : "clear";
   }

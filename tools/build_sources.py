@@ -52,7 +52,7 @@ SOURCES: list[dict[str, Any]] = [
      "update": "Every 5 minutes (full sweep about every 15 minutes)", "file": "national.json", "key": "fetched_utc", "kind": "time"},
     {"id": "twitch-live", "group": "site", "name": "decapi.me (is the Twitch stream live)", "page": "https://decapi.me/",
      "terms": "https://decapi.me/", "licence": "Free public API, no key; one check per run, made by our server, not by visitors",
-     "used_for": "The Watch live button's Live or Offline label",
+     "used_for": "Secondary Twitch stream uptime only; does not establish YouTube availability",
      "update": "Every 5 minutes", "file": "live.json", "key": "checked_utc", "kind": "time"},
     {"id": "osm", "group": "site", "name": "OpenStreetMap via Overpass", "page": "https://www.openstreetmap.org/",
      "terms": "https://www.openstreetmap.org/copyright", "licence": "ODbL (© OpenStreetMap contributors)",

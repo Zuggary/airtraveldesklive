@@ -1310,3 +1310,10 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .do-first h2 { margin: 0 0 8px; }
 .do-first ul { list-style: none; padding: 0; margin: 0; }
 .do-first a { display: block; padding: 10px 0; min-height: 44px; }
+
+/* Wide closure rows leave room for the airport name. */
+@media (min-width: 900px) {
+  .event-card--stop { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .event-card--stop .event-header { grid-column: 1; grid-row: 1 / span 4; }
+  .event-card--stop .event-big { grid-column: 2; grid-row: 4; align-items: flex-start; text-align: left; }
+}

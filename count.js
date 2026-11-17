@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   if (!/(^|\.)airtraveldesklive\.com$/.test(location.hostname)) return;   // live host only
-  var OUT = {"faa.gov": "out-faa", "tsa.gov": "out-tsa", "weather.gov": "out-nws", "transportation.gov": "out-dot", "twitch.tv": "out-twitch", "downtimecredit.com": "out-downtimecredit", "lanterndrift.com": "out-lanterndrift"};
+  var OUT = {"faa.gov": "out-faa", "tsa.gov": "out-tsa", "weather.gov": "out-nws", "transportation.gov": "out-dot", "youtube.com": "out-youtube", "twitch.tv": "out-twitch", "downtimecredit.com": "out-downtimecredit", "lanterndrift.com": "out-lanterndrift"};
   var STEPS = { "out-mail": 1 };
   Object.keys(OUT).forEach(function (k) { STEPS[OUT[k]] = 1; });
   var counted = Object.create(null);

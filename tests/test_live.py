@@ -1,4 +1,4 @@
-"""AN52: data/live.json for the Watch live button: parser, builder (no network), workflow step, copy list, and the page never calls a third party."""
+"""AN52: data/live.json for secondary Twitch uptime: parser, builder (no network), workflow step, copy list, and the page never calls a third party."""
 import json, sys, unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,9 +25,10 @@ class LiveTest(unittest.TestCase):
         self.assertIn("python tools/build_live.py --out data", y)
         self.assertIn("live.json", y.split("alert.json")[1])
 
-    def test_visitors_only_read_our_own_file(self):
+    def test_youtube_player_does_not_use_twitch_uptime(self):
         js = (ROOT / "watch.js").read_text(encoding="utf-8")
-        self.assertIn("/data/live.json", js)
+        self.assertNotIn('win.fetch("/data/live.json', js)
+        self.assertIn('applyLive("unknown")', js)
         self.assertNotIn("decapi", js)
 
 

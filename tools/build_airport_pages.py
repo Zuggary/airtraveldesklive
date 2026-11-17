@@ -656,14 +656,14 @@ def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str
     # Check the airline in every FAA state; keep the stuck guide alongside it.
     return [
         '        <div class="ap-actions">',
-        f'          <a id="stuck-btn" class="btn btn-ghost" href="/stuck">I\'m stuck guide</a>',
         '          <details class="flight-check">',
-        f'            <summary id="flight-btn" class="btn btn-accent">Check my flight</summary>',
+        f'            <summary id="flight-btn" class="btn btn-accent">Check flight status with your airline</summary>',
         '            <div class="flight-pop">',
         f"              <p class=\"small\">Your flight's own time is on your airline's page.{site}</p>",
         *_flight_check(code),
         "            </div>",
         "          </details>",
+        f'          <a id="stuck-btn" class="btn btn-ghost" href="/stuck">I\'m stuck guide</a>',
         "        </div>",
     ]
 
@@ -876,6 +876,7 @@ def _render_footer(
     return "\n".join([
         "  </div>",
         '    <footer class="site-footer">',
+        '      <p class="container small"><a href="https://www.youtube.com/@AirTravelDeskLive/live">Watch on YouTube</a> · <a href="https://www.twitch.tv/airtraveldesklive">Also on Twitch</a></p>',
         '      <div class="container foot-grid">',
         '        <div class="foot-col">',
         '          <p class="foot-h">Air Travel Desk</p>',
@@ -1320,8 +1321,9 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";',
         '      if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }',
         '      if (hero) { hero.className = hero.className.replace(/\\bap-hero--\\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }',
-        '      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "clear" : lvl); }',
+        '      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "stale" : lvl); }',
         '      scaleHelp(stale ? "stale" : lvl);',
+        '      var map = document.getElementById("ap-map"); if (map) { map.setAttribute("data-status", stale || unknown ? "stale" : lvl); }',
         '      var pulse = document.querySelector("#ap-now-title .pulse");',
         '      if (pulse) { pulse.className = "pulse pulse--" + (stale ? "stale" : lvl); }',
         '      var w = a.wx;',
@@ -1679,7 +1681,7 @@ def render_airport_page(
         map_lat = float(airport_info.get("lat"))
         map_lon = float(airport_info.get("lon"))
         regional = [
-            f'      <figure class="ap-map" id="ap-map" data-code="{_esc(code)}" data-lat="{map_lat}" data-lon="{map_lon}" hidden>',
+            f'      <figure class="ap-map" id="ap-map" data-status="{_esc(lvl)}" data-code="{_esc(code)}" data-lat="{map_lat}" data-lon="{map_lon}" hidden>',
             f'        <canvas id="ap-map-canvas" role="img" aria-label="Map of the area around {_esc(code)} with radar and the status of nearby airports"></canvas>',
             '        <figcaption id="ap-map-cap">Radar: NOAA MRMS. Status: FAA. Tap an airport to open it.</figcaption>',
             "      </figure>",

@@ -40,8 +40,8 @@ class ImmediateHelp(unittest.TestCase):
         block = page[start:end]
         self.assertLess(end, page.index('id="wizard-progress"'))
         self.assertLess(end, page.index('id="airline-options"'))
-        self.assertEqual(block.count('<a '), 3)
-        for target in ['/airlines/', '#ask-first', '#keep-receipts']:
+        self.assertEqual(block.count('<a '), 4)
+        for target in ['/airlines/', '#ask-first', '#keep-receipts', '#step-1-heading']:
             self.assertIn('href="' + target + '"', block)
         self.assertIn('id="keep-receipts"', page)
         self.assertNotIn('?', block)

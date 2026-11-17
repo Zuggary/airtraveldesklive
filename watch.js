@@ -1,18 +1,15 @@
-/* Air Travel Desk: "Watch live" button in the top bar on every page. Press it and a 16:9 Twitch player slides down under the header;
-   Esc, the close button or pressing the button again slides it shut and removes the player. Nothing loads from Twitch (no iframe,
+/* Air Travel Desk: "Watch live" button in the top bar on every page. Press it and a 16:9 YouTube player slides down under the header;
+   Esc, the close button or pressing the button again slides it shut and removes the player. Nothing loads from YouTube (no iframe,
    no request, no cookie) until the first press, so page speed is unchanged. The home page's "Live now" card opens the same player. */
 (function (root) {
   "use strict";
 
-  var CHANNEL = "airtraveldesklive";
-  var PARENTS = ["www.airtraveldesklive.com", "airtraveldesklive.com"];
+  var CHANNEL = "UCtEAjmjCJdR-pHgcZtIFI9w";
   var STALE_MS = 15 * 60 * 1000;
-  var LIVE_POLL_MS = 5 * 60 * 1000;
 
-  /* The player address (fallback when the embed script is unavailable): the channel, the two site domains as parent, sound on, autoplay. The press is the user gesture. Pure. */
-  function playerSrc(channel, parents) {
-    return "https://player.twitch.tv/?channel=" + encodeURIComponent(channel) +
-      parents.map(function (p) { return "&parent=" + encodeURIComponent(p); }).join("") + "&muted=false&autoplay=true";
+  /* YouTube live channel player; autoplay stays disabled after loading. Pure. */
+  function playerSrc(channel) {
+    return "https://www.youtube.com/embed/live_stream?channel=" + encodeURIComponent(channel) + "&autoplay=0";
   }
 
   function el(doc, tag, cls, text) {
@@ -52,10 +49,13 @@
     drawer.hidden = true;
     var inner = el(doc, "div", "watch-drawer-in");
     var bar = el(doc, "div", "watch-drawer-bar");
-    bar.appendChild(el(doc, "p", "watch-drawer-note", "Plays from Twitch, which sets its own cookies once it loads. The voice reads the FAA updates around the clock."));
+    bar.appendChild(el(doc, "p", "watch-drawer-note", "Loads from YouTube (Google), which can set its own cookies once it loads. The voice reads the FAA updates around the clock."));
     var close = el(doc, "button", "watch-close", "Close");
     close.type = "button";
     close.setAttribute("aria-label", "Close live video");
+    var secondary = el(doc, "a", "small", "Also on Twitch");
+    secondary.href = "https://www.twitch.tv/airtraveldesklive";
+    bar.appendChild(secondary);
     bar.appendChild(close);
     var frame = el(doc, "div", "watch-frame");           /* the in-flow 16:9 slot: it keeps its size when the player docks, so nothing shifts */
     var box = el(doc, "div", "watch-box");               /* the player lives here and never moves in the DOM (moving an iframe reloads it); docking only restyles this box */
@@ -84,69 +84,17 @@
     var reduce = win.matchMedia && win.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 
-    /* The player: Twitch's own embed script (loaded only on the press, from player.twitch.tv) so we can turn the sound on and see whether the browser
-       forced it muted; if that script does not load in 4 s, a plain iframe with sound on and autoplay. A "Tap for sound" pill shows when the browser kept it muted. */
-    var embedPlayer = null, embedWait = null;
-    var sound = el(doc, "button", "watch-sound", "Tap for sound");
-    sound.type = "button";
-    sound.hidden = true;
-    box.insertBefore(sound, mini);
-    function showIframe(node) {
-      node.classList.add("watch-player");
-      node.setAttribute("title", "Air Travel Desk live video on Twitch");
-    }
-    function fallbackIframe() {
-      if (box.querySelector("iframe") || !isOpen) { return; }
-      var f = doc.createElement("iframe");
-      f.src = playerSrc(CHANNEL, PARENTS);
-      f.allowFullscreen = true;
-      f.setAttribute("allow", "autoplay; fullscreen");
-      f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-      showIframe(f);
-      box.insertBefore(f, sound);
-    }
-    function checkMuted() {
-      try {
-        if (!embedPlayer) { sound.hidden = true; return; }
-        var paused = embedPlayer.isPaused();
-        if (paused) { sound.textContent = "\u25B6 Tap to play with sound"; sound.hidden = false; }
-        else if (embedPlayer.getMuted()) { sound.textContent = "Tap for sound"; sound.hidden = false; }
-        else { sound.hidden = true; }
-      } catch (e) { sound.hidden = true; }
-    }
+    /* Only the facade press creates a third-party request. Playback needs the player's play button. */
     function mountPlayer() {
-      var holder = el(doc, "div", "watch-holder");
-      box.insertBefore(holder, sound);
-      var done = false;
-      function build() {
-        if (done || !isOpen) { return; }
-        done = true;
-        win.clearTimeout(embedWait);
-        try {
-          embedPlayer = new win.Twitch.Player(holder, { channel: CHANNEL, parent: PARENTS, muted: false, autoplay: true, width: "100%", height: "100%" });
-          embedPlayer.addEventListener(win.Twitch.Player.READY, function () {
-            var ifr = holder.querySelector("iframe");
-            if (ifr) { showIframe(ifr); }
-            try { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); embedPlayer.play(); } catch (e) { /* keep going */ }
-            win.setTimeout(checkMuted, 2000);
-          });
-          embedPlayer.addEventListener(win.Twitch.Player.PLAYING, function () { win.setTimeout(checkMuted, 800); });
-        } catch (e) { if (holder.parentNode) { holder.parentNode.removeChild(holder); } embedPlayer = null; fallbackIframe(); }
-      }
-      if (win.Twitch && win.Twitch.Player) { build(); return; }
-      var sc = doc.createElement("script");
-      sc.src = "https://player.twitch.tv/js/embed/v1.js";
-      sc.async = true;
-      sc.onload = build;
-      sc.onerror = function () { done = true; if (holder.parentNode) { holder.parentNode.removeChild(holder); } fallbackIframe(); };
-      doc.head.appendChild(sc);
-      embedWait = win.setTimeout(function () { if (!done) { done = true; if (holder.parentNode) { holder.parentNode.removeChild(holder); } fallbackIframe(); } }, 4000);
+      var f = doc.createElement("iframe");
+      f.src = playerSrc(CHANNEL);
+      f.className = "watch-player";
+      f.title = "Air Travel Desk live video on YouTube";
+      f.allowFullscreen = true;
+      f.setAttribute("allow", "fullscreen");
+      f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      box.insertBefore(f, mini);
     }
-    sound.addEventListener("click", function () {
-      try { if (embedPlayer) { embedPlayer.setMuted(false); embedPlayer.setVolume(0.5); embedPlayer.play(); } } catch (e) { /* ignore */ }
-      sound.hidden = true;
-      win.setTimeout(checkMuted, 1500);
-    });
 
     function setOpen(next, fromTeaser) {
       if (next === isOpen) { return; }
@@ -162,9 +110,6 @@
       } else {
         drawer.classList.remove("open");
         undock();
-        win.clearTimeout(embedWait);
-        embedPlayer = null;
-        sound.hidden = true;
         var old = box.querySelector(".watch-holder, iframe");
         while (old) { old.parentNode.removeChild(old); old = box.querySelector(".watch-holder, iframe"); }                       /* removing the player stops the video and its sound */
         hideTimer = win.setTimeout(function () { if (!isOpen) { drawer.hidden = true; } }, reduce ? 0 : 320);
@@ -329,25 +274,15 @@
       for (var a = 0; a < cardTags.length; a++) { cardTags[a].hidden = state !== "live"; }
       for (var b = 0; b < cardTitles.length; b++) { cardTitles[b].textContent = state === "live" ? "Live now: delays read aloud" : "Live desk: delays read aloud"; }
     }
-    function checkLive() {
-      if (typeof win.fetch !== "function") { return; }
-      var ctl = typeof win.AbortController === "function" ? new win.AbortController() : null;
-      var tm = win.setTimeout(function () { if (ctl) { ctl.abort(); } }, 8000);
-      win.fetch("/data/live.json?m=" + Math.floor(Date.now() / 60000), { cache: "no-store", signal: ctl ? ctl.signal : undefined })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (d) { win.clearTimeout(tm); applyLive(liveState(d, Date.now())); })
-        .catch(function () { win.clearTimeout(tm); applyLive("unknown"); });
-    }
     applyLive("unknown");
-    checkLive();
-    win.setInterval(checkLive, LIVE_POLL_MS);
+    // Twitch uptime does not establish whether YouTube is live; keep the label neutral.
     var cards = doc.querySelectorAll("[data-watch-open]");
     for (var i = 0; i < cards.length; i++) {
       cards[i].addEventListener("click", function () { setOpen(true, true); });
     }
   }
 
-  var api = { playerSrc: playerSrc, liveState: liveState, CHANNEL: CHANNEL, PARENTS: PARENTS };
+  var api = { playerSrc: playerSrc, liveState: liveState, CHANNEL: CHANNEL };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; }
   if (root && root.document) { root.ATDWatch = api; start(root); }
 })(typeof window !== "undefined" ? window : null);
