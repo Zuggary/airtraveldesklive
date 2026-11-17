@@ -93,7 +93,7 @@ class TestAirportPageNight(unittest.TestCase):
         page = self.build(sna_card(), NIGHT, UPD_NIGHT)
         h1 = re.search(r'<h1[^>]*>(.*?)</h1>', page, re.S).group(1)
         self.assertIn("closed overnight", h1)
-        self.assertIn("reopens about 6:15 AM local time", h1)
+        self.assertNotIn("reopens about", h1)
         self.assertIn("ap-hero--night", page)
         self.assertNotIn("ap-hero--closed", page)
         self.assertIn('badge badge--night status-chip', page)
@@ -103,7 +103,7 @@ class TestAirportPageNight(unittest.TestCase):
     def test_open_hours_read_as_open_with_the_listing_noted(self):
         page = self.build(sna_card(), DAY, "2026-11-15T19:55:00Z")
         self.assertIn("No FAA delays at", page)
-        self.assertIn("closes again about 11:30 PM local time", page)
+        self.assertIn("no FAA arrival or departure programs are listed", page)
 
     def test_stale_page_judges_the_schedule_at_the_data_time(self):
         later = datetime(2026, 11, 15, 22, 0, tzinfo=timezone.utc)   # 12 hours after the reading, outside the closed hours

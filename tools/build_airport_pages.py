@@ -305,6 +305,7 @@ def _render_live(
         }
     age = pt.age_minutes(updated_utc, now)
     stale = pt.is_stale(age) or bool(entry.get("_feed_stale"))
+    unknown = entry.get("level") not in ("clear", "delay", "stop", "closed")
     at = (pt.parse_utc(updated_utc) or now) if stale else now  # a scheduled closure is judged at the data's own time when stale
     lvl = pt.effective_level(entry, at)
     word = pt.status_word(entry, at)
@@ -320,6 +321,9 @@ def _render_live(
             chip_wx += f", wind {wind}"
     badge_cls = "badge badge--stale" if stale else pt.BADGE_CLASS[lvl]
     badge_text = pt.stale_chip_text(entry, updated_utc, tz) if stale else word
+    if unknown:
+        word = badge_text = "Last known status: unavailable"
+        badge_cls = "badge badge--stale"
     # AN34 round 3: the hero H1 and its checked line are the one status block; the tiles hold weather and daylight.
     box: list[str] = []
     if wx.get("now_text"):
@@ -413,23 +417,19 @@ def _verdict(entry: dict[str, Any] | None, name: str, short: str, live: dict[str
         return f"{_esc(name)}: delays, weather and traveler help"
     lvl = pt.effective_level(entry, now)
     place = _esc(short)
+    if entry.get("level") not in ("clear", "delay", "stop", "closed"):
+        return "Last known status: FAA status unavailable."
     if live.get("stale"):
         word = pt.status_word(entry, pt.parse_utc(live.get("updated_utc")) or now)
         return f"{_esc(word)} at {place}, {_esc(live['as_of'])}."
     if lvl == "night":
-        sched = _night_schedule(entry, now)
-        return f"{place} is <em>closed overnight</em>" + (f", reopens about {_esc(sched['reopen'])} local time." if sched else ".")
+        return f"{place} is <em>closed overnight</em>."
     if lvl == "closed":
         return f"{place} is <em>closed</em> to flights."
     if lvl == "stop":
         return f"<em>Ground stop:</em> flights to {place} are held where they are."
-    avg, _mx, kind = _avg_minutes(entry)
     if lvl == "delay":
-        if kind == "ground_delay" and avg is not None:
-            return f"Flights into {place} are held about <em>{_dur(avg)}</em>."
-        if avg is not None:
-            return f"Expect delays of about <em>{_dur(avg)}</em> at {place}."
-        return f"Expect <em>delays</em> at {place}."
+        return f"The FAA lists <em>delays</em> at {place}."
     return f"No FAA delays at {place} <em>right now</em>."
 
 
@@ -443,48 +443,37 @@ def _night_schedule(entry: dict[str, Any] | None, now: Any) -> dict[str, Any] | 
     return None
 
 
-def _lead(entry: dict[str, Any] | None, short: str, code: str, live: dict[str, Any], now: Any = None) -> list[str]:
-    """One plain explanation under the H1. Arrivals and departures are kept apart for ground delays."""
-    if not entry or not live.get("has") or live.get("stale"):
-        return []
-    now = now or pt.now_utc()
-    lvl = pt.effective_level(entry, now)
-    reason = _plain_reason(pt.reason_plain(entry.get("reason")))
-    why = f" because of {reason}" if reason and reason.lower() != "closed" else ""
-    out: list[str] = []
-    if lvl == "night":
-        sched = _night_schedule(entry, now) or {}
-        hours = f" {_esc(short)} reopens about {_esc(sched['reopen'])} local time." if sched else ""
-        out.append(f'        <p class="ap-lead ap-lead--calm">The FAA lists this as a daily closure.{hours} '
-                   "Check your airline's app if your flight is early.</p>")
-    elif lvl == "clear" and _night_schedule(entry, now):
-        sched = _night_schedule(entry, now) or {}
-        out.append(f'        <p class="ap-lead">Open now. The FAA lists a daily closure; {_esc(short)} closes again about {_esc(sched["close"])} local time. '
-                   "Your own flight can still run late for airline reasons; its time is in your airline's app.</p>")
-    elif lvl == "clear":
-        out.append('        <p class="ap-lead">Nothing on the FAA list. Your own flight can still run late for airline reasons; '
-                   "its time is in your airline's app.</p>")
-    elif lvl == "closed":
-        out.append(f'        <p class="ap-lead">The FAA lists {_esc(short)} as closed to flights. Check your airline\'s app before you go; '
-                   "your airline decides how to rebook you.</p>")
+def _status_meaning(entry: dict[str, Any] | None, lvl: str, stale: bool) -> str:
+    """Airport-wide FAA program meaning, without individual-flight claims."""
+    if stale or not entry or entry.get("level") not in ("clear", "delay", "stop", "closed"):
+        return "Last known status: current arrivals and departures are unconfirmed; this is airport-wide, not the status of any individual flight."
+    kinds = {e.get("kind") for e in entry.get("events", []) if e}
+    directions = {str(e.get("direction", "")).lower() for e in entry.get("events", []) if e and e.get("kind") == "delay"}
+    departure = "departure_delay" in kinds or "departure" in directions
+    if lvl in ("closed", "night"):
+        meaning = "the FAA lists a closure affecting arrivals and departures"
     elif lvl == "stop":
-        out.append(f'        <p class="ap-lead">The FAA has stopped flights headed to {_esc(code)} from taking off{_esc(why)}. '
-                   f"Flights already in the air still land. Flights leaving {_esc(code)} can run late too.</p>")
+        meaning = "departures to this airport are held at their origin airports, rather than departures from here"
+    elif "ground_delay" in kinds:
+        meaning = "arrivals are held at their origin airports, rather than departures from here"
+        if departure:
+            meaning += "; departure delays are also listed here"
+    elif departure and "arrival" in directions:
+        meaning = "the FAA lists both arrival and departure delays"
+    elif departure:
+        meaning = "departures from this airport are delayed; this does not describe arrivals"
+    elif "arrival" in directions:
+        meaning = "arrivals at this airport are delayed; this does not describe departures"
+    elif lvl == "clear":
+        meaning = "no FAA arrival or departure programs are listed"
     else:
-        avg, mx, kind = _avg_minutes(entry)
-        if kind == "ground_delay":
-            size = f", on average {_dur(avg)}" + (f" and up to {_dur(mx)}" if mx is not None else "") if avg is not None else ""
-            out.append(f'        <p class="ap-lead">The FAA has a ground delay{_esc(why)}: flights headed to {_esc(code)} wait at their departure airport{size}.</p>')
-            out.append(f'        <p class="ap-out"><strong>Flying out of {_esc(code)}?</strong> The FAA program is for arrivals, but your plane may be '
-                       "one of the late ones coming in, so check your own flight in the airline's app.</p>")
-            out.append('        <details class="ap-explain"><summary>What is a ground delay?</summary>'
-                       "<p>When too many flights would arrive at once, often because of weather, the FAA holds some of them at the airport "
-                       "they leave from, so they wait on the ground instead of circling. The average is across all held flights; yours can "
-                       "be shorter or longer.</p></details>")
-        else:
-            size = f" of about {_dur(avg)}" if avg is not None else ""
-            out.append(f'        <p class="ap-lead">The FAA lists delays{size} at {_esc(code)}{_esc(why)}. Check your airline\'s app for your flight\'s new time before you leave.</p>')
-    return out
+        meaning = "the FAA lists delays without a confirmed arrival or departure direction"
+    return "Airport-wide status: " + meaning + "; this is not the status of any individual flight."
+
+
+def _lead(entry: dict[str, Any] | None, short: str, code: str, live: dict[str, Any], now: Any = None) -> list[str]:
+    lvl = pt.effective_level(entry, now or pt.now_utc()) if entry else "unknown"
+    return [f'        <p id="ap-meaning" class="ap-lead">{_esc(_status_meaning(entry, lvl, bool(live.get("stale") or not live.get("has"))))}</p>']
 
 
 _PLAIN_REASON = {"low ceilings": "low clouds", "ceilings": "low clouds", "low visibility": "poor visibility",
@@ -664,16 +653,14 @@ def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str
         f' The <a class="tap" href="{_esc(airport_site)}" target="_blank" rel="noopener noreferrer">airport\'s own site</a> lists its departures too.'
         if airport_site else ""
     )
-    # AN34 round 4: the bright button follows the state. Clear: checking your own flight leads.
-    # Delay, stop or closure: the stuck guide leads. The live refresh swaps them (scaleHelp in the page script).
-    hot = lvl in ("delay", "stop", "closed")
+    # Check the airline in every FAA state; keep the stuck guide alongside it.
     return [
         '        <div class="ap-actions">',
-        f'          <a id="stuck-btn" class="btn {"btn-accent" if hot else "btn-ghost"}" href="/stuck">I\'m stuck guide</a>',
+        f'          <a id="stuck-btn" class="btn btn-ghost" href="/stuck">I\'m stuck guide</a>',
         '          <details class="flight-check">',
-        f'            <summary id="flight-btn" class="btn {"btn-ghost" if hot else "btn-accent"}">Check my flight</summary>',
+        f'            <summary id="flight-btn" class="btn btn-accent">Check my flight</summary>',
         '            <div class="flight-pop">',
-        f"              <p class=\"small\">The FAA figure is an average for {_esc(code)}; your flight's own time is on your airline's page.{site}</p>",
+        f"              <p class=\"small\">Your flight's own time is on your airline's page.{site}</p>",
         *_flight_check(code),
         "            </div>",
         "          </details>",
@@ -1116,10 +1103,10 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      if (hh) { hh.textContent = hot ? "Flying through " + CODE + " today?" : "If your flight is hit"; }',
         '      var steps = card.querySelector(".help-hot");',
         '      if (steps) { steps.hidden = !hot; }',
-        '      // AN34 round 4: the bright button follows the state (clear: check my flight; trouble: the stuck guide).',
+        '      // Checking the airline leads in every state.',
         '      var sb = document.getElementById("stuck-btn"), fb = document.getElementById("flight-btn");',
-        '      if (sb) { sb.className = "btn " + (hot ? "btn-accent" : "btn-ghost"); }',
-        '      if (fb) { fb.className = "btn " + (hot ? "btn-ghost" : "btn-accent"); }',
+        '      if (sb) { sb.className = "btn btn-ghost"; }',
+        '      if (fb) { fb.className = "btn btn-accent"; }',
         '    }',
         '    var STALE_MIN = 30;',
         '    function ageMin(iso) {',
@@ -1232,17 +1219,11 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         "    // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.",
         '    function verdict(a, lvl, stale, label, asOf) {',
         '      var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };',
-        '      if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf + ".")); return h; }',
-        '      if (lvl === "night") { var sc = nightSchedule(a); h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed overnight")); h.appendChild(tx(sc ? ", reopens about " + sc.reopen + " local time." : ".")); return h; }',
+        '      if (["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { h.appendChild(tx("Last known status: FAA status unavailable.")); return h; } if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf + ".")); return h; }',
+        '      if (lvl === "night") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed overnight")); h.appendChild(tx(".")); return h; }',
         '      if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }',
         '      if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }',
-        '      var best = null, kind = "";',
-        '      (a.events || []).forEach(function (e) { var x = e && minutesOf(e.avg); if (x != null && (best == null || x > best)) { best = x; kind = e.kind; } });',
-        '      if (lvl === "delay") {',
-        '        if (kind === "ground_delay" && best != null) { h.appendChild(tx("Flights into " + SHORT + " are held about ")); h.appendChild(em(dur(best))); h.appendChild(tx(".")); return h; }',
-        '        if (best != null) { h.appendChild(tx("Expect delays of about ")); h.appendChild(em(dur(best))); h.appendChild(tx(" at " + SHORT + ".")); return h; }',
-        '        h.appendChild(tx("Expect ")); h.appendChild(em("delays")); h.appendChild(tx(" at " + SHORT + ".")); return h;',
-        '      }',
+        '      if (lvl === "delay") { h.appendChild(tx("The FAA lists ")); h.appendChild(em("delays")); h.appendChild(tx(" at " + SHORT + ".")); return h; }',
         '      h.appendChild(tx("No FAA delays at " + SHORT + " ")); h.appendChild(em("right now")); h.appendChild(tx(".")); return h;',
         '    }',
         '    // AN35: the one place the FAA data age is stated (the stale banner states it when the data is old). Same rule as prerender_text.faa_age_parts.',
@@ -1269,7 +1250,35 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '    }',
         '    var checkedLine = document.getElementById("checked-line");',
         '    var heading = document.getElementById("ap-now-word");',
+        '    function statusMeaning(a, lvl, stale) {',
+        '      if (stale || !a || ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { return "Last known status: current arrivals and departures are unconfirmed; this is airport-wide, not the status of any individual flight."; }',
+        '      var kinds = (a.events || []).filter(Boolean).map(function (e) { return e.kind; }), meaning; var directions = (a.events || []).filter(Boolean).filter(function (e) { return e.kind === "delay"; }).map(function (e) { return String(e.direction || "").toLowerCase(); }); var departure = kinds.indexOf("departure_delay") >= 0 || directions.indexOf("departure") >= 0;',
+        '      if (lvl === "closed" || lvl === "night") { meaning = "the FAA lists a closure affecting arrivals and departures"; }',
+        '      else if (lvl === "stop") { meaning = "departures to this airport are held at their origin airports, rather than departures from here"; }',
+        '      else if (kinds.indexOf("ground_delay") >= 0) { meaning = "arrivals are held at their origin airports, rather than departures from here"; if (departure) { meaning += "; departure delays are also listed here"; } }',
+        '      else if (departure && directions.indexOf("arrival") >= 0) { meaning = "the FAA lists both arrival and departure delays"; }',
+        '      else if (departure) { meaning = "departures from this airport are delayed; this does not describe arrivals"; }',
+        '      else if (directions.indexOf("arrival") >= 0) { meaning = "arrivals at this airport are delayed; this does not describe departures"; }',
+        '      else if (lvl === "clear") { meaning = "no FAA arrival or departure programs are listed"; }',
+        '      else { meaning = "the FAA lists delays without a confirmed arrival or departure direction"; }',
+        '      return "Airport-wide status: " + meaning + "; this is not the status of any individual flight.";',
+        '    }',
+        '    function meaningElement() {',
+        '      var n = document.getElementById("ap-meaning");',
+        '      if (!n && checkedLine && checkedLine.parentNode) {',
+        '        n = el("p", "ap-lead"); n.id = "ap-meaning";',
+        '        checkedLine.parentNode.insertBefore(n, checkedLine);',
+        '      }',
+        '      // Shared JS also upgrades pages generated before the explanation was added.',
+        '      var old = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain") : [];',
+        '      for (var i = 0; i < old.length; i++) { if (old[i] !== n) { old[i].hidden = true; } }',
+        '      return n;',
+        '    }',
         '    function setUnavailable() {',
+        '      scaleHelp("stale");',
+        '      if (heading) { heading.textContent = "Last known status"; }',
+        '      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(null, "unknown", true); meaning.hidden = false; }',
+        '      if (verdictEl) { verdictEl.textContent = "Last known status: FAA status unavailable."; }',
         '      if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }',
         '      if (statusChip) {',
         '        statusChip.className = "badge status-chip";',
@@ -1299,10 +1308,11 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        return;',
         '      }',
         '      var lvl = effLevel(a, stale ? Date.parse(data.updated_utc) : null);',
-        '      var label = badgeLabel(a, lvl);',
+        '      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(a, lvl, stale); meaning.hidden = false; }',
+        '      var unknown = ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0; if (unknown && heading) { heading.textContent = "Last known status"; } var label = unknown ? "Last known status: unavailable" : badgeLabel(a, lvl);',
         '      var asClock = clockLabel(data.updated_utc);',
         '      var chipText = stale ? "As of " + (asClock || "an unknown time") + ": " + label.charAt(0).toLowerCase() + label.slice(1) : label;',
-        '      var badgeCls = stale ? "badge badge--stale" : BADGE_CLASS[lvl];',
+        '      var badgeCls = stale || unknown ? "badge badge--stale" : BADGE_CLASS[lvl];',
         '      if (statusChip) {',
         '        statusChip.className = badgeCls + " status-chip";',
         '        statusChip.textContent = chipText;',
@@ -1329,11 +1339,11 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      // AN34 round 3: the H1 is the one status block; a stale page names the last FAA reason under it.',
         '      var reasonEl = document.getElementById("ap-reason");',
         '      // The pre-rendered lead under the H1 explains the build-time state; when the state has changed since, drop it and name the reason here.',
-        '      var leads = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain, .ap-alt") : [];',
+        '      var leads = hero ? hero.querySelectorAll(".ap-out, .ap-explain, .ap-alt") : [];',
         '      var changed = (stale ? "stale" : lvl) !== INITIAL_LVL;',
         '      if (changed) { for (var li = 0; li < leads.length; li++) { leads[li].hidden = true; } }',
         '      var hasLead = !changed && leads.length > 0;',
-        '      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && lvl !== "night" && (stale || !hasLead) ? "Reason listed: " + reasonPlain(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }',
+        '      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && lvl !== "night" ? "Reason listed: " + reasonPlain(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }',
         '      if (w && w.now_text) {',
         '        var wxText = w.now_text + (w.temp_f != null ? ", " + Math.round(w.temp_f) + "\\u00b0F" : "");',
         '        if (w.wind_kt != null) { wxText += ", wind " + windText(w, true); }',
@@ -1692,7 +1702,7 @@ def render_airport_page(
         f'      <section id="ap-hero" class="ap-hero band ap-hero--{_esc(lvl)}" aria-labelledby="ap-verdict">',
         *_hero_art(airport_type(code), lvl, _hero_is_day(airport_info, now)),
         '       <div class="ap-hero-main">',
-        f'        <p id="ap-now-title" class="dateline ap-eyebrow"><span id="ap-now-word">{"Last known status" if live["stale"] else _esc(pt.airport_dateline(live_updated_utc, tz, short) or "Latest FAA check")}</span></p>',
+        f'        <p id="ap-now-title" class="dateline ap-eyebrow"><span id="ap-now-word">{"Last known status" if live["stale"] or not live["has"] or (live_entry or {}).get("level") not in ("clear", "delay", "stop", "closed") else _esc(pt.airport_dateline(live_updated_utc, tz, short) or "Latest FAA check")}</span></p>',
         '        <div class="lockup">',
         f'          <span class="big-code" aria-hidden="true">{_esc(code)}</span>',
         f'          <p class="ap-name"><strong>{_esc(name)} ({_esc(code)})</strong><span>{_esc(city)}</span></p>',
@@ -1701,8 +1711,13 @@ def render_airport_page(
         '        <p class="small">No FAA program does not guarantee your flight is on time: check your airline.</p>',
         *_lead(live_entry, short, code, live, now),
         (
+            f'        <p id="checked-line" class="last-checked">{_esc(live["checked_pre"])}{_src_link("FAA NAS status")}{_esc(live["checked_post"])}</p>'
+            if live["has"]
+            else f'        <p id="checked-line" class="last-checked">{_esc(live["checked"])}</p>'
+        ),
+        (
             f'        <p id="ap-reason" class="ap-reason">Reason listed: {_esc(pt.reason_plain(live_entry["reason"]))}.</p>'
-            if live["has"] and live["stale"] and (live_entry or {}).get("reason") and pt.effective_level(live_entry, now) not in ("clear", "night")
+            if live["has"] and (live_entry or {}).get("reason") and pt.effective_level(live_entry, now) not in ("clear", "night")
             else '        <p id="ap-reason" class="ap-reason" hidden></p>'
         ),
         '        <div class="airport-summary-chips">',
@@ -1714,11 +1729,6 @@ def render_airport_page(
         ),
         "        </div>",
         *_render_glance(code, _tsa_wait(security_entry, now), live, now),
-        (
-            f'        <p id="checked-line" class="last-checked">{_esc(live["checked_pre"])}{_src_link("FAA NAS status")}{_esc(live["checked_post"])}</p>'
-            if live["has"]
-            else f'        <p id="checked-line" class="last-checked">{_esc(live["checked"])}</p>'
-        ),
         (
             '        <p class="ap-alt">Other airports nearby, straight-line miles: '
             + ", ".join(f'<a class="tap" href="/airports/{_esc(c)}">{_esc(c)}</a> ({m} mi{", " + w if w else ""})' for c, _n, m, w in (alternates or []))

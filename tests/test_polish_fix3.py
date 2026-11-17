@@ -69,9 +69,7 @@ class TestAirportPolish(unittest.TestCase):
             self.assertRegex(nav, r'href="/airports/" aria-current="page">Airports<')
 
     def test_stuck_button_is_accent(self) -> None:
-        # AN34 round 4: the bright button follows the state. Trouble: the stuck guide. Clear: check my flight.
-        hot = re.search(r'class="ap-hero band ap-hero--(delay|stop|closed)"', self.sfo) is not None
-        lead = r'id="stuck-btn" class="btn btn-accent" href="/stuck">I(\'|&#39;|&#x27;)m stuck guide' if hot else r'id="flight-btn" class="btn btn-accent">Check my flight'
+        lead = r'id="flight-btn" class="btn btn-accent">Check my flight'
         self.assertRegex(self.sfo, lead)
         self.assertIn("I&#x27;m stuck guide" if "I&#x27;m stuck guide" in self.sfo else "I'm stuck guide", self.sfo)
         css = (ROOT / "style.css").read_text(encoding="utf-8")

@@ -175,10 +175,10 @@ var ATD_ME = document.currentScript;
       if (hh) { hh.textContent = hot ? "Flying through " + CODE + " today?" : "If your flight is hit"; }
       var steps = card.querySelector(".help-hot");
       if (steps) { steps.hidden = !hot; }
-      // AN34 round 4: the bright button follows the state (clear: check my flight; trouble: the stuck guide).
+      // Checking the airline leads in every state.
       var sb = document.getElementById("stuck-btn"), fb = document.getElementById("flight-btn");
-      if (sb) { sb.className = "btn " + (hot ? "btn-accent" : "btn-ghost"); }
-      if (fb) { fb.className = "btn " + (hot ? "btn-ghost" : "btn-accent"); }
+      if (sb) { sb.className = "btn btn-ghost"; }
+      if (fb) { fb.className = "btn btn-accent"; }
     }
     var STALE_MIN = 30;
     function ageMin(iso) {
@@ -291,17 +291,11 @@ var ATD_ME = document.currentScript;
     // The H1 in plain words. Same rule as _verdict in tools/build_airport_pages.py.
     function verdict(a, lvl, stale, label, asOf) {
       var h = el("span"), em = function (t) { return el("em", null, t); }, tx = function (t) { return document.createTextNode(t); };
-      if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf + ".")); return h; }
-      if (lvl === "night") { var sc = nightSchedule(a); h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed overnight")); h.appendChild(tx(sc ? ", reopens about " + sc.reopen + " local time." : ".")); return h; }
+      if (["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { h.appendChild(tx("Last known status: FAA status unavailable.")); return h; } if (stale) { h.appendChild(tx(label + " at " + SHORT + ", " + asOf + ".")); return h; }
+      if (lvl === "night") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed overnight")); h.appendChild(tx(".")); return h; }
       if (lvl === "closed") { h.appendChild(tx(SHORT + " is ")); h.appendChild(em("closed")); h.appendChild(tx(" to flights.")); return h; }
       if (lvl === "stop") { h.appendChild(em("Ground stop:")); h.appendChild(tx(" flights to " + SHORT + " are held where they are.")); return h; }
-      var best = null, kind = "";
-      (a.events || []).forEach(function (e) { var x = e && minutesOf(e.avg); if (x != null && (best == null || x > best)) { best = x; kind = e.kind; } });
-      if (lvl === "delay") {
-        if (kind === "ground_delay" && best != null) { h.appendChild(tx("Flights into " + SHORT + " are held about ")); h.appendChild(em(dur(best))); h.appendChild(tx(".")); return h; }
-        if (best != null) { h.appendChild(tx("Expect delays of about ")); h.appendChild(em(dur(best))); h.appendChild(tx(" at " + SHORT + ".")); return h; }
-        h.appendChild(tx("Expect ")); h.appendChild(em("delays")); h.appendChild(tx(" at " + SHORT + ".")); return h;
-      }
+      if (lvl === "delay") { h.appendChild(tx("The FAA lists ")); h.appendChild(em("delays")); h.appendChild(tx(" at " + SHORT + ".")); return h; }
       h.appendChild(tx("No FAA delays at " + SHORT + " ")); h.appendChild(em("right now")); h.appendChild(tx(".")); return h;
     }
     // AN35: the one place the FAA data age is stated (the stale banner states it when the data is old). Same rule as prerender_text.faa_age_parts.
@@ -328,7 +322,35 @@ var ATD_ME = document.currentScript;
     }
     var checkedLine = document.getElementById("checked-line");
     var heading = document.getElementById("ap-now-word");
+    function statusMeaning(a, lvl, stale) {
+      if (stale || !a || ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { return "Last known status: current arrivals and departures are unconfirmed; this is airport-wide, not the status of any individual flight."; }
+      var kinds = (a.events || []).filter(Boolean).map(function (e) { return e.kind; }), meaning; var directions = (a.events || []).filter(Boolean).filter(function (e) { return e.kind === "delay"; }).map(function (e) { return String(e.direction || "").toLowerCase(); }); var departure = kinds.indexOf("departure_delay") >= 0 || directions.indexOf("departure") >= 0;
+      if (lvl === "closed" || lvl === "night") { meaning = "the FAA lists a closure affecting arrivals and departures"; }
+      else if (lvl === "stop") { meaning = "departures to this airport are held at their origin airports, rather than departures from here"; }
+      else if (kinds.indexOf("ground_delay") >= 0) { meaning = "arrivals are held at their origin airports, rather than departures from here"; if (departure) { meaning += "; departure delays are also listed here"; } }
+      else if (departure && directions.indexOf("arrival") >= 0) { meaning = "the FAA lists both arrival and departure delays"; }
+      else if (departure) { meaning = "departures from this airport are delayed; this does not describe arrivals"; }
+      else if (directions.indexOf("arrival") >= 0) { meaning = "arrivals at this airport are delayed; this does not describe departures"; }
+      else if (lvl === "clear") { meaning = "no FAA arrival or departure programs are listed"; }
+      else { meaning = "the FAA lists delays without a confirmed arrival or departure direction"; }
+      return "Airport-wide status: " + meaning + "; this is not the status of any individual flight.";
+    }
+    function meaningElement() {
+      var n = document.getElementById("ap-meaning");
+      if (!n && checkedLine && checkedLine.parentNode) {
+        n = el("p", "ap-lead"); n.id = "ap-meaning";
+        checkedLine.parentNode.insertBefore(n, checkedLine);
+      }
+      // Shared JS also upgrades pages generated before the explanation was added.
+      var old = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain") : [];
+      for (var i = 0; i < old.length; i++) { if (old[i] !== n) { old[i].hidden = true; } }
+      return n;
+    }
     function setUnavailable() {
+      scaleHelp("stale");
+      if (heading) { heading.textContent = "Last known status"; }
+      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(null, "unknown", true); meaning.hidden = false; }
+      if (verdictEl) { verdictEl.textContent = "Last known status: FAA status unavailable."; }
       if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }
       if (statusChip) {
         statusChip.className = "badge status-chip";
@@ -358,10 +380,11 @@ var ATD_ME = document.currentScript;
         return;
       }
       var lvl = effLevel(a, stale ? Date.parse(data.updated_utc) : null);
-      var label = badgeLabel(a, lvl);
+      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(a, lvl, stale); meaning.hidden = false; }
+      var unknown = ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0; if (unknown && heading) { heading.textContent = "Last known status"; } var label = unknown ? "Last known status: unavailable" : badgeLabel(a, lvl);
       var asClock = clockLabel(data.updated_utc);
       var chipText = stale ? "As of " + (asClock || "an unknown time") + ": " + label.charAt(0).toLowerCase() + label.slice(1) : label;
-      var badgeCls = stale ? "badge badge--stale" : BADGE_CLASS[lvl];
+      var badgeCls = stale || unknown ? "badge badge--stale" : BADGE_CLASS[lvl];
       if (statusChip) {
         statusChip.className = badgeCls + " status-chip";
         statusChip.textContent = chipText;
@@ -388,11 +411,11 @@ var ATD_ME = document.currentScript;
       // AN34 round 3: the H1 is the one status block; a stale page names the last FAA reason under it.
       var reasonEl = document.getElementById("ap-reason");
       // The pre-rendered lead under the H1 explains the build-time state; when the state has changed since, drop it and name the reason here.
-      var leads = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain, .ap-alt") : [];
+      var leads = hero ? hero.querySelectorAll(".ap-out, .ap-explain, .ap-alt") : [];
       var changed = (stale ? "stale" : lvl) !== INITIAL_LVL;
       if (changed) { for (var li = 0; li < leads.length; li++) { leads[li].hidden = true; } }
       var hasLead = !changed && leads.length > 0;
-      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && lvl !== "night" && (stale || !hasLead) ? "Reason listed: " + reasonPlain(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }
+      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && lvl !== "night" ? "Reason listed: " + reasonPlain(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }
       if (w && w.now_text) {
         var wxText = w.now_text + (w.temp_f != null ? ", " + Math.round(w.temp_f) + "\u00b0F" : "");
         if (w.wind_kt != null) { wxText += ", wind " + windText(w, true); }
