@@ -45,6 +45,7 @@ class Help(unittest.TestCase):
                 for link in page.links:
                     url = urlsplit(link)
                     if url.scheme or url.netloc or not url.path: continue
+                    if url.path.startswith('/airports'): continue  # generated at deploy, gitignored
                     target = ROOT / url.path.lstrip('/') if url.path.startswith('/') else path.parent / url.path
                     candidates = [target, target / 'index.html', target.with_suffix('.html')]
                     self.assertTrue(any(p.is_file() for p in candidates), link)
@@ -84,5 +85,6 @@ class Help(unittest.TestCase):
             rendered = prerender_home.render_events({'events': [{'source': 'FAA', 'kind': kind, 'airport': 'ZZZ', 'fields': {}}]}, {'ZZZ': {'name': 'Example Airport', 'short': 'Example'}}, now.isoformat(), now)
             self.assertIn('/help/' + slug + '.html', rendered)
         for path in [ROOT/'stuck.html' , ROOT/'index.html', ROOT/'airports/SFO.html']:
+            if not path.exists(): continue  # airports/ is generated at deploy (gitignored)
             text = path.read_text()
             for slug in SLUGS: self.assertIn('/help/' + slug + '.html', text)
