@@ -602,6 +602,9 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .wizard-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .radio-group { display: grid; grid-template-columns: 1fr; gap: 8px; }
 @media (min-width: 700px) { .radio-group { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* the airline list is filled in by stuck.js after first paint: reserve its final height (11 cards) so the Ask before you pay block below does not jump */
+#airline-options { min-height: 652px; }
+@media (min-width: 700px) { #airline-options { min-height: 352px; } }
 .radio-card { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; background: var(--navy); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font-weight: 700; color: var(--text); }
 .radio-card:hover { background: var(--surface-alt); }
 .radio-card:has(.radio-input:checked) { border-color: var(--accent); background: var(--accent-soft); }

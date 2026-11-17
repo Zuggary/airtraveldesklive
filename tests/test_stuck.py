@@ -163,5 +163,13 @@ class TestStuckLogicWithNode(unittest.TestCase):
         self.assertNotIn("you are owed", draft.lower())
 
 
+class StuckLayoutShiftTests(unittest.TestCase):
+    def test_airline_list_reserves_its_height(self):
+        """stuck.js fills #airline-options after first paint; without reserved height the Ask-before-you-pay block jumped (mobile CLS about 0.25)."""
+        css = (ROOT / "style.css").read_text(encoding="utf-8")
+        self.assertRegex(css, r"#airline-options\s*\{\s*min-height:\s*652px")
+        self.assertRegex(css, r"min-width:\s*700px\)\s*\{\s*#airline-options\s*\{\s*min-height:\s*352px")
+
+
 if __name__ == "__main__":
     unittest.main()
