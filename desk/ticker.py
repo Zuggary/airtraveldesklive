@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from desk import timefmt
+from desk.airports import label as airport_label
 from desk.screen import duration_minutes, minutes_text
 
 COOLDOWN_SEC = 600.0
@@ -86,10 +87,10 @@ def change_text(change: dict[str, Any], now: datetime) -> Optional[tuple[str, st
     reason = str(ev.get("reason") or "").strip()
     reason = "" if (not reason or reason.upper().startswith("OTHER:")) else reason
     if ct == "cleared":
-        return "ended", f"{_cap(name)} at {code} has ended"
+        return "ended", f"{_cap(name)} at {airport_label(code)} has ended"
     detail = _end_text(ev, now) if kind == "ground_stop" else (_reopen_text(ev, now) if kind == "closure" else _numbers(ev))
     bits = [x for x in (detail, reason) if x]
-    return ("new" if ct == "new" else "updated"), f"{_cap(name)} at {code}" + (" · " + " · ".join(bits) if bits else "")
+    return ("new" if ct == "new" else "updated"), f"{_cap(name)} at {airport_label(code)}" + (" · " + " · ".join(bits) if bits else "")
 
 
 class Ticker:
@@ -147,7 +148,7 @@ class Ticker:
         for ev in events:
             if ev.get("kind") == "ground_stop" and ev.get("source") == "FAA" and ev.get("airport"):
                 code = str(ev["airport"]).upper()
-                self.add(f"stop:{ev.get('id')}", "stop", f"Ground stop at {code} · {_end_text(ev, now)}", now_ts, "FAA", _iso(now_ts))
+                self.add(f"stop:{ev.get('id')}", "stop", f"Ground stop at {airport_label(code)} · {_end_text(ev, now)}", now_ts, "FAA", _iso(now_ts))
         hubs = (wx_data or {}).get("hubs") or {}
         risky = [(c, h) for c, h in hubs.items() if h.get("next3h_text") and (h.get("next3h_storms") or h.get("next3h_cat") in ("IFR", "LIFR"))]
         risky.sort(key=lambda ch: (not ch[1].get("next3h_storms"), ch[1].get("next3h_cat") != "LIFR", ch[0]))

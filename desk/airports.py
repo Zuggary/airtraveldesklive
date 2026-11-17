@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 from typing import Optional
 
 # 40 busiest US airports (plus BDL), then the next-busiest ones: code -> (spoken_name, lat, lon)
@@ -212,22 +214,68 @@ DISPLAY: dict[str, str] = {
 }
 
 
-def display(code: str) -> str:
-    """Return the official display name for an airport code, or the code itself."""
+# ---- AN-names: every other US airport (OurAirports, public domain) so no card shows a bare code ----
+_NAMES_PATH = Path(__file__).resolve().parent.parent / "data" / "airport-names.json"
+_NAMES: Optional[dict[str, list[str]]] = None
+
+
+def _names() -> dict[str, list[str]]:
+    """code -> [name, city, state] for US airports, loaded once; {} if the data file is missing."""
+    global _NAMES
+    if _NAMES is None:
+        try:
+            _NAMES = json.loads(_NAMES_PATH.read_text(encoding="utf-8")).get("airports", {})
+        except (OSError, ValueError):
+            _NAMES = {}
+    return _NAMES
+
+
+def full_name(code: str) -> Optional[str]:
+    """Official name of any US airport ('Teterboro Airport'), or None if the code is unknown."""
     norm = (code or "").strip().upper()
     if norm in DISPLAY:
         return DISPLAY[norm]
+    row = _names().get(norm)
+    return row[0] if row else None
+
+
+def city_state(code: str) -> str:
+    """'Teterboro, NJ' for any US airport we know, else ''."""
+    row = _names().get((code or "").strip().upper())
+    if not row:
+        return ""
+    return ", ".join(x for x in (row[1], row[2]) if x)
+
+
+def display(code: str) -> str:
+    """Return the official display name for an airport code, or the code itself."""
+    norm = (code or "").strip().upper()
+    name = full_name(norm)
+    if name:
+        return name
     return norm or (code or "")
 
 
 def spoken(code: str) -> str:
-    """Return the spoken name for an airport code, or spaced letters + 'airport'."""
+    """Return the spoken name for an airport code; the full name for other US airports; else spaced letters + 'airport'."""
     norm = (code or "").strip().upper()
     if norm in AIRPORTS:
         return AIRPORTS[norm][0]
     if not norm:
         return "unknown airport"
+    name = full_name(norm)
+    if name:
+        return name
     return f"{' '.join(norm)} airport"
+
+
+def label(code: str) -> str:
+    """'TEB (Teterboro Airport)' for airports outside the 100 on the board, plain code for the 100 (their names are on screen)."""
+    norm = (code or "").strip().upper()
+    if norm in AIRPORTS or not norm:
+        return norm
+    name = full_name(norm)
+    return f"{norm} ({name})" if name else norm
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
