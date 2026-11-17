@@ -65,7 +65,9 @@ def fetch_youtube() -> Optional[str]:
                     or page not in (channel, channel + "/live", channel + "/featured", channel + "/streams", "/watch")):
                 return None
             body = response.read().decode("utf-8")
-            print("build_live: youtube page final=%s bytes=%d live_marker=%s consent=%s player=%s" % (final_url.geturl(), len(body), '"isLiveNow":true' in body, 'consent' in body[:3000].lower(), 'ytInitialPlayerResponse' in body))
+            import re as _re
+            _m = _re.search(r'rel="canonical" href="([^"]+)', body); _t = _re.search(r"<title>([^<]{0,80})", body); _b = body.find('"liveBroadcastDetails"')
+            print("build_live: youtube page final=%s bytes=%d live_marker=%s player=%s canonical=%s title=%r isLive=%s lbd=%r" % (final_url.geturl(), len(body), '"isLiveNow":true' in body, 'ytInitialPlayerResponse' in body, _m and _m.group(1), _t and _t.group(1), '"isLive":true' in body, body[_b:_b + 160] if _b >= 0 else None))
             return body
     except Exception as exc:  # noqa: BLE001 - any failure means unknown
         print("build_live: YouTube check failed: %s" % exc, file=sys.stderr)
