@@ -6,6 +6,8 @@
 
   var CHANNEL = "airtraveldesklive";
   var PARENTS = ["www.airtraveldesklive.com", "airtraveldesklive.com"];
+  var STALE_MS = 15 * 60 * 1000;
+  var LIVE_POLL_MS = 5 * 60 * 1000;
 
   /* The player address: the channel, the two site domains as parent, muted so a phone does not start loud. Pure. */
   function playerSrc(channel, parents) {
@@ -20,6 +22,14 @@
     return n;
   }
 
+  /* "live", "off" or "unknown" from data/live.json. Older than 15 minutes, or unreadable, is unknown: never a false green. Pure. */
+  function liveState(doc, nowMs) {
+    if (!doc || typeof doc !== "object" || typeof doc.checked_utc !== "string") { return "unknown"; }
+    var t = Date.parse(doc.checked_utc);
+    if (isNaN(t) || nowMs - t > STALE_MS || t - nowMs > 5 * 60 * 1000) { return "unknown"; }
+    return doc.live === true ? "live" : doc.live === false ? "off" : "unknown";
+  }
+
   function start(win) {
     var doc = win.document;
     var header = doc.querySelector(".site-header");
@@ -32,6 +42,7 @@
     btn.setAttribute("aria-controls", "watch-drawer");
     btn.appendChild(el(doc, "span", "watch-btn-dot"));
     btn.appendChild(el(doc, "span", "watch-btn-text", "Watch live"));
+    var label = btn.querySelector(".watch-btn-text");
     var toggle = headerIn.querySelector(".theme-toggle");
     if (toggle) { headerIn.insertBefore(btn, toggle); } else { headerIn.appendChild(btn); }
 
@@ -248,13 +259,35 @@
     docAdd.call(doc, "keydown", function (e) {
       if (e.key === "Escape" && isOpen) { setOpen(false); btn.focus(); }
     });
+
+    function applyLive(state) {
+      btn.classList.remove("is-live", "is-off");
+      if (state === "live") { btn.classList.add("is-live"); label.textContent = "Live"; }
+      else if (state === "off") { btn.classList.add("is-off"); label.textContent = "Offline"; }
+      else { label.textContent = "Watch live"; }
+      var cardTags = doc.querySelectorAll(".live-card-tag"), cardTitles = doc.querySelectorAll(".live-card-title");
+      for (var a = 0; a < cardTags.length; a++) { cardTags[a].hidden = state !== "live"; }
+      for (var b = 0; b < cardTitles.length; b++) { cardTitles[b].textContent = state === "live" ? "Live now: delays read aloud" : "Live desk: delays read aloud"; }
+    }
+    function checkLive() {
+      if (typeof win.fetch !== "function") { return; }
+      var ctl = typeof win.AbortController === "function" ? new win.AbortController() : null;
+      var tm = win.setTimeout(function () { if (ctl) { ctl.abort(); } }, 8000);
+      win.fetch("/data/live.json?m=" + Math.floor(Date.now() / 60000), { cache: "no-store", signal: ctl ? ctl.signal : undefined })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { win.clearTimeout(tm); applyLive(liveState(d, Date.now())); })
+        .catch(function () { win.clearTimeout(tm); applyLive("unknown"); });
+    }
+    applyLive("unknown");
+    checkLive();
+    win.setInterval(checkLive, LIVE_POLL_MS);
     var cards = doc.querySelectorAll("[data-watch-open]");
     for (var i = 0; i < cards.length; i++) {
       cards[i].addEventListener("click", function () { setOpen(true, true); });
     }
   }
 
-  var api = { playerSrc: playerSrc, CHANNEL: CHANNEL, PARENTS: PARENTS };
+  var api = { playerSrc: playerSrc, liveState: liveState, CHANNEL: CHANNEL, PARENTS: PARENTS };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; }
   if (root && root.document) { root.ATDWatch = api; start(root); }
 })(typeof window !== "undefined" ? window : null);

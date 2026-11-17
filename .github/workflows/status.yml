@@ -68,6 +68,11 @@ jobs:
       - name: Build airport status data
         run: python tools/build_status.py
 
+      - name: Check whether the Twitch stream is live (one server-side check, decapi.me; visitors never call it)
+        continue-on-error: true
+        timeout-minutes: 1
+        run: python tools/build_live.py --out data
+
       - name: Build desk screen data (FAA, NWS, adsb.lol, aviationweather.gov, NOAA SPC and NHC, radar, TSA, BTS)
         run: python tools/build_web.py --out data
 
@@ -111,7 +116,7 @@ jobs:
           cp assets/live/*.jpg _site/assets/live/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
-          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
+          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json live.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/fonts
           cp fonts/*.woff2 _site/fonts/
           mkdir -p _site/brand
