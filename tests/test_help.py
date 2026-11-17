@@ -45,7 +45,7 @@ class Help(unittest.TestCase):
                 for link in page.links:
                     url = urlsplit(link)
                     if url.scheme or url.netloc or not url.path: continue
-                    if url.path.startswith('/airports'): continue  # generated at deploy, gitignored
+                    if url.path.startswith(('/airports', '/airlines')): continue  # generated at deploy, gitignored
                     target = ROOT / url.path.lstrip('/') if url.path.startswith('/') else path.parent / url.path
                     candidates = [target, target / 'index.html', target.with_suffix('.html')]
                     self.assertTrue(any(p.is_file() for p in candidates), link)
