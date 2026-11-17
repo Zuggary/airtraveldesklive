@@ -28,6 +28,8 @@ class WatchTest(unittest.TestCase):
         self.assertIn("watch.js", (ROOT / ".github/workflows/status.yml").read_text(encoding="utf-8"))
         self.assertIn('"./watch.js"', (ROOT / "sw.js").read_text(encoding="utf-8"))
         home = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertRegex(home, r'<button[^>]+data-watch-open[^>]*>Watch live on YouTube</button>')
+        self.assertNotRegex(home, r'<link[^>]+(?:preconnect|dns-prefetch)[^>]+(?:youtube|ytimg|google)')
         self.assertIn('id="live-card"', home)
         self.assertLess(home.index('id="live-card"'), home.index('id="airport-card-slot"'))
         self.assertTrue((ROOT / "assets/live/stream-thumb.jpg").exists())

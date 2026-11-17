@@ -56,6 +56,23 @@ class Help(unittest.TestCase):
         self.assertIn('https://www.weather.gov/', weather)
         self.assertIn('https://aviationweather.gov/data/metar/', weather)
 
+    def test_polished_help_layout_and_action(self):
+        for name in ('index',) + SLUGS:
+            with self.subTest(page=name):
+                text = (ROOT / 'help' / (name + '.html')).read_text()
+                self.assertRegex(text, r'</h1><p>[^<]+</p>\s*<p class="help-flight-check"><a class="tap" href="/airlines/">Check your flight with your airline</a></p>')
+                self.assertIn('class="prose-card help-prose"', text)
+                self.assertRegex(text, r'<h2>Sources</h2>\s*<ul class="help-sources">\s*<li><a href="https://')
+                self.assertNotIn('only the airline can confirm', text.lower())
+                self.assertNotIn('this airport', text.lower())
+        stop = (ROOT / 'help/ground-stop.html').read_text()
+        self.assertIn('A ground stop holds affected inbound flights at their departure airports.', stop)
+        self.assertIn('Your airline has the details for your own flight.', stop)
+        self.assertIn('the airport under the ground stop', stop)
+        css = (ROOT / 'style.css').read_text()
+        self.assertIn('.help-prose > p, .help-prose > ul { max-width: 68ch; }', css)
+        self.assertIn('.site-footer p.container { margin-inline: auto; }', css)
+
     def test_offline_sitemap_and_rendered_links(self):
         block = airports.render_sitemap_block(['ZZZ'], '2026-11-17')
         sw = (ROOT/'sw.js').read_text()

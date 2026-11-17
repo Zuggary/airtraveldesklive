@@ -34,7 +34,7 @@ class StreamJudge(unittest.TestCase):
             self.assertNotRegex(text, r'<(?:iframe|script|link)[^>]+(?:src|href)="https://[^\"]*youtube')
         home = (ROOT / 'index.html').read_text()
         block = home.split('id="live-card"', 1)[1].split('id="airport-card-slot"', 1)[0]
-        self.assertIn('Load live video', block)
+        self.assertIn('Watch live on YouTube', block)
         self.assertIn('Also on Twitch', block)
 
     def test_wide_closure_layout(self):
