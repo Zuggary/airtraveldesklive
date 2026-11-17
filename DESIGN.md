@@ -131,3 +131,9 @@ source and its age. No "may be owed" wording changes: "possibly owed", never "mu
 - The airport hero follows the airport: clear (type art at night, a day scene by day), delay (a line of waiting aircraft, amber), ground stop (aircraft at the gates, red stop bar), closed (red X of lights), scheduled overnight closure (moonlit, quiet). Same rule in Python (`hero_art_key`) and in the page script (`ATDHeroArt`).
 - The stuck guide shows art for the situation (delayed, cancelled) at the head of "Do this now" and one picture each for the meal, hotel, rebooking and refund steps. Two paintings each: night for the dark page, pale for the light page.
 - No motion. No picture claims a real event, aircraft or airport. One quiet footer line says so.
+
+## Do not build (rule, from the 17 Nov site review)
+- No generic travel-blog articles, and no repetitive route or daily-snapshot pages without distinct evidence.
+- No flight-specific predictions, exact disruption durations, compensation guarantees, or composite "worst" scores built from incompatible measures.
+- No accounts, notification infrastructure, or more autoplay until repeat use is proven.
+- Missing readings never mean "clear". Hourly observations cannot give exact disruption durations. Match BTS direction, period and denominator.

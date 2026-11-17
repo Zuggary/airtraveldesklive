@@ -1,0 +1,15 @@
+const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
+const read = f => fs.readFileSync(path.join(__dirname, "../..", f), "utf8");
+const app = read("app.js");
+assert(app.includes('var tail = "None listed";'));
+assert(app.includes('if (lvl !== "clear") { tail = rowStatus(tail, a); }'));
+assert(app.includes('No FAA programs were listed at the last check.'));
+const stuck = read("stuck.html");
+assert(stuck.indexOf('Do this first') < stuck.indexOf('id="airline-options"'));
+assert(read("stuck.js").includes('receipts.open = true'));
+const sw = read("sw.js");
+for (const asset of ["./stuck", "./stuck.js", "./style.css"]) assert(sw.includes('"' + asset + '"'));
+assert(sw.includes('atd-offline-v16'));
+console.log("Immediate help checks passed");

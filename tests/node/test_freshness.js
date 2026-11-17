@@ -46,7 +46,7 @@ assert(!/as of|hours ago/i.test(text(ctx.makeTile(a, {}))));
 assert(text(ctx.makeTile(a, {})).includes('No FAA program listed'));
 
 ctx.D.state = state;
-assert(text(ctx.chipFor({...a, faa_updated_utc: state.updated_utc})).includes('No FAA program listed'));
+assert(text(ctx.chipFor({...a, faa_updated_utc: state.updated_utc})).includes('None listed'));
 assert(!text(ctx.chipFor({...a, faa_updated_utc: state.updated_utc})).includes('as of'));
 assert(!text(ctx.chipFor({...a, faa_updated_utc: '2026-11-17T16:00:00Z'})).includes('as of'));
 for (const level of ['clear', 'stop', 'delay']) {

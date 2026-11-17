@@ -345,9 +345,9 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
             self.assertIn(f"<!--/pr:{slot}-->", self.tpl)
 
     def test_main_column_order(self):
-        # AN34: verdict, search and map first; then the programs, the board, the changes and travel volume, then help.
+        # AN34: verdict, search first; then the programs and map, the board, the changes and travel volume, then help.
         # AN34 round 4: the page body ends on the help band; the stream and Lantern Drift are quiet footer lines.
-        ids = ['id="now"', "airport-search", 'id="map-section"', 'id="trouble"', 'id="board-section"', 'id="changed"',
+        ids = ['id="now"', "airport-search", 'id="trouble"', 'id="map-section"', 'id="board-section"', 'id="changed"',
                'id="history"', 'id="compare"', 'id="owed"', "</main>", 'id="watch"', 'id="while-you-wait"']
         pos = [self.tpl.index(i) for i in ids]
         self.assertEqual(pos, sorted(pos))
@@ -637,7 +637,7 @@ class TestStaleHonesty(unittest.TestCase):
         text = visible_text(page)
         # The stale verdict explicitly dates the limited FAA listing evidence.
         self.assertIn("Last FAA check 4:50 AM (12 hours ago)", text)
-        self.assertIn("No FAA programs listed.", text)
+        self.assertIn("No FAA programs were listed at the last check.", text)
         self.assertNotIn("right now", text)
 
     def test_fresh_home_keeps_live_words(self):

@@ -437,6 +437,13 @@
   function init() {
     watchArtTheme();
     initAskFirst();
+    // Anchor help stays available before the wizard, including on cached visits.
+    function openReceiptHelp() {
+      var receipts = document.getElementById("keep-receipts");
+      if (receipts && window.location.hash === "#keep-receipts") { receipts.open = true; }
+    }
+    window.addEventListener("hashchange", openReceiptHelp);
+    openReceiptHelp();
     var state = {
       step: 1,
       airlineId: "",

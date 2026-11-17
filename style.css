@@ -1304,3 +1304,9 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 /* Compact historical verdict fits two lines on a 375px phone. */
 @media (max-width: 480px) { #summary[data-stale="true"] { font-size: 1.5rem; line-height: 1.2; max-width: none; } }
 .tile-level, .tile-ok { white-space: nowrap; }
+
+/* Immediate help precedes the wizard in both columns and on phones. */
+.do-first { margin-top: var(--space-6); max-width: 760px; }
+.do-first h2 { margin: 0 0 8px; }
+.do-first ul { list-style: none; padding: 0; margin: 0; }
+.do-first a { display: block; padding: 10px 0; min-height: 44px; }

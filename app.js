@@ -230,14 +230,14 @@
     c.href = "/airports/" + a.code;
     c.appendChild(el("span", "dot dot--" + lvl));
     c.appendChild(el("span", "pick-code", a.code));
-    var tail = "No FAA program listed";
+    var tail = "None listed";
     if (lvl !== "clear") {
       var closed = (a.events || []).some(function (e) { return e && e.kind === "closure"; });
       var mins = null;
       (a.events || []).forEach(function (e) { var x = A.minutesOf(e && e.avg); if (x != null && (mins == null || x > mins)) { mins = x; } });
       tail = closed ? "Closed" : lvl === "stop" ? "Ground stop" : mins != null ? nbspUnits(A.fmtMinutes(mins)) : "Delays";
     }
-    tail = rowStatus(tail, a);
+    if (lvl !== "clear") { tail = rowStatus(tail, a); }
     c.appendChild(el("span", "pick-tail", tail));
     return c;
   }
@@ -369,7 +369,7 @@
     var list = faaEvents();
     if (!list.length) {
       var staleNow = isStaleIso(D.state.updated_utc);
-      box.appendChild(el("p", "empty-state", staleNow ? "No FAA programs listed." : "No FAA delays or ground stops are listed right now."));
+      box.appendChild(el("p", "empty-state", staleNow ? "No FAA programs were listed at the last check." : "No FAA delays or ground stops are listed right now."));
       return;
     }
     list.forEach(function (ev) { box.appendChild(eventCard(ev)); });

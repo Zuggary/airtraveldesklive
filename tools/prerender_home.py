@@ -328,7 +328,7 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
         return ""
     if not events:
         if stale:
-            return '<p class="empty-state">No FAA programs listed.</p>'
+            return '<p class="empty-state">No FAA programs were listed at the last check.</p>'
         return '<p class="empty-state">No FAA delays or ground stops are listed right now.</p>'
     events.sort(key=lambda e: (-KIND_RANK[e["kind"]], -(minutes_of((e.get("fields") or {}).get("avg")) or 0)))
     out = []
