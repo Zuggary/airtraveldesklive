@@ -4,12 +4,17 @@ const src = w.playerSrc(w.CHANNEL);
 assert.strictEqual(src, "https://www.youtube.com/embed/live_stream?channel=UCtEAjmjCJdR-pHgcZtIFI9w&autoplay=0");
 assert.ok(!src.includes("autoplay=1"));
 const now = Date.parse("2026-11-17T01:00:00Z");
-assert.strictEqual(w.liveState({ live: true, checked_utc: "2026-11-17T00:56:00Z" }, now), "live");
-assert.strictEqual(w.liveState({ live: false, checked_utc: "2026-11-17T00:56:00Z" }, now), "off");
-assert.strictEqual(w.liveState({ live: true, checked_utc: "2026-11-17T00:40:00Z" }, now), "unknown");      // older than 15 minutes: never a false green
-assert.strictEqual(w.liveState({ live: true, checked_utc: "2026-11-17T01:30:00Z" }, now), "unknown");      // a time in the future
-assert.strictEqual(w.liveState({ live: null, checked_utc: "2026-11-17T00:59:00Z" }, now), "unknown");
-assert.strictEqual(w.liveState({ live: true }, now), "unknown");
+const fresh = { checked_utc: "2026-11-17T00:56:00Z", live: true, twitch_live: true };
+assert.strictEqual(w.liveState({ ...fresh, youtube_live: true, twitch_live: false }, now), "live");
+assert.strictEqual(w.liveState({ ...fresh, youtube_live: false }, now), "off");
+assert.strictEqual(w.liveState({ ...fresh, youtube_live: null }, now), "unknown");
+assert.strictEqual(w.liveState(fresh, now), "unknown");
+assert.strictEqual(w.liveState({ ...fresh, youtube_live: "true" }, now), "unknown");
+assert.strictEqual(w.liveState({ youtube_live: true, checked_utc: "2026-11-17T00:45:00Z" }, now), "live");
+assert.strictEqual(w.liveState({ youtube_live: true, checked_utc: "2026-11-17T00:44:59Z" }, now), "unknown");
+assert.strictEqual(w.liveState({ youtube_live: true, checked_utc: "2026-11-17T01:30:00Z" }, now), "unknown");
+assert.strictEqual(w.liveState({ youtube_live: true, checked_utc: "invalid" }, now), "unknown");
+assert.strictEqual(w.liveState({ youtube_live: true }, now), "unknown");
 assert.strictEqual(w.liveState(null, now), "unknown");
 console.log("watch ok");
 
@@ -22,6 +27,7 @@ class Element {
     this.classList = {add() {}, remove() {}};
   }
   setAttribute(k, v) { this[k] = v; }
+  removeAttribute(k) { delete this[k]; }
   appendChild(n) { this.children.push(n); n.parentNode = this; return n; }
   insertBefore(n, before) { const i = this.children.indexOf(before); this.children.splice(i < 0 ? this.children.length : i, 0, n); n.parentNode = this; }
   removeChild(n) { this.children.splice(this.children.indexOf(n), 1); n.parentNode = null; }

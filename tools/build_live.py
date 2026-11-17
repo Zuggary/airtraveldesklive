@@ -1,7 +1,4 @@
-"""Build data/live.json: is the Twitch channel live right now? One server-side check per run (the 5-minute status workflow), so no visitor calls a
-third party. Source: decapi.me/twitch/uptime/<channel> (free, no key, no account). The result is {"live": true|false|null, "checked_utc": "..."}:
-null means the check failed or the answer was not understood, and the page then shows no green. Standard library only.
-"""
+"""Build data/live.json from key-free, server-side Twitch and YouTube checks."""
 from __future__ import annotations
 
 import argparse
@@ -12,10 +9,16 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
 
 CHANNEL = "airtraveldesklive"
 URL = "https://decapi.me/twitch/uptime/" + CHANNEL
 UA = "airtraveldesklive-status/1.0 (+https://www.airtraveldesklive.com/sources)"
+YOUTUBE_URL = "https://www.youtube.com/@AirTravelDeskLive/live"
+YOUTUBE_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
 
 
 def parse_uptime(text: str) -> Optional[bool]:
@@ -40,20 +43,53 @@ def fetch(url: str = URL, timeout: float = 10.0) -> Optional[str]:
         return None
 
 
-def build(text: Optional[str], now: Optional[datetime] = None) -> dict:
+def parse_youtube_live(html: Optional[str]) -> Optional[bool]:
+    """Read the exact marker from a recognizable YouTube HTML page."""
+    if not html or not re.match(r"\s*(?:<!doctype\s+html\s*>\s*)?<html\b", html, re.I):
+        return None
+    if '"isLiveNow":true' in html:
+        return True
+    if "ytInitialData" in html or "ytInitialPlayerResponse" in html:
+        return False
+    return None
+
+
+def fetch_youtube() -> Optional[str]:
+    try:
+        req = urllib.request.Request(YOUTUBE_URL, headers={"User-Agent": YOUTUBE_UA})
+        with urllib.request.urlopen(req, timeout=15) as response:
+            final_url = urlsplit(response.geturl())
+            page = final_url.path.lower().rstrip("/")
+            channel = "/@airtraveldesklive"
+            if (response.status != 200 or final_url.hostname != "www.youtube.com"
+                    or page not in (channel, channel + "/live", channel + "/featured", channel + "/streams", "/watch")):
+                return None
+            return response.read().decode("utf-8")
+    except Exception as exc:  # noqa: BLE001 - any failure means unknown
+        print("build_live: YouTube check failed: %s" % exc, file=sys.stderr)
+        return None
+
+
+def build(text: Optional[str], now: Optional[datetime] = None, *, youtube_html: Optional[str] = None) -> dict:
     now = now or datetime.now(timezone.utc)
-    return {"live": parse_uptime(text) if text is not None else None, "checked_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "channel": CHANNEL}
+    twitch_live = parse_uptime(text)
+    return {
+        "live": twitch_live,
+        "twitch_live": twitch_live,
+        "youtube_live": parse_youtube_live(youtube_html),
+        "checked_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
 
 
 def main(argv: Optional[list] = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data")
     a = ap.parse_args(argv)
-    doc = build(fetch())
+    doc = build(fetch(), youtube_html=fetch_youtube())
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "live.json").write_text(json.dumps(doc), encoding="utf-8")
-    print("build_live: live=%s" % doc["live"])
+    print("build_live: twitch_live=%s youtube_live=%s" % (doc["twitch_live"], doc["youtube_live"]))
     return 0
 
 
