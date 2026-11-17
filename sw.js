@@ -12,6 +12,7 @@
     "./tokens.css",
     "./style.css",
     "./theme.js",
+    "./watch.js",
     "./app.js",
     "./lib.js",
     "./sun.js",

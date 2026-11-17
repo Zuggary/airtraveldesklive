@@ -841,6 +841,7 @@ def _render_head(
         *([preload] if preload else []),
         '  ' + THEME_SNIPPET,
         '  <script src="../theme.js" defer></script>',
+        '  <script src="../watch.js" defer></script>',
         '  <link rel="stylesheet" href="../tokens.css">',
         '  <link rel="stylesheet" href="../style.css">',
         _json_ld_script(breadcrumb),

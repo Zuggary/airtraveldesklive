@@ -96,7 +96,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html stuck.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html stuck.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
@@ -107,6 +107,8 @@ jobs:
           cp airlines/*.html _site/airlines/
           mkdir -p _site/assets/art
           cp assets/art/*.avif assets/art/*.jpg _site/assets/art/
+          mkdir -p _site/assets/live
+          cp assets/live/*.jpg _site/assets/live/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
           for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done

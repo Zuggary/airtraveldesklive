@@ -21,6 +21,7 @@
   <link rel="icon" href="favicon.png" type="image/png">
   <script>(function(){try{var t=localStorage.getItem("atd-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})()</script>
   <script src="theme.js" defer></script>
+  <script src="watch.js" defer></script>
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="style.css">
   <script type="application/ld+json">
@@ -84,6 +85,14 @@
           <div class="updated-row">
             <p id="updated-line" class="src updated-text"><!--pr:updated-->&nbsp;<!--/pr:updated--></p>
             <button id="refresh-btn" type="button" class="chip refresh-btn" aria-describedby="updated-line">Refresh</button>
+          </div>
+          <div class="live-card" id="live-card">
+            <div class="live-card-thumb"><img src="assets/live/stream-thumb.jpg" width="320" height="180" alt="" loading="lazy" decoding="async"><span class="live-card-tag">LIVE</span></div>
+            <div class="live-card-text">
+              <p class="live-card-title">Live now: delays read aloud</p>
+              <p class="live-card-sub">The FAA board on air, with a voice, around the clock.</p>
+              <button type="button" class="chip chip--button" data-watch-open aria-controls="watch-drawer">Watch live</button>
+            </div>
           </div>
         </div>
 
@@ -202,11 +211,7 @@
       <section id="watch" class="watch-section" aria-labelledby="watch-heading">
         <h2 id="watch-heading">Watch live with voice</h2>
         <p>The same updates, read aloud around the clock: <a class="tap" href="https://www.twitch.tv/airtraveldesklive" target="_blank" rel="noopener noreferrer">Twitch</a>, or <a class="tap" href="/tv">TV mode</a> for a spare screen.</p>
-        <button type="button" class="chip chip--button" id="load-live" aria-expanded="false" aria-controls="live-panel">Load live video here</button>
-        <div class="live-panel" id="live-panel" hidden>
-          <p class="live-note">The video plays from Twitch. Loading it contacts Twitch, which sets its own cookies. Nothing loads from Twitch until you press the button.</p>
-          <div class="live-frame" id="live-frame"></div>
-        </div>
+        <button type="button" class="chip chip--button" data-watch-open aria-controls="watch-drawer">Watch live at the top of the page</button>
       </section>
       <section id="while-you-wait" class="wait-card" aria-labelledby="wait-heading">
         <h2 id="wait-heading">While you wait: play Lantern Drift</h2>

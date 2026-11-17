@@ -4,7 +4,6 @@
   var A = window.ATD;
   var SLOW_MS = 30 * 60000;
   var STALE_MIN = A.STALE_MIN;   // one limit for "live" wording; lib.js and the Python build use the same 30
-  var TWITCH_SRC = "https://player.twitch.tv/?channel=airtraveldesklive&parent=www.airtraveldesklive.com&parent=airtraveldesklive.com&muted=true";
   var DOWNTIME_URL = "https://www.downtimecredit.com/flights/?utm_source=airtraveldesklive";
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var LEVEL_WORD = { clear: "Clear", delay: "Delay", stop: "Ground stop" };
@@ -132,31 +131,6 @@
     return sorted.filter(function (e) { var c = String(e.airport || ""); if (seen[c]) { return false; } seen[c] = true; return true; });
   }
 
-  // ---------- header: live video ----------
-  function initLive() {
-    var btn = $("load-live"), panel = $("live-panel"), frame = $("live-frame");
-    btn.addEventListener("click", function () {
-      var open = btn.getAttribute("aria-expanded") === "true";
-      if (open) {
-        frame.textContent = "";
-        panel.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-        btn.textContent = "Load live video";
-        return;
-      }
-      var f = document.createElement("iframe");
-      f.src = TWITCH_SRC;
-      f.title = "Air Travel Desk live video on Twitch";
-      f.allowFullscreen = true;
-      f.setAttribute("allow", "autoplay; fullscreen");
-      f.className = "live-player";
-      frame.textContent = "";
-      frame.appendChild(f);
-      panel.hidden = false;
-      btn.setAttribute("aria-expanded", "true");
-      btn.textContent = "Hide live video";
-    });
-  }
 
   // ---------- 1: right now ----------
   function setStale(stale, text) {
@@ -1558,7 +1532,6 @@
   }
 
   function init() {
-    initLive();
     initSearch();
     initMap();
     loadLive().then(function () {

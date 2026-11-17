@@ -359,9 +359,9 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
         # AN34: the Twitch links left the top of the page; they sit in the footer, after the data.
         self.assertNotIn('href="#watch">Watch live</a>', self.tpl)
         footer = self.tpl[self.tpl.index('<footer'):]
-        self.assertIn('id="load-live"', footer)
+        self.assertNotIn('id="load-live"', self.tpl)      # AN52: the player is the top-bar drawer (watch.js), not a footer embed
+        self.assertIn("data-watch-open", footer)
         self.assertIn("twitch.tv/airtraveldesklive", footer)
-        self.assertGreater(self.tpl.index('id="load-live"'), self.tpl.index('id="compare"'))
 
     def test_every_script_id_still_exists(self):
         app = (ROOT / "app.js").read_text(encoding="utf-8")
