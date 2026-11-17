@@ -357,6 +357,9 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
             f'<span class="{badge}">{_esc("Closed overnight" if night else KIND_LABEL.get(ev["kind"], "Disruption"))}</span></div>',
             f'<p class="event-impact">{_esc(nbsp_units(impact_text(ev, str(place), stale, ev.get("tz") or a.get("tz"), at)))}</p>',
         ]
+        help_kind = ev.get("kind")
+        slug, label = {"ground_stop": ("ground-stop.html", "What is a ground stop?"), "ground_delay": ("ground-delay.html", "What is a ground delay?")}.get(help_kind, ("", "Help with disruption types"))
+        lines.append(f'<a class="tap" href="/help/{slug}">{label}</a>')
         if ev.get("reason") and str(ev["reason"]).strip().lower() != "closed":
             lines.append(f'<p class="event-reason">Reason: {_esc(reason_text(ev["reason"]))}</p>')
         lines.append(f'<p class="event-big"><b>{_esc(nbsp_units(big))}</b><small>{_esc(small)}</small></p>')

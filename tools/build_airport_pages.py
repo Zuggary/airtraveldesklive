@@ -473,7 +473,7 @@ def _status_meaning(entry: dict[str, Any] | None, lvl: str, stale: bool) -> str:
 
 def _lead(entry: dict[str, Any] | None, short: str, code: str, live: dict[str, Any], now: Any = None) -> list[str]:
     lvl = pt.effective_level(entry, now or pt.now_utc()) if entry else "unknown"
-    return [f'        <p id="ap-meaning" class="ap-lead">{_esc(_status_meaning(entry, lvl, bool(live.get("stale") or not live.get("has"))))}</p>']
+    return [f'        <p id="ap-meaning" class="ap-lead">{_esc(_status_meaning(entry, lvl, bool(live.get("stale") or not live.get("has"))))} <a href="/help/ground-stop.html">What is a ground stop?</a> · <a href="/help/ground-delay.html">What is a ground delay?</a> · <a href="/help/weather-disruption.html">Weather disruption</a> · <a href="/help/cancellation.html">Cancellation</a></p>']
 
 
 _PLAIN_REASON = {"low ceilings": "low clouds", "ceilings": "low clouds", "low visibility": "poor visibility",
@@ -859,6 +859,7 @@ def _render_header(current: str = "airports", airports_href: str = "/airports/")
         _nav_chip("Airports", airports_href, current == "airports"),
         _nav_chip("Airlines", airlines_href, current == "airlines", "nav-wide"),
         _nav_chip("Stuck?", "/stuck", current == "stuck"),
+        _nav_chip("Help", "/help/", current == "help"),
         _nav_chip("About", "/about", current == "about", "nav-wide"),
         "      </nav>",
         "      " + THEME_BUTTON,
@@ -889,6 +890,7 @@ def _render_footer(
             f'<li><a class="tap" href="{airports_href}">Airports</a></li>'
             f'<li><a class="tap" href="{airlines_href}">Airline commitments</a></li>'
             '<li><a class="tap" href="/about">About</a></li>'
+            '<li><a class="tap" href="/help/">Help</a></li>'
             '<li><a class="tap" href="/sources">Data and sources</a></li>'
             '<li><a class="tap" href="/privacy">Privacy</a></li></ul>'
         ),
@@ -1264,6 +1266,11 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      else { meaning = "the FAA lists delays without a confirmed arrival or departure direction"; }',
         '      return "Airport-wide status: " + meaning + "; this is not the status of any individual flight.";',
         '    }',
+        '    function addHelpLinks(n) {',
+        '      if (!n) { return; }',
+        '      var links = [["ground-stop", "What is a ground stop?"], ["ground-delay", "What is a ground delay?"], ["weather-disruption", "Weather disruption"], ["cancellation", "Cancellation"]];',
+        '      links.forEach(function (item) { var a = el("a", "tap", item[1]); a.href = "/help/" + item[0] + ".html"; n.appendChild(el("span", null, " ")); n.appendChild(a); });',
+        '    }',
         '    function meaningElement() {',
         '      var n = document.getElementById("ap-meaning");',
         '      if (!n && checkedLine && checkedLine.parentNode) {',
@@ -1271,14 +1278,14 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        checkedLine.parentNode.insertBefore(n, checkedLine);',
         '      }',
         '      // Shared JS also upgrades pages generated before the explanation was added.',
-        '      var old = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain") : [];',
+        '      var old = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain, .ap-help-links") : [];',
         '      for (var i = 0; i < old.length; i++) { if (old[i] !== n) { old[i].hidden = true; } }',
         '      return n;',
         '    }',
         '    function setUnavailable() {',
         '      scaleHelp("stale");',
         '      if (heading) { heading.textContent = "Last known status"; }',
-        '      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(null, "unknown", true); meaning.hidden = false; }',
+        '      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(null, "unknown", true); meaning.hidden = false; addHelpLinks(meaning); }',
         '      if (verdictEl) { verdictEl.textContent = "Last known status: FAA status unavailable."; }',
         '      if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }',
         '      if (statusChip) {',
@@ -1309,7 +1316,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '        return;',
         '      }',
         '      var lvl = effLevel(a, stale ? Date.parse(data.updated_utc) : null);',
-        '      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(a, lvl, stale); meaning.hidden = false; }',
+        '      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(a, lvl, stale); meaning.hidden = false; addHelpLinks(meaning); }',
         '      var unknown = ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0; if (unknown && heading) { heading.textContent = "Last known status"; } var label = unknown ? "Last known status: unavailable" : badgeLabel(a, lvl);',
         '      var asClock = clockLabel(data.updated_utc);',
         '      var chipText = stale ? "As of " + (asClock || "an unknown time") + ": " + label.charAt(0).toLowerCase() + label.slice(1) : label;',
@@ -1968,7 +1975,7 @@ def render_index_page(
 
 def render_sitemap_block(codes: list[str], build_date: str) -> str:
     """Render the managed <!-- airports:begin --> ... <!-- airports:end --> sitemap block."""
-    urls = [f"{SITE_URL}/airports/"] + [f"{SITE_URL}/airports/{code}" for code in codes]
+    urls = [f"{SITE_URL}/help/"] + [f"{SITE_URL}/help/{slug}.html" for slug in ("ground-stop", "ground-delay", "weather-disruption", "cancellation")] + [f"{SITE_URL}/airports/"] + [f"{SITE_URL}/airports/{code}" for code in codes]
     lines = [f"  {SITEMAP_BEGIN}"]
     for url in urls:
         lines.append(f"  <url><loc>{_esc(url)}</loc><lastmod>{_esc(build_date)}</lastmod></url>")

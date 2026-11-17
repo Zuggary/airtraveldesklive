@@ -48,7 +48,7 @@ Object.assign(ctx, {
 ctx.document.createTextNode = x => ({textContent:x});
 ctx.document.querySelector = () => null;
 ctx.nodes['ap-meaning'] = node();
-for (const name of ['meaningElement', 'setUnavailable', 'render']) {
+for (const name of ['addHelpLinks', 'meaningElement', 'setUnavailable', 'render']) {
   vm.runInContext(source.match(new RegExp('    function ' + name + '\\([^]*?\\n    }'))[0], ctx);
 }
 for (const [level, kind, expected] of [['stop','ground_stop','departures to'], ['delay','ground_delay','arrivals are held'], ['clear',null,'no FAA arrival']]) {

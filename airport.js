@@ -335,6 +335,11 @@ var ATD_ME = document.currentScript;
       else { meaning = "the FAA lists delays without a confirmed arrival or departure direction"; }
       return "Airport-wide status: " + meaning + "; this is not the status of any individual flight.";
     }
+    function addHelpLinks(n) {
+      if (!n) { return; }
+      var links = [["ground-stop", "What is a ground stop?"], ["ground-delay", "What is a ground delay?"], ["weather-disruption", "Weather disruption"], ["cancellation", "Cancellation"]];
+      links.forEach(function (item) { var a = el("a", "tap", item[1]); a.href = "/help/" + item[0] + ".html"; n.appendChild(el("span", null, " ")); n.appendChild(a); });
+    }
     function meaningElement() {
       var n = document.getElementById("ap-meaning");
       if (!n && checkedLine && checkedLine.parentNode) {
@@ -342,14 +347,14 @@ var ATD_ME = document.currentScript;
         checkedLine.parentNode.insertBefore(n, checkedLine);
       }
       // Shared JS also upgrades pages generated before the explanation was added.
-      var old = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain") : [];
+      var old = hero ? hero.querySelectorAll(".ap-lead, .ap-out, .ap-explain, .ap-help-links") : [];
       for (var i = 0; i < old.length; i++) { if (old[i] !== n) { old[i].hidden = true; } }
       return n;
     }
     function setUnavailable() {
       scaleHelp("stale");
       if (heading) { heading.textContent = "Last known status"; }
-      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(null, "unknown", true); meaning.hidden = false; }
+      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(null, "unknown", true); meaning.hidden = false; addHelpLinks(meaning); }
       if (verdictEl) { verdictEl.textContent = "Last known status: FAA status unavailable."; }
       if (checkedLine) { checkedLine.textContent = "FAA NAS status: not available right now."; }
       if (statusChip) {
@@ -380,7 +385,7 @@ var ATD_ME = document.currentScript;
         return;
       }
       var lvl = effLevel(a, stale ? Date.parse(data.updated_utc) : null);
-      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(a, lvl, stale); meaning.hidden = false; }
+      var meaning = meaningElement(); if (meaning) { meaning.textContent = statusMeaning(a, lvl, stale); meaning.hidden = false; addHelpLinks(meaning); }
       var unknown = ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0; if (unknown && heading) { heading.textContent = "Last known status"; } var label = unknown ? "Last known status: unavailable" : badgeLabel(a, lvl);
       var asClock = clockLabel(data.updated_utc);
       var chipText = stale ? "As of " + (asClock || "an unknown time") + ": " + label.charAt(0).toLowerCase() + label.slice(1) : label;

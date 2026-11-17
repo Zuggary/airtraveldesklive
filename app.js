@@ -330,6 +330,9 @@
     head.appendChild(el("span", "badge " + (night ? "badge--night" : stop ? "badge--stop" : "badge--delay"), A.kindLabel(ev.kind, ev, ev.tz || a.tz, atMs())));
     card.appendChild(head);
     card.appendChild(el("p", "event-impact", nbspUnits(A.impactText(ev, place, isStaleIso(D.state.updated_utc), ev.tz || a.tz, atMs()))));
+    var helpSlug = ev.kind === "ground_stop" ? "ground-stop.html" : ev.kind === "ground_delay" ? "ground-delay.html" : "";
+    var helpText = ev.kind === "ground_stop" ? "What is a ground stop?" : ev.kind === "ground_delay" ? "What is a ground delay?" : "Help with disruption types";
+    var help = el("a", "tap", helpText); help.href = "/help/" + helpSlug; card.appendChild(help);
     if (ev.reason && String(ev.reason).toLowerCase() !== "closed") { card.appendChild(el("p", "event-reason", "Reason: " + reasonText(ev.reason))); }
     var fig = eventFigure(ev, ev.tz || a.tz);
     if (isStaleIso(D.state.updated_utc)) { fig.big = fig.big.replace("Open now", "Listed open").replace("Closed", "Closure listed"); fig.small = fig.small.replace("reopens about", "listed reopening").replace("closes again about", "listed closing"); }
