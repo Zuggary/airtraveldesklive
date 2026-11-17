@@ -51,6 +51,7 @@ class WatchTest(unittest.TestCase):
         for guard in ("e.metaKey", "e.ctrlKey", "e.shiftKey", "a.target", 'hasAttribute("download")', "u.origin !== win.location.origin"):
             self.assertIn(guard, js)
         self.assertIn("SKIP_SCRIPTS", js)
+        self.assertIn("text/atd-late", js)      # held-back airport scripts must still run after a swap
 
     def test_sound_on_at_the_press_with_a_tap_for_sound_fallback(self):
         js = (ROOT / "watch.js").read_text(encoding="utf-8")

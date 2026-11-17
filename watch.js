@@ -271,6 +271,7 @@
         for (var q = 0; q < srcs[n].attributes.length; q++) {
           var at = srcs[n].attributes[q];
           if (at.name === "src" || at.name === "defer" || at.name === "async") { continue; }
+          if (at.name === "type" && at.value === "text/atd-late") { continue; }       /* the airport pages hold their scripts back until the picture paints; after a swap, just run them */
           ns.setAttribute(at.name, at.value);
         }
         ns.src = new win.URL(raw, u.href).href;
