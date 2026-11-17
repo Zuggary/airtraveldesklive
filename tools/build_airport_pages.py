@@ -976,6 +976,19 @@ def airport_js() -> str:
     return AIRPORT_JS_HEAD + "var ATD_ME = document.currentScript;\n" + sun + "\n" + hero + "\n" + live + "\n"
 
 
+# LCP: the page scripts (sun, status, map) are fetched and run in order after the load event, so the hero picture can paint first
+# (they ran before first paint when they were `defer`, which cost about 0.5 s of mobile Lighthouse LCP). Same files, same order.
+LATE_LOADER = (
+    '  <script>(function(){var done=false;function go(){if(done){return;}done=true;var s=document.querySelectorAll(\'script[type="text/atd-late"]\'),i=0;(function n(){if(i>=s.length){return;}'
+    'var o=s[i++],e=document.createElement("script");for(var a=0;a<o.attributes.length;a++){var t=o.attributes[a];if(t.name!=="type"){e.setAttribute(t.name,t.value);}}'
+    'e.onload=e.onerror=n;o.parentNode.replaceChild(e,o);})();}'
+    'function later(){setTimeout(go,150);}'
+    'try{new PerformanceObserver(function(l,ob){ob.disconnect();later();}).observe({type:"largest-contentful-paint",buffered:true});}catch(x){}'
+    'if(document.readyState==="complete"){later();}else{addEventListener("load",later);}setTimeout(go,4000);})();</script>'
+)
+
+
+
 def _airport_js_tag(code: str, tz: str, short: str, kind: str = "", lat: Any = None, lon: Any = None) -> str:
     extra = ""
     try:
@@ -984,7 +997,7 @@ def _airport_js_tag(code: str, tz: str, short: str, kind: str = "", lat: Any = N
     except (TypeError, ValueError):
         extra = ""
     return (f'  <script src="../{AIRPORT_JS_NAME}" data-code="{_esc(code)}" data-tz="{_esc(tz)}" '
-            f'data-short="{_esc(short or code)}"' + (f' data-kind="{_esc(kind)}"' if kind else "") + extra + ' defer></script>')
+            f'data-short="{_esc(short or code)}"' + (f' data-kind="{_esc(kind)}"' if kind else "") + extra + ' type="text/atd-late"></script>')
 
 
 def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
@@ -1758,9 +1771,10 @@ def render_airport_page(
         "    </div>",
         "    </main>",
         _render_footer(),
-        '  <script src="../sun.js" defer></script>' if tz else "",
+        '  <script src="../sun.js" type="text/atd-late"></script>' if tz else "",
         _airport_js_tag(code, tz, short, airport_type(code), airport_info.get("lat") if tz else None, airport_info.get("lon") if tz else None),
-        '  <script src="../apmap.js" defer></script>' if regional else "",
+        '  <script src="../apmap.js" type="text/atd-late"></script>' if regional else "",
+        LATE_LOADER,
         '<script src="/count.js" defer></script>',
         "</body>",
         "</html>",

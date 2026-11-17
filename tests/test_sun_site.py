@@ -118,7 +118,7 @@ class TestAirportSunNow(unittest.TestCase):
             self.assertEqual(m.group(3), a["tz"], code)
             self.assertAlmostEqual(float(m.group(1)), a["lat"], 3)
             self.assertIn('<p id="sun-now-source" class="small" hidden>Sun times calculated for the airport\'s location.</p>', t, code)
-            self.assertIn('<script src="../sun.js" defer></script>', t, code)  # AN43: the paint script is in ../airport.js
+            self.assertIn('<script src="../sun.js" type="text/atd-late"></script>', t, code)  # AN43: the paint script is in ../airport.js
             # in the "Right now" section, so it is next to the status
             self.assertLess(t.index('id="right-now"'), t.index('id="sun-now"'))
             self.assertLess(t.index('id="sun-now"'), t.index('id="stuck-heading"'))

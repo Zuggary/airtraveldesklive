@@ -438,5 +438,18 @@ class TestPartBWiringAndWording(unittest.TestCase):
         self.assertIn(f"{SITE_URL}/airports/", sitemap)
 
 
+class AirportScriptsLoadAfterPaintTests(unittest.TestCase):
+    """AN38 LCP: the hero picture is the LCP element, so the page scripts run after it has painted (mobile Lighthouse LCP 2.8 s to about 2.3 s)."""
+
+    def test_page_scripts_are_late_and_in_order(self):
+        from tools.build_airport_pages import LATE_LOADER, _airport_js_tag
+        tag = _airport_js_tag("ATL", "America/New_York", "Atlanta", "hub", 33.64, -84.427)
+        self.assertIn('type="text/atd-late"', tag)
+        self.assertNotIn(" defer", tag)
+        self.assertIn("largest-contentful-paint", LATE_LOADER)
+        self.assertIn("setTimeout(go,4000)", LATE_LOADER)          # a page that never reports an LCP still gets its scripts
+        self.assertIn('t.name!=="type"', LATE_LOADER)              # data-* attributes (code, tz, lat, lon) are copied to the real script
+
+
 if __name__ == "__main__":
     unittest.main()
