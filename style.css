@@ -1252,7 +1252,22 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .watch-close:hover { background: rgba(255, 255, 255, 0.12); }
 .watch-close:focus-visible { outline: 2px solid white; outline-offset: 2px; }
 .watch-frame { position: relative; width: min(100%, 960px); margin: 0 auto 14px; aspect-ratio: 16 / 9; background: black; }
+.watch-box { position: absolute; inset: 0; background: black; }
 .watch-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+/* docked: the same box, fixed in the corner; the in-flow slot above keeps its size, so the page does not move */
+.watch-frame.docked .watch-box { position: fixed; inset: auto; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 320px; height: 180px; z-index: 50; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); border-radius: 8px; overflow: hidden; }
+.watch-mini-ctl { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 4px; background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0)); }
+.watch-mini-ctl[hidden] { display: none; }
+.watch-grab { flex: 1; align-self: stretch; min-height: 28px; cursor: grab; }
+.watch-mini-btn { width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, 0.65); color: white; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.watch-mini-btn:hover { background: rgba(0, 0, 0, 0.9); }
+.watch-mini-btn:focus-visible { outline: 2px solid white; outline-offset: 1px; }
+.watch-shield { position: absolute; inset: 0; z-index: 3; cursor: grabbing; }
+@media (max-width: 699px) {
+  .watch-frame.docked .watch-box { left: 0; right: 0; width: auto; height: 150px; bottom: env(safe-area-inset-bottom, 0px); border-radius: 0; }
+  .watch-mini-btn { width: 44px; height: 44px; }
+  .watch-grab { cursor: default; }
+}
 @media (prefers-reduced-motion: reduce) { .watch-drawer { transition: none; } }
 @media (max-width: 760px) {      /* phones: the button sits on the brand row, left of the theme switch */
   .watch-btn { position: absolute; top: 0.35rem; right: 52px; margin: 0; padding: 0 12px; font-size: 0.875rem; }

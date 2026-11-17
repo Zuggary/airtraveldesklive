@@ -33,6 +33,15 @@ class WatchTest(unittest.TestCase):
         self.assertLess(home.index('id="live-card"'), home.index('id="airport-card-slot"'))
         self.assertTrue((ROOT / "assets/live/stream-thumb.jpg").exists())
 
+    def test_mini_player_never_moves_the_iframe_and_keeps_its_slot(self):
+        js = (ROOT / "watch.js").read_text(encoding="utf-8")
+        css = (ROOT / "style.css").read_text(encoding="utf-8")
+        self.assertIn("IntersectionObserver", js)
+        self.assertEqual(len(re.findall(r"appendChild\(f\)|insertBefore\(f,", js)), 1)       # the iframe is made once, never re-parented
+        self.assertIn(".watch-frame.docked .watch-box", css)
+        self.assertIn("env(safe-area-inset-bottom", css)
+        self.assertIn("320px", css)
+
     def test_node_unit(self):
         r = subprocess.run(["node", str(ROOT / "tests/node/test_watch.js")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
