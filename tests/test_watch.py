@@ -42,6 +42,16 @@ class WatchTest(unittest.TestCase):
         self.assertIn("env(safe-area-inset-bottom", css)
         self.assertIn("320px", css)
 
+    def test_soft_navigation_only_while_open_and_falls_back(self):
+        js = (ROOT / "watch.js").read_text(encoding="utf-8")
+        self.assertIn("pushState", js)
+        self.assertIn("popstate", js)
+        self.assertIn("if (!isOpen ||", js)                      # closed player: every link stays a normal full load
+        self.assertIn("win.location.href = u.href", js)         # any failure falls back to a normal navigation
+        for guard in ("e.metaKey", "e.ctrlKey", "e.shiftKey", "a.target", 'hasAttribute("download")', "u.origin !== win.location.origin"):
+            self.assertIn(guard, js)
+        self.assertIn("SKIP_SCRIPTS", js)
+
     def test_node_unit(self):
         r = subprocess.run(["node", str(ROOT / "tests/node/test_watch.js")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
