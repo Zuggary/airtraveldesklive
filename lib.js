@@ -222,13 +222,13 @@
   function outsideLead(outside, stale, nowMs) {
     var seen = {}, list = [];
     (outside || []).forEach(function (e) {
-      var c = String(e && e.airport || ""), sc = closureSchedule(e, e && e.tz, nowMs);
+      var c = canonicalAirportCode(e && e.airport), sc = closureSchedule(e, e && e.tz, nowMs);
       if (sc && !sc.in_window) { return; }   // a daily closure outside its hours is not news
       if (c && !seen[c]) { seen[c] = 1; list.push(e); }
     });
     if (!list.length) { return ""; }
     if (list.length > 1) { return list.length + " other airports " + (stale ? "had" : "have") + " an FAA program. "; }
-    var e = list[0], c = String(e.airport);
+    var e = list[0], c = canonicalAirportCode(e.airport);
     var sc1 = e.kind === "closure" && closureSchedule(e, e.tz, nowMs);
     if (sc1) { return c + (stale ? " was listed as closed overnight. " : " is closed overnight, reopens about " + sc1.reopen + " local time. "); }
     if (e.kind === "closure") { return c + (stale ? " was listed as closed. " : " is closed. "); }
@@ -245,7 +245,7 @@
       }
     }
     airports.forEach(function (a) {
-      var code = String(a.code || "").toUpperCase();
+      var code = canonicalAirportCode(a.code);
       zones.set(code, a.tz);
       if (isScheduledOnly(a, nowMs)) {
         if (nightReopen(a, nowMs)) { add(code, "closure"); }
@@ -255,7 +255,7 @@
     });
     (events || []).forEach(function (e) {
       if (!e) { return; }
-      var code = String(e.airport || "").toUpperCase(), sc = closureSchedule(e, e.tz || zones.get(code), nowMs);
+      var code = canonicalAirportCode(e.airport), sc = closureSchedule(e, e.tz || zones.get(code), nowMs);
       if (!sc || sc.in_window) { add(code, e.kind); }
     });
     return Array.from(programs).sort(function (a, b) {
@@ -281,7 +281,7 @@
     } else {
       headline = programs.map(function (a) { return labels[a[1]] + " at " + a[0] + "."; }).join(" ");
     }
-    var covered = new Set(airports.map(function (a) { return String(a.code || "").toUpperCase(); }));
+    var covered = new Set(airports.map(function (a) { return canonicalAirportCode(a.code); }));
     if (airports.length && !programs.some(function (a) { return covered.has(a[0]); })) {
       headline += " The 100 busiest are clear.";
     }
@@ -371,11 +371,16 @@
     } catch (e) { return ""; }
   }
 
+  function canonicalAirportCode(code) {
+    var norm = String(code || "").trim().toUpperCase();
+    return /^(PBI|KPBI|KDJT)$/.test(norm) ? "DJT" : norm;
+  }
+
   function airportFromSearch(search, validCodes) {
-    var m = /[?&]airport=([A-Za-z]{3})(?:&|$)/.exec(search || "");
+    var m = /[?&]airport=([A-Za-z]{3,4})(?:&|$)/.exec(search || "");
     if (!m) { return ""; }
-    var code = m[1].toUpperCase();
-    return !validCodes || validCodes.indexOf(code) >= 0 ? code : "";
+    var code = canonicalAirportCode(m[1]);
+    return code.length === 3 && (!validCodes || validCodes.indexOf(code) >= 0) ? code : "";
   }
 
   var DOT_URL = "https://www.transportation.gov/airconsumer/airline-cancellation-delay-dashboard";
@@ -562,7 +567,7 @@
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
     fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, homePrograms: homePrograms, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, reasonText: reasonText, dateline: dateline,
-    listedUtc: listedUtc, closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
+    listedUtc: listedUtc, closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch, canonicalAirportCode: canonicalAirportCode,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,
     changedLastHour: changedLastHour, historySeries: historySeries, checkedView: checkedView,

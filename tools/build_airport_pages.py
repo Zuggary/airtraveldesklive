@@ -36,7 +36,7 @@ BTS_DEFINITION_SHORT = "BTS counts a flight on time if it arrives less than 15 m
 # Mountain: in or beside mountains or on a high plateau. Desert: in a desert basin. Inland fields stay "hub".
 AIRPORT_TYPE = {
     **{c: "coastal" for c in "SFO LAX SAN SEA MIA FLL TPA BOS JFK LGA EWR "
-       "HNL OGG KOA LIH ANC OAK SNA LGB PBI SRQ RSW CHS SAV MYR PNS PVD ORF MSY".split()},
+       "HNL OGG KOA LIH ANC OAK SNA LGB DJT SRQ RSW CHS SAV MYR PNS PVD ORF MSY".split()},
     **{c: "mountain" for c in "DEN SLC BOI COS RNO ABQ".split()},
     **{c: "desert" for c in "PHX LAS TUS ELP PSP".split()},
 }
@@ -1336,7 +1336,8 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var stale = isStale(updMin) || ((data && data.stale_feeds) || []).indexOf("FAA") >= 0;',
         '      showStale(data && data.updated_utc, stale);',
         '      if (heading) { heading.textContent = stale ? "Last known status" : (datelineText(data && data.updated_utc) || "Latest FAA check"); }',
-        '      var a = data && data.airports && data.airports[CODE];',
+        '      var airports = (data && data.airports) || {};',
+    '      var a = airports[CODE] || (CODE === "DJT" && (airports.PBI || airports.KPBI || airports.KDJT));',
         '      if (checkedLine && a) {',
         '        checkedLine.textContent = "";',
         '        var fp = faaParts(data.updated_utc, stale);',
@@ -2024,6 +2025,8 @@ def render_sitemap_block(codes: list[str], build_date: str) -> str:
 
 def update_sitemap_block(sitemap_path: Path, block: str, begin: str, end: str) -> None:
     """Insert or replace one managed <!-- x:begin --> ... <!-- x:end --> block in sitemap.xml."""
+    if sitemap_path == Path("/dev/null"):
+        return
     if sitemap_path.is_file():
         content = sitemap_path.read_text(encoding="utf-8")
     else:
@@ -2051,6 +2054,21 @@ def update_sitemap(sitemap_path: Path, codes: list[str], build_date: str) -> Non
     update_sitemap_block(sitemap_path, render_sitemap_block(codes, build_date), SITEMAP_BEGIN, SITEMAP_END)
 
 
+def render_djt_redirect() -> str:
+    return """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Moved to DJT</title>
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0; url=/airports/DJT">
+  <link rel="canonical" href="{canonical}">
+</head>
+<body><a href="/airports/DJT">Moved to DJT</a></body>
+</html>
+""".format(canonical=f"{SITE_URL}/airports/DJT")
+
+
 def build_pages(
     *,
     data_dir: Path,
@@ -2069,6 +2087,8 @@ def build_pages(
     places_data = _load_json(data_dir / "places.json")
     bts_data = _load_json(data_dir / "bts.json")
     history_data = _load_json(data_dir / "history-summary.json")
+    if history_data.get("airports"):
+        history_data["airports"] = desk_airports.airport_rows(history_data["airports"])
     an43_path = data_dir / "an43" / "bts-profile.json"
     an43_profile = _load_json(an43_path) if an43_path.exists() else None
 
@@ -2077,7 +2097,7 @@ def build_pages(
     if not guide_airports:
         raise ValueError(f"No airports found in {data_dir / 'airport-guide.json'}")
     links_checked = str(links_data.get("checked_utc") or "")[:10]
-    for code, item in (links_data.get("airports") or {}).items():
+    for code, item in desk_airports.airport_rows(links_data.get("airports")).items():
         url = _safe_http_url((item or {}).get("home_link"))
         if code in guide_airports or not url:
             continue
@@ -2091,7 +2111,7 @@ def build_pages(
 
     # Static facts come from desk/airports.py; the live data file adds the live parts.
     airports_map: dict[str, Any] = {}
-    live_cards = airports_data.get("airports") or {}
+    live_cards = desk_airports.airport_rows(airports_data.get("airports"))
     if "FAA" in airports_data.get("stale_feeds", []):
         for card in live_cards.values():
             if isinstance(card, dict):
@@ -2163,6 +2183,13 @@ def build_pages(
     index_dest = out_dir / "index.html"
     index_dest.write_text(index_html, encoding="utf-8")
     written.append(index_dest)
+
+    if "DJT" in codes:
+        # A directory gives the lowercase URL its own entry even on case-insensitive filesystems.
+        for dest in (out_dir / "PBI.html", out_dir / "pbi" / "index.html"):
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(render_djt_redirect(), encoding="utf-8")
+            written.append(dest)
 
     if sitemap_path is not None:
         update_sitemap(sitemap_path, codes, date_str)

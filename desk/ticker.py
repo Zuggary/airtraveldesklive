@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from desk import timefmt
+from desk.airports import airport_rows, canonical_code
 from desk.airports import label as airport_label
 from desk.screen import duration_minutes, minutes_text
 
@@ -79,7 +80,7 @@ def change_text(change: dict[str, Any], now: datetime) -> Optional[tuple[str, st
     kind = ev.get("kind")
     if kind not in KIND_NAME or ev.get("source") != "FAA":
         return None
-    code = str(ev.get("airport") or "").upper()
+    code = canonical_code(ev.get("airport"))
     if not code:
         return None
     ct = change["change"]
@@ -147,15 +148,15 @@ class Ticker:
                     self.sent[f"stop:{ev.get('id')}"] = now_ts      # its end time just aired; the stop line waits 10 minutes
         for ev in events:
             if ev.get("kind") == "ground_stop" and ev.get("source") == "FAA" and ev.get("airport"):
-                code = str(ev["airport"]).upper()
+                code = canonical_code(ev["airport"])
                 self.add(f"stop:{ev.get('id')}", "stop", f"Ground stop at {airport_label(code)} · {_end_text(ev, now)}", now_ts, "FAA", _iso(now_ts))
-        hubs = (wx_data or {}).get("hubs") or {}
+        hubs = airport_rows((wx_data or {}).get("hubs"))
         risky = [(c, h) for c, h in hubs.items() if h.get("next3h_text") and (h.get("next3h_storms") or h.get("next3h_cat") in ("IFR", "LIFR"))]
         risky.sort(key=lambda ch: (not ch[1].get("next3h_storms"), ch[1].get("next3h_cat") != "LIFR", ch[0]))
         for code, h in risky[:MAX_WX]:
             self.add(f"wx:{code}:{h['next3h_text']}", "wx", f"{code} · {h['next3h_text']} (next 3 h)", now_ts, "TAF",
                      h.get("taf_issue_utc") or (wx_data or {}).get("fetched_utc"))
-        for code, h in sorted((holding_state or {}).items()):
+        for code, h in sorted(airport_rows(holding_state).items()):
             self.add(f"hold:{code}", "hold", f"{h.get('count')} aircraft look to be holding near {code}", now_ts, "adsb.lol", h.get("as_of_utc"))
         self.add("owed", "owed", OWED_TEXT, now_ts)
         return self.feed(now_ts)

@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from desk.airports import AIRPORTS
+from desk.airports import AIRPORTS, canonical_code
 
 SYNTHETIC_MARK = "SYNTHETIC TEST FIXTURE"
 USER_AGENT = "AirTravelDeskLive/1.0 (+https://www.airtraveldesklive.com)"
@@ -68,6 +68,7 @@ def _build_faa_event(
     reason: str,
     fields: dict[str, str],
 ) -> dict[str, Any]:
+    airport = canonical_code(airport)
     clean_fields = {k: v for k, v in fields.items() if v != ""}
     return {
         "id": f"{kind}:{airport}",

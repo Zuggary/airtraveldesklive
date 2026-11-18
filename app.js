@@ -107,10 +107,15 @@
   function buildAirports() {
     var list = [];
     if (D.cards && D.cards.airports) {
-      Object.keys(D.cards.airports).forEach(function (c) { list.push(D.cards.airports[c]); });
+      Object.keys(D.cards.airports).forEach(function (c) {
+        var code = A.canonicalAirportCode(c);
+        var card = D.cards.airports[c];
+        if (code === c) { list.push(card); }
+        else if (!D.cards.airports[code]) { list.push(Object.assign({}, card, { code: code })); }
+      });
     } else if (D.state && Array.isArray(D.state.board)) {
       D.state.board.forEach(function (b) {
-        list.push({ code: b.code, name: b.name, short: b.name, city: "", level: FALLBACK_LEVEL[b.level] || "clear", events: [], alerts: [], aircraft_near: null, tz: b.tz || "" });
+        list.push({ code: A.canonicalAirportCode(b.code), name: b.name, short: b.name, city: "", level: FALLBACK_LEVEL[b.level] || "clear", events: [], alerts: [], aircraft_near: null, tz: b.tz || "" });
       });
     }
     // Levels and events always come from state.json when it is newer than airports.json.
@@ -121,7 +126,7 @@
     allAirports = list;
     var boardCodes = {};
     var hasBoard = D.state && Array.isArray(D.state.board) && D.state.board.length;
-    if (hasBoard) { D.state.board.forEach(function (b) { boardCodes[b.code] = true; }); }
+    if (hasBoard) { D.state.board.forEach(function (b) { boardCodes[A.canonicalAirportCode(b.code)] = true; }); }
     list = hasBoard ? list.filter(function (a) { return boardCodes[a.code]; }) : list.slice(0, 30);
     airports = list;
     byCode = {};
@@ -137,7 +142,7 @@
     var at = atMs();
     var sorted = evs.filter(function (e) {
       if (e.source !== "FAA" || !rank[e.kind]) { return false; }
-      var code = String(e.airport || "").toUpperCase(), airport = allByCode[code] || byCode[code] || {};
+      var code = A.canonicalAirportCode(e.airport), airport = allByCode[code] || byCode[code] || {};
       var schedule = A.closureSchedule(e, e.tz || airport.tz, at);
       return !schedule || schedule.in_window;
     }).sort(function (a, b) {
@@ -146,7 +151,7 @@
       return (A.minutesOf(b.fields && b.fields.avg) || 0) - (A.minutesOf(a.fields && a.fields.avg) || 0);
     });
     var seen = {}; // AN32: one row per airport, the worst program first
-    return sorted.filter(function (e) { var c = String(e.airport || "").toUpperCase(); if (seen[c]) { return false; } seen[c] = true; return true; });
+    return sorted.filter(function (e) { var c = A.canonicalAirportCode(e.airport); if (seen[c]) { return false; } seen[c] = true; return true; });
   }
 
 
@@ -226,9 +231,9 @@
     if (tl) {
       var lede = A.troubleLine(list, stale, at);
       if (stale) {
-        var covered = new Set(list.map(function (a) { return String(a.code || "").toUpperCase(); }));
+        var covered = new Set(list.map(function (a) { return A.canonicalAirportCode(a.code); }));
         var outside = events.filter(function (e) {
-          return !covered.has(String(e.airport || "").toUpperCase());
+          return !covered.has(A.canonicalAirportCode(e.airport));
         });
         lede = A.outsideLead(outside, true, at) + lede;
         if (!lede && programs.length) {
@@ -303,7 +308,7 @@
   }
 
   function eventCard(ev, stale) {
-    var code = String(ev.airport || "").toUpperCase();
+    var code = A.canonicalAirportCode(ev.airport);
     var a = allByCode[code] || byCode[code] || {};
     var name = a.name || ev.display || a.short || code;
     var kind = ev.kind, f = ev.fields || {};
@@ -393,7 +398,7 @@
     var box = $("board");
     box.textContent = "";
     var tiles = {};
-    ((D.state && D.state.board) || []).forEach(function (t) { tiles[t.code] = t; });
+    ((D.state && D.state.board) || []).forEach(function (t) { tiles[A.canonicalAirportCode(t.code)] = t; });
     var weight = { red: 3, orange: 2, yellow: 1 };
     var ordered = airports.map(function (a, i) { return { a: a, i: i, w: (tiles[a.code] && weight[tiles[a.code].status]) || (a.level === "stop" ? 3 : a.level === "delay" ? 1 : 0) }; });
     ordered.sort(function (x, y) { return (y.w - x.w) || (x.i - y.i); }); // worst first, then the usual order
@@ -469,10 +474,10 @@
   // AN32: airports saved in this browser only (localStorage, no account).
   var MINE_KEY = "atd.mine";
   function getMine() {
-    try { var v = JSON.parse(window.localStorage.getItem(MINE_KEY) || "[]"); return Array.isArray(v) ? v.filter(function (c) { return allByCode[c]; }).slice(0, 8) : []; } catch (e) { return []; }
+    try { var v = JSON.parse(window.localStorage.getItem(MINE_KEY) || "[]"); return Array.isArray(v) ? Array.from(new Set(v.map(A.canonicalAirportCode))).filter(function (c) { return allByCode[c]; }).slice(0, 8) : []; } catch (e) { return []; }
   }
   // The airport the visitor opened last, so the top of the page can show it again (this browser only).
-  function getLast() { try { var c = window.localStorage.getItem("atd.last"); return c && allByCode[c] ? c : ""; } catch (e) { return ""; } }
+  function getLast() { try { var c = A.canonicalAirportCode(window.localStorage.getItem("atd.last")); return c && allByCode[c] ? c : ""; } catch (e) { return ""; } }
   function setLast(code) { try { window.localStorage.setItem("atd.last", code); } catch (e) { /* storage blocked */ } }
   function setMine(list) { try { window.localStorage.setItem(MINE_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) { /* storage blocked: the list lasts until the page closes */ } }
   function toggleMine(code) {
@@ -1313,7 +1318,7 @@
     allAirports.forEach(function (a) { if (a.level === "stop" || a.level === "delay") { add(a); } });
     // AN34 r2: an FAA program at an airport with no card (the headline may lead with it) still gets a ringed, labelled dot.
     faaEvents().forEach(function (e) {
-      var c = String(e.airport || "");
+      var c = A.canonicalAirportCode(e.airport);
       if (!/^[A-Z]{3}$/.test(c) || seen[c] || A.closureSchedule(e, e.tz, atMs()) || typeof e.lat !== "number" || typeof e.lon !== "number") { return; }
       add({ code: c, lat: e.lat, lon: e.lon, level: e.kind === "closure" || e.kind === "ground_stop" ? "stop" : "delay", events: [{ kind: e.kind, avg: (e.fields || {}).avg }] });
     });

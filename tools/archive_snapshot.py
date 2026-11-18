@@ -22,6 +22,8 @@ except ImportError:  # run as a script
     import archive_lib as al  # type: ignore[no-redef]
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from desk.airports import canonical_code  # noqa: E402
 
 
 def letter(row: dict) -> str:
@@ -39,8 +41,14 @@ def build(hours: int = 72, directory=None, now: datetime | None = None) -> dict:
     cells: dict[str, dict[str, str]] = {}
     total = 0
     for r in al.iter_rows(start=start, end=end, directory=directory):
-        cells.setdefault(r["airport"], {})[r["hour_utc"]] = letter(r)
-        total += 1
+        raw_code, hour = r["airport"], r["hour_utc"]
+        code = canonical_code(raw_code)
+        by_hour = cells.setdefault(code, {})
+        if hour not in by_hour:
+            total += 1
+            by_hour[hour] = letter(r)
+        elif raw_code == code:
+            by_hour[hour] = letter(r)
     airports = {code: "".join(by_hour.get(k, "-") for k in keys) for code, by_hour in sorted(cells.items())}
     seen = sorted({k for by in cells.values() for k in by})
     return {

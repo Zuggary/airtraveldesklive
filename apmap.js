@@ -67,7 +67,11 @@
     ctx.strokeStyle = col.edge; ctx.lineWidth = 1.2; ctx.stroke();
 
     marks = [];
-    var list = cards && cards.airports ? Object.keys(cards.airports).map(function (c) { return cards.airports[c]; }) : [];
+    var airports = (cards && cards.airports) || {};
+    var legacy = !airports.DJT && (airports.PBI || airports.KPBI || airports.KDJT);
+    var list = Object.keys(airports).filter(function (c) { return !/^(PBI|KPBI|KDJT)$/.test(c); })
+      .map(function (c) { return airports[c]; });
+    if (legacy) { list.push(Object.assign({}, legacy, { code: "DJT" })); }
     list.forEach(function (a) {
       if (typeof a.lat !== "number" || typeof a.lon !== "number") { return; }
       var p = px(a.lon, a.lat);

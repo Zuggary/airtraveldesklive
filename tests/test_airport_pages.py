@@ -186,9 +186,9 @@ class TestAirportPagesGenerator(unittest.TestCase):
     def test_generates_100_pages_and_index(self) -> None:
         from desk.airports import BUSIEST_100
         html_files = sorted(p.name for p in self.out_dir.glob("*.html"))
-        expected = sorted(["index.html"] + [f"{c}.html" for c in BUSIEST_100])
+        expected = sorted(["index.html", "PBI.html"] + [f"{c}.html" for c in BUSIEST_100])
         self.assertEqual(html_files, expected)
-        self.assertEqual(len(html_files), 101)
+        self.assertEqual(len(html_files), 102)
 
     def test_each_page_structure_wording_links_and_urls(self) -> None:
         codes = list(self.guide["airports"].keys())

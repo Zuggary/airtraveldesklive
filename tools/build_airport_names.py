@@ -14,6 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from desk.airports import CITY, DISPLAY, canonical_code  # noqa: E402
+
 KEEP_TYPES = {"large_airport", "medium_airport", "small_airport", "seaplane_base", "heliport"}
 
 
@@ -23,7 +26,7 @@ def build(csv_path: str) -> dict:
     best: dict[str, int] = {}
     with open(csv_path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            if r["iso_country"] != "US" or r["type"] not in KEEP_TYPES:
+            if (r.get("iso_country") or r["iso_region"].split("-")[0]) != "US" or r["type"] not in KEEP_TYPES:
                 continue
             name = (r["name"] or "").strip()
             if not name:
@@ -32,7 +35,7 @@ def build(csv_path: str) -> dict:
             val = [name, (r["municipality"] or "").strip(), state]
             keys = set()
             for k in (r["iata_code"], r["local_code"], r["gps_code"], r["ident"]):
-                k = (k or "").strip().upper()
+                k = canonical_code(k)
                 if not k:
                     continue
                 keys.add(k)
@@ -42,7 +45,7 @@ def build(csv_path: str) -> dict:
                 if len(k) < 3 or len(k) > 4:
                     continue
                 if k not in out or rank[r["type"]] < best[k]:
-                    out[k] = val
+                    out[k] = [DISPLAY[k], *CITY[k].split(", ")] if k == "DJT" else val
                     best[k] = rank[r["type"]]
     return {
         "version": 1,

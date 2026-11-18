@@ -1,6 +1,7 @@
 /* AN10 cinematic map: pure helpers (no DOM). Loaded by index.html, tested with node (tests/test_an10.py). */
 (function (root) {
   "use strict";
+  const { canonicalAirportCode } = typeof module !== "undefined" && module.exports ? require("./lib.js") : root.ATD;
 
   // Altitude bands: ground grey, under 10k ft teal, 10-25k ft cyan, over 25k ft white-blue.
   function altBand(alt) {
@@ -50,7 +51,7 @@
       const avg = parseAvgMinutes(ev.fields && ev.fields.avg);
       const score = rank * 100000 + avg * 10 - i * 0.001;   // ties keep the event order
       if (!best || score > best.score) {
-        const code = String(ev.airport).toUpperCase();
+        const code = canonicalAirportCode(ev.airport);
         const label = { ground_stop: "Ground stop", ground_delay: "Ground delay", delay: "Delay", closure: "Closure" }[kind];
         const reason = label + (kind === "ground_delay" && avg ? ", avg " + avg + " min" : "");
         best = { score: score, code: code, lat: ev.lat, lon: ev.lon, kind: kind, reason: reason, name: (names && names[code]) || code };

@@ -128,7 +128,7 @@ class TestAirportPages(unittest.TestCase):
         cls._tmp.cleanup()
 
     def test_hero_art_is_decorative_and_present(self) -> None:
-        pages = [p for p in self.out.glob("*.html") if p.name != "index.html"]
+        pages = [p for p in self.out.glob("*.html") if p.name not in {"index.html", "PBI.html"}]
         self.assertEqual(len(pages), 100)
         for page in pages:
             text = page.read_text(encoding="utf-8")

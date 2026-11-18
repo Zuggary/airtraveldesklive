@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from desk.airports import canonical_code  # noqa: E402
 CAUSES = ("CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay")
 CAUSE_WORD = {"CarrierDelay": "airline", "WeatherDelay": "extreme weather", "NASDelay": "air traffic system",
               "SecurityDelay": "security", "LateAircraftDelay": "late incoming aircraft"}
@@ -120,7 +122,8 @@ def main(zip_dir: Path, out_path: Path) -> None:
                     if len(r) <= need:
                         continue
                     y, m = int(r[ix["Year"]]), int(r[ix["Month"]]); months_seen.add((y, m))
-                    o, d, car = r[ix["Origin"]], r[ix["Dest"]], r[ix["Reporting_Airline"]]
+                    o, d = canonical_code(r[ix["Origin"]]), canonical_code(r[ix["Dest"]])
+                    car = r[ix["Reporting_Airline"]]
                     blk = r[ix["DepTimeBlk"]][:2]
                     nat_dep.add(r, ix); nat_arr.add(r, ix)
                     if o in keep:
@@ -130,7 +133,6 @@ def main(zip_dir: Path, out_path: Path) -> None:
                         slot(arr, (d, "all"), Arr).add(r, ix)
         print("read", zp.name, flush=True)
 
-    sys.path.insert(0, str(ROOT))
     from desk.bts import CARRIER_NAMES
     ms = sorted(months_seen)
     prof = {}

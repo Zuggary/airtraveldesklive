@@ -16,6 +16,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from desk.airports import AIRPORTS as DESK_AIRPORTS, TZ, canonical_code  # noqa: E402
+
 USER_AGENT = "AirTravelDeskLive/1.0 (+https://www.airtraveldesklive.com)"
 FAA_URL = "https://nasstatus.faa.gov/api/airport-status-information"
 NWS_URL_TEMPLATE = "https://api.weather.gov/alerts/active?point={lat},{lon}"
@@ -58,6 +61,7 @@ BUSIEST_30: list[tuple[str, str, str]] = [
 
 # All known airports: code -> (display_name, lat, lon, iana_tz)
 AIRPORTS: dict[str, tuple[str, float, float, str]] = {
+    "DJT": (*DESK_AIRPORTS["DJT"], TZ["DJT"]),
     "ATL": ("Hartsfield-Jackson Atlanta International", 33.641, -84.427, "America/New_York"),
     "DFW": ("Dallas Fort Worth International", 32.897, -97.038, "America/Chicago"),
     "DEN": ("Denver International", 39.856, -104.674, "America/Denver"),
@@ -134,7 +138,7 @@ def is_weather(reason: str) -> bool:
 
 def airport_name(code: str) -> str:
     """Map an airport code to its display name, falling back to the code."""
-    norm = (code or "").strip().upper()
+    norm = canonical_code(code)
     if norm in AIRPORTS:
         return AIRPORTS[norm][0]
     return norm or (code or "")
@@ -142,7 +146,7 @@ def airport_name(code: str) -> str:
 
 def airport_tz(code: str) -> Optional[str]:
     """Return the IANA timezone for a known airport code, or None."""
-    norm = (code or "").strip().upper()
+    norm = canonical_code(code)
     if norm in AIRPORTS:
         return AIRPORTS[norm][3]
     return None
@@ -167,6 +171,7 @@ def _make_event(
     direction: str = "",
     end_time: str = "",
 ) -> dict[str, Any]:
+    code = canonical_code(code)
     return {
         "code": code,
         "name": airport_name(code),
@@ -304,7 +309,7 @@ def _read_nws_fixture(fixture_nws: Path, code: str) -> str:
 
     match = re.match(r"^nws-([A-Z0-9]{3,4})(?:-|\.)", fixture_nws.name, re.IGNORECASE)
     if match:
-        target_code = match.group(1).upper()
+        target_code = canonical_code(match.group(1))
         if target_code == code:
             return fixture_nws.read_text(encoding="utf-8")
         for candidate in (f"nws-{code}.json", f"nws-{code}-synthetic.json"):
@@ -320,7 +325,7 @@ def build_board(events: list[dict[str, Any]]) -> list[dict[str, str]]:
     """Compute board status entries for the 30 busiest US airports."""
     levels: dict[str, str] = {}
     for ev in events:
-        code = ev["code"]
+        code = canonical_code(ev["code"])
         ev_level = _KIND_TO_LEVEL.get(ev["kind"], "clear")
         prev_level = levels.get(code, "clear")
         if _LEVEL_RANK[ev_level] > _LEVEL_RANK[prev_level]:
@@ -390,6 +395,10 @@ def build_status(
         prev = _load_previous_status(output_path)
         if prev is not None:
             payload = dict(prev)
+            for ev in payload["events"]:
+                code = canonical_code(ev.get("code"))
+                if code != ev.get("code") and code:
+                    ev.update(code=code, name=airport_name(code), tz=airport_tz(code))
             payload["stale"] = True
             payload["error"] = f"FAA feed error: {exc}"
             if "board" not in payload or not isinstance(payload["board"], list):
@@ -412,7 +421,7 @@ def build_status(
     for ev in events:
         if not is_weather(ev["reason"]):
             continue
-        code = ev["code"]
+        code = canonical_code(ev["code"])
         if code not in AIRPORTS:
             continue
         if code not in nws_cache:

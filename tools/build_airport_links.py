@@ -45,10 +45,6 @@ MANUAL: dict[str, str] = {
     "PSP": "https://flypsp.com/",
 }
 
-# OurAirports lists this airport under another IATA code (its current name); the FAA code on this site stays the same.
-ALIAS: dict[str, str] = {"PBI": "DJT"}
-
-
 def _clean(url: str) -> str:
     url = (url or "").strip()
     parts = urllib.parse.urlsplit(url)
@@ -62,7 +58,6 @@ def read_links(csv_path: Path, codes: list[str]) -> dict[str, dict[str, Any]]:
     with csv_path.open(encoding="utf-8", newline="") as fh:
         for row in csv.DictReader(fh):
             code = (row.get("iata_code") or "").strip()
-            code = next((k for k, v in ALIAS.items() if v == code), code)
             if code not in wanted or row.get("iso_country") != "US" or row.get("type") not in ("large_airport", "medium_airport"):
                 continue
             link = _clean(row.get("home_link") or "")

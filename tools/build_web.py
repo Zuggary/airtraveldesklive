@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from desk import board_history, bts, feeds, holding, holiday, lines, nhc, radar, screen, state, storms, ticker, tracks, tsa, wx  # noqa: E402
-from desk.airports import AIRPORTS, BUSIEST_30, BUSIEST_100, CITY, SHORT, TZ, display, nearest_airport, spoken  # noqa: E402
+from desk.airports import AIRPORTS, BUSIEST_30, BUSIEST_100, CITY, SHORT, TZ, airport_rows, canonical_code, display, nearest_airport, spoken  # noqa: E402
 
 MAX_LINES = 8
 NWS_TIMEOUT = 15
@@ -73,7 +73,11 @@ def enrich(events: list[dict]) -> list[dict]:
             near = nearest_airport(item["lat"], item["lon"], max_km=150.0) if item["lat"] is not None else None
             item["spoken"] = item["display"] = f"Near {near}" if near else "Transponder 7700"
         else:
-            code = str(item.get("airport") or "").upper()
+            code = canonical_code(item.get("airport"))
+            if code:
+                item["airport"] = code
+                if item.get("source") == "FAA":
+                    item["id"] = f"{item['kind']}:{code}"
             item["spoken"], item["display"], item["tz"] = spoken(code), display(code), TZ.get(code)
             if item.get("kind") == "ground_stop":
                 item["end_utc"] = screen.parse_end_time(str((item.get("fields") or {}).get("end_time") or ""))
@@ -101,7 +105,7 @@ def build_extras(out_dir: Path, prev: dict, prev_national: dict, prev_history: d
     """AN12 data for the site. Each layer keeps to its own cache cadence (wx 10 min, storms 15, NHC 30). A failed layer
     keeps its last file and is reported in `notes`; none of them stops the run. Returns the pieces state.json needs."""
     notes: list[str] = []
-    event_codes = [str(e.get("airport") or "").upper() for e in events if e.get("source") == "FAA"]
+    event_codes = [canonical_code(e.get("airport")) for e in events if e.get("source") == "FAA"]
     for name, call in (
         ("weather", lambda: wx.maybe_fetch(out_dir, now_ts=now_ts, fetcher=fetcher, event_airports=event_codes)),
         ("storms", lambda: storms.maybe_fetch(out_dir, now_ts=now_ts, fetcher=fetcher)),
@@ -137,7 +141,7 @@ def build_extras(out_dir: Path, prev: dict, prev_national: dict, prev_history: d
     # The weather file holds all 100 airports (for the airport pages). The "Latest" list keeps to the board airports
     # and airports with an FAA event, as before.
     keep = set(BUSIEST_30) | set(event_codes)
-    wx_ticker = dict(wx_json, hubs={c: h for c, h in (wx_json.get("hubs") or {}).items() if c in keep})
+    wx_ticker = dict(wx_json, hubs={c: h for c, h in airport_rows(wx_json.get("hubs")).items() if c in keep})
     items = tick.update(now_ts, changes, events, wx_ticker, hold, first_poll=prev.get("events") is None)
     tsa_json = _read_json(out_dir / "tsa.json")
     try:
@@ -157,15 +161,17 @@ def build(out_dir: Path, prev: dict, faa_text: str | None = None, adsb_text: str
     try:
         faa_events = feeds.parse_faa(faa_text if faa_text is not None else feeds.fetch(feeds.FAA_URL))
     except Exception:
-        faa_events = [e for e in prev.get("events", []) if e.get("kind") != "squawk7700"]
+        faa_events = [dict(e) for e in prev.get("events", []) if e.get("kind") != "squawk7700"]
         stale.append("FAA")
     # Emergency squawks (7700/7600/7500) are never shown: a single flight's trouble is not ours to publish
     # (CoS rule, 2026-11-14). The adsb.lol emergency feed is no longer fetched.
     adsb_events: list[dict] = []
 
+    if nws_map is not None:
+        nws_map = airport_rows(nws_map)
     nws_by_airport: dict[str, list[str]] = {}
     for ev in faa_events:
-        code = ev.get("airport")
+        code = canonical_code(ev.get("airport"))
         if code in nws_by_airport or code not in AIRPORTS or not feeds.is_weather(ev.get("reason", "")):
             continue
         if nws_map is not None:
@@ -250,7 +256,7 @@ def pick_near_airports(events: list[dict], limit: int = NEAR_MAX_CALLS) -> list[
     rank = {"ground_stop": 3, "closure": 3, "ground_delay": 2, "delay": 1}
     best: dict[str, tuple[int, int]] = {}
     for ev in events:
-        code = str(ev.get("airport") or "").upper()
+        code = canonical_code(ev.get("airport"))
         if ev.get("source") != "FAA" or code not in BUSIEST_30 or ev.get("kind") not in rank:
             continue
         key = (rank[ev["kind"]], _minutes((ev.get("fields") or {}).get("avg", "")))
@@ -267,12 +273,13 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
                         near_fetch=None, skip_near: bool = False, extras: dict | None = None) -> dict:
     """One card per busiest-100 airport: status, reason, events, NWS alert names, aircraft nearby, local tz.
     `stamp` is when the FAA feed was last fetched fresh. The board holds the first 30; the other 70 get their level from the events."""
-    level_by = {b["code"]: _LEVEL_WORD.get(b["level"], "clear") for b in board}
+    nws_by_airport = airport_rows(nws_by_airport)
+    level_by = {canonical_code(b["code"]): _LEVEL_WORD.get(b["level"], "clear") for b in board}
     on_board = set(level_by)
     rank = {"clear": 0, "delay": 1, "stop": 2}
     kind_level = {"ground_stop": "stop", "closure": "stop", "ground_delay": "delay", "delay": "delay"}
     for e in events:
-        c = str(e.get("airport") or "").upper()
+        c = canonical_code(e.get("airport"))
         lv = kind_level.get(e.get("kind") or "")
         if e.get("source") == "FAA" and c in BUSIEST_100 and c not in on_board and lv and rank[lv] > rank[level_by.get(c, "clear")]:
             level_by[c] = lv
@@ -288,12 +295,12 @@ def build_airport_cards(events: list[dict], board: list[dict], nws_by_airport: d
     ex = extras or {}
     hubs = holding.hub_positions()
     notes = storms.hub_notes(ex.get("storms"), hubs) if ex.get("storms") else {}
-    wx_hubs = (ex.get("wx") or {}).get("hubs") or {}
+    wx_hubs = airport_rows((ex.get("wx") or {}).get("hubs"))
     wx_src = (ex.get("wx") or {}).get("source")
-    hold = ex.get("holding") or {}
+    hold = airport_rows(ex.get("holding"))
     cards = {}
     for code in BUSIEST_100:
-        evs = [e for e in events if e.get("source") == "FAA" and str(e.get("airport") or "").upper() == code]
+        evs = [e for e in events if e.get("source") == "FAA" and canonical_code(e.get("airport")) == code]
         reasons = []
         for e in evs:
             r = (e.get("reason") or "").strip()

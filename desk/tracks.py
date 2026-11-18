@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from desk import feeds
-from desk.airports import AIRPORTS
+from desk.airports import AIRPORTS, canonical_code
 
 SOURCE = "adsb.lol (ODbL)"
 URL_TEMPLATE = "https://api.adsb.lol/v2/lat/{lat}/lon/{lon}/dist/40"
@@ -51,7 +51,7 @@ def select_airports(events: list[dict[str, Any]], limit: int = MAX_AIRPORTS) -> 
     stops: list[str] = []
     delays: list[tuple[int, int, str]] = []
     for i, ev in enumerate(events):
-        code = str(ev.get("airport") or "").upper()
+        code = canonical_code(ev.get("airport"))
         if code not in AIRPORTS:
             continue
         kind = ev.get("kind")

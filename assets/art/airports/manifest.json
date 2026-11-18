@@ -560,9 +560,9 @@
    102108
   ]
  },
- "PBI": {
-  "day": "ap-PBI-day.webp",
-  "night": "ap-PBI-night.webp",
+ "DJT": {
+  "day": "ap-DJT-day.webp",
+  "night": "ap-DJT-night.webp",
   "source": "bake",
   "imagery": "NAIP",
   "runway_lights": false,

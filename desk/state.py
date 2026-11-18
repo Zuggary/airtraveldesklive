@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from desk.airports import airport_rows, canonical_code
 from desk.feeds import is_weather
 
 
@@ -10,8 +11,10 @@ def apply_status(
     nws_by_airport: Optional[dict[str, list[str]]] = None,
 ) -> list[dict[str, Any]]:
     """Apply OFFICIAL / CONFIRMED / UNCONFIRMED status and sources list to events."""
-    nws_map = nws_by_airport or {}
+    nws_map = airport_rows(nws_by_airport)
     for ev in events:
+        if ev.get("airport"):
+            ev["airport"] = canonical_code(ev["airport"])
         if ev.get("kind") == "squawk7700" or ev.get("source") == "adsb.lol":
             ev["status"] = "UNCONFIRMED"
             ev["sources"] = ["adsb.lol"]
@@ -34,7 +37,15 @@ def diff(
     new: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Diff two event lists into new, updated, and cleared change records."""
-    old_by_id = {ev["id"]: ev for ev in old}
+    old_by_id = {}
+    for ev in old:
+        event_id = ev["id"]
+        kind, sep, code = event_id.partition(":")
+        if ev.get("source") == "FAA" and sep and code == ev.get("airport"):
+            code = canonical_code(code)
+            event_id = f"{kind}:{code}"
+            ev = dict(ev, id=event_id, airport=code)
+        old_by_id[event_id] = ev
     new_by_id = {ev["id"]: ev for ev in new}
     changes: list[dict[str, Any]] = []
 

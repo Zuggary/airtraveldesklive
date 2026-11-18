@@ -28,6 +28,9 @@ except ImportError:  # run as a script: tools/ is on the path
     import prerender_text as pt  # type: ignore[no-redef]
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from desk.airports import airport_rows, canonical_code  # noqa: E402
+
 HOME_TZ = "America/New_York"
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 KIND_RANK = {"ground_stop": 4, "closure": 4, "ground_delay": 3, "delay": 2}
@@ -93,7 +96,7 @@ def outside_lead(outside: list[dict[str, Any]] | None, stale: bool, now: datetim
     """AN34 round 3: an FAA program at an airport outside the list leads the headline. Same rule as lib.js outsideLead."""
     seen: dict[str, dict[str, Any]] = {}
     for e in outside or []:
-        c = str((e or {}).get("airport") or "")
+        c = canonical_code((e or {}).get("airport"))
         sc = _sched(e, (e or {}).get("tz"), now)
         if sc and not sc["in_window"]:
             continue  # a daily closure outside its hours is not news
@@ -126,7 +129,7 @@ def home_programs(airports: list[dict[str, Any]], events: list[dict[str, Any]] |
             programs[code] = kind
 
     for airport in airports:
-        code = str(airport.get("code") or "").upper()
+        code = canonical_code(airport.get("code"))
         zones[code] = airport.get("tz")
         if scheduled_only(airport, now):
             if night_reopen(airport, now):
@@ -137,7 +140,7 @@ def home_programs(airports: list[dict[str, Any]], events: list[dict[str, Any]] |
     for event in events or []:
         if not event:
             continue
-        code = str(event.get("airport") or "").upper()
+        code = canonical_code(event.get("airport"))
         schedule = _sched(event, event.get("tz") or zones.get(code), now)
         if not schedule or schedule["in_window"]:
             add(code, event.get("kind"))
@@ -162,7 +165,7 @@ def national_summary(airports: list[dict[str, Any]], as_of: str = "", events: li
         headline = f"{label} at {programs[0][0]} and {programs[1][0]}."
     else:
         headline = " ".join(f"{labels[kind]} at {code}." for code, kind in programs)
-    covered = {str(airport.get("code") or "").upper() for airport in airports}
+    covered = {canonical_code(airport.get("code")) for airport in airports}
     if airports and not any(code in covered for code, _ in programs):
         headline += " The 100 busiest are clear."
     return headline
@@ -284,7 +287,7 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
     events = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA" and e.get("kind") in KIND_RANK]
     # AN35: a daily closure outside its hours is not a row.
     events = [e for e in events if not ((sc := _sched(e, e.get("tz") or
-              by_code.get(str(e.get("airport") or "").upper(), {}).get("tz"), at)) and not sc["in_window"])]
+              by_code.get(canonical_code(e.get("airport")), {}).get("tz"), at)) and not sc["in_window"])]
     if not state:
         return ""
     if not events:
@@ -295,7 +298,7 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
     out = []
     seen: set[str] = set()  # AN32: one row per airport, the worst program first
     for ev in events:
-        code = str(ev.get("airport") or "").upper()
+        code = canonical_code(ev.get("airport"))
         if code in seen:
             continue
         seen.add(code)
@@ -392,8 +395,8 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     airports_data = _load(data_dir / "airports.json")
     state = _load(data_dir / "state.json")
     tsa = _load(data_dir / "tsa.json")
-    by_code = airports_data.get("airports") or {}
-    airports = [a for a in by_code.values() if isinstance(a, dict)]
+    by_code = airport_rows(airports_data.get("airports"))
+    airports = [dict(a, code=code) for code, a in by_code.items() if isinstance(a, dict)]
     state_utc = str(state.get("faa_updated_utc") or state.get("updated_utc") or "")
 
     stale = pt.is_stale(pt.age_minutes(state_utc, now)) or "FAA" in state.get("stale_feeds", []) or "FAA" in airports_data.get("stale_feeds", [])
@@ -416,8 +419,8 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     page = _slot(page, "summary", _esc(national_summary(airports, as_of, events, at)))
     lede = trouble_line(airports, stale, at)
     if stale:
-        covered = {str(airport.get("code") or "").upper() for airport in airports}
-        outside = [e for e in events if str(e.get("airport") or "").upper() not in covered]
+        covered = {canonical_code(airport.get("code")) for airport in airports}
+        outside = [e for e in events if canonical_code(e.get("airport")) not in covered]
         lede = outside_lead(outside, True, at) + lede
         if not lede and programs:
             lede = "FAA programs were listed at " + ", ".join(code for code, _ in programs) + "."

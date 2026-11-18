@@ -79,7 +79,7 @@ AIRPORTS: dict[str, tuple[str, float, float]] = {
     "SDF": ("Louisville Muhammad Ali", 38.174, -85.736),
     "OKC": ("Oklahoma City Will Rogers", 35.393, -97.601),
     "TUL": ("Tulsa International", 36.198, -95.888),
-    "PBI": ("Palm Beach International", 26.683, -80.096),
+    "DJT": ("President Donald J. Trump International Airport", 26.6832, -80.0956),
     "CVG": ("Cincinnati Northern Kentucky", 39.049, -84.668),
     "SRQ": ("Sarasota Bradenton", 27.395, -82.554),
     "DSM": ("Des Moines International", 41.534, -93.663),
@@ -183,7 +183,7 @@ DISPLAY: dict[str, str] = {
     "SDF": "Louisville Muhammad Ali International",
     "OKC": "Will Rogers World Airport, Oklahoma City",
     "TUL": "Tulsa International",
-    "PBI": "Palm Beach International",
+    "DJT": "President Donald J. Trump International Airport",
     "CVG": "Cincinnati/Northern Kentucky International",
     "SRQ": "Sarasota-Bradenton International",
     "DSM": "Des Moines International",
@@ -230,9 +230,21 @@ def _names() -> dict[str, list[str]]:
     return _NAMES
 
 
+def canonical_code(code: str | None) -> str:
+    """Normalize West Palm Beach feed identifiers to the public airport code."""
+    norm = (code or "").strip().upper()
+    return "DJT" if norm in {"PBI", "KPBI", "KDJT"} else norm
+
+
+def airport_rows(rows: dict | None) -> dict:
+    """Normalize airport-keyed data, preferring a canonical entry over its aliases."""
+    rows = rows or {}
+    return {canonical_code(code): rows.get(canonical_code(code), row) for code, row in rows.items()}
+
+
 def full_name(code: str) -> Optional[str]:
     """Official name of any US airport ('Teterboro Airport'), or None if the code is unknown."""
-    norm = (code or "").strip().upper()
+    norm = canonical_code(code)
     if norm in DISPLAY:
         return DISPLAY[norm]
     row = _names().get(norm)
@@ -241,7 +253,7 @@ def full_name(code: str) -> Optional[str]:
 
 def city_state(code: str) -> str:
     """'Teterboro, NJ' for any US airport we know, else ''."""
-    row = _names().get((code or "").strip().upper())
+    row = _names().get(canonical_code(code))
     if not row:
         return ""
     return ", ".join(x for x in (row[1], row[2]) if x)
@@ -249,7 +261,7 @@ def city_state(code: str) -> str:
 
 def display(code: str) -> str:
     """Return the official display name for an airport code, or the code itself."""
-    norm = (code or "").strip().upper()
+    norm = canonical_code(code)
     name = full_name(norm)
     if name:
         return name
@@ -258,7 +270,7 @@ def display(code: str) -> str:
 
 def spoken(code: str) -> str:
     """Return the spoken name for an airport code; the full name for other US airports; else spaced letters + 'airport'."""
-    norm = (code or "").strip().upper()
+    norm = canonical_code(code)
     if norm in AIRPORTS:
         return AIRPORTS[norm][0]
     if not norm:
@@ -271,7 +283,7 @@ def spoken(code: str) -> str:
 
 def label(code: str) -> str:
     """'TEB (Teterboro Airport)' for airports outside the 100 on the board, plain code for the 100 (their names are on screen)."""
-    norm = (code or "").strip().upper()
+    norm = canonical_code(code)
     if norm in AIRPORTS or not norm:
         return norm
     name = full_name(norm)
@@ -350,7 +362,7 @@ TZ: dict[str, str] = {
     "SDF": "America/Kentucky/Louisville",
     "OKC": "America/Chicago",
     "TUL": "America/Chicago",
-    "PBI": "America/New_York",
+    "DJT": "America/New_York",
     "CVG": "America/New_York",
     "SRQ": "America/New_York",
     "DSM": "America/Chicago",
@@ -428,7 +440,7 @@ SHORT: dict[str, str] = {
     "SDF": "Louisville",
     "OKC": "Oklahoma City",
     "TUL": "Tulsa",
-    "PBI": "West Palm Beach",
+    "DJT": "West Palm Beach",
     "CVG": "Cincinnati",
     "SRQ": "Sarasota",
     "DSM": "Des Moines",
@@ -489,7 +501,7 @@ CITY: dict[str, str] = {
     "RNO": "Reno, NV", "TUS": "Tucson, AZ", "ELP": "El Paso, TX", "PVD": "Providence, RI",
     "ALB": "Albany, NY", "BUF": "Buffalo, NY", "ORF": "Norfolk, VA", "RIC": "Richmond, VA",
     "CHS": "Charleston, SC", "SAV": "Savannah, GA", "MEM": "Memphis, TN", "SDF": "Louisville, KY",
-    "OKC": "Oklahoma City, OK", "TUL": "Tulsa, OK", "PBI": "West Palm Beach, FL", "CVG": "Cincinnati, OH",
+    "OKC": "Oklahoma City, OK", "TUL": "Tulsa, OK", "DJT": "West Palm Beach, FL", "CVG": "Cincinnati, OH",
     "SRQ": "Sarasota, FL", "DSM": "Des Moines, IA", "GEG": "Spokane, WA", "ICT": "Wichita, KS",
     "MHT": "Manchester, NH", "PWM": "Portland, ME", "BTV": "Burlington, VT", "ANC": "Anchorage, AK",
     "COS": "Colorado Springs, CO", "GSO": "Greensboro, NC", "BHM": "Birmingham, AL", "LIT": "Little Rock, AR",

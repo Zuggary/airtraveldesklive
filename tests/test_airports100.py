@@ -111,7 +111,25 @@ class TestPagesFromFixtures(unittest.TestCase):
 
     def test_100_pages_and_the_index(self) -> None:
         names = sorted(p.name for p in self.out.glob("*.html"))
-        self.assertEqual(names, sorted(["index.html"] + [f"{c}.html" for c in BUSIEST_100]))
+        self.assertEqual(names, sorted(["index.html", "PBI.html"] + [f"{c}.html" for c in BUSIEST_100]))
+
+    def test_djt_page_and_legacy_redirects(self) -> None:
+        page = self.pages["DJT"]
+        self.assertIn("President Donald J. Trump International Airport", page)
+        self.assertIn('data-short="West Palm Beach"', page)
+        self.assertIn('data-tz="America/New_York"', page)
+        self.assertIn('data-lat="26.6832" data-lon="-80.0956"', page)
+        self.assertIn("airports/ap-DJT-", page)
+        self.assertIn('href="/airports/DJT"', self.index)
+        for path in ("PBI.html", "pbi/index.html"):
+            stub = (self.out / path).read_text(encoding="utf-8")
+            self.assertIn('<meta http-equiv="refresh" content="0; url=/airports/DJT">', stub)
+            self.assertIn('<meta name="robots" content="noindex">', stub)
+            self.assertIn('<link rel="canonical" href="https://www.airtraveldesklive.com/airports/DJT">', stub)
+            self.assertIn('<a href="/airports/DJT">Moved to DJT</a>', stub)
+        sitemap = self.sitemap.read_text(encoding="utf-8")
+        self.assertIn("/airports/DJT</loc>", sitemap)
+        self.assertNotRegex(sitemap, r"/airports/(?:PBI|pbi)")
 
     def test_titles_are_unique_and_name_the_code(self) -> None:
         titles = [re.search(r"<title>(.*?)</title>", html).group(1) for html in self.pages.values()]
@@ -244,6 +262,8 @@ class TestSearchFindsNewAirports(unittest.TestCase):
         wf = (ROOT / ".github" / "workflows" / "status.yml").read_text(encoding="utf-8")
         self.assertIn('"$airport_count" -ne 100', wf)
         self.assertIn("Expected 100 airport pages", wf)
+        self.assertIn("! -name 'PBI.html'", wf)
+        self.assertIn("cp airports/pbi/index.html _site/airports/pbi/", wf)
         self.assertIn("build_places.py --out data --more", wf)
         self.assertIn("data/places-more.json", wf)
         self.assertNotIn("-ne 30", wf)
@@ -318,6 +338,9 @@ class TestWeatherForAll100(unittest.TestCase):
         self.assertEqual(len(re.search(r"ids=([^&]+)", urls[0]).group(1).split(",")), 100)
         self.assertEqual(sorted(data["hubs"]), sorted(BUSIEST_100))
         self.assertIn("HNL", data["hubs"])
+        self.assertIn("KPBI", urls[0])
+        self.assertNotIn("KDJT", urls[0])
+        self.assertIn("DJT", data["hubs"])
 
     def test_ticker_weather_lines_stay_with_board_airports(self) -> None:
         # extras: the 70 extra airports are in wx.json for the pages, but the "Latest" list does not take them
@@ -400,7 +423,7 @@ class TestOfficialLinks(unittest.TestCase):
             no_check = build_airport_links.build(p, check=False)
             self.assertFalse(any(e["verified"] for e in no_check["airports"].values()))
             self.assertEqual(no_check["airports"]["BHM"]["home_link"], "https://bhm.example/")
-            self.assertEqual(no_check["airports"]["PBI"]["home_link"], "https://pbi.example/")
+            self.assertEqual(no_check["airports"]["DJT"]["home_link"], "https://pbi.example/")
 
             class Resp:
                 def __init__(self, status: int) -> None:

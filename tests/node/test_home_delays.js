@@ -22,7 +22,15 @@ const box = element("div");
 const summary = element("h1");
 const trouble = element("p");
 const note = element("p");
-const nodes = { events: box, summary, "trouble-line": trouble, "verdict-note": note };
+const chips = element("div");
+const drawing = new Proxy({ measureText: text => ({ width: text.length * 8 }) },
+  { get: (target, key) => target[key] || (() => {}) });
+const map = Object.assign(element("canvas"), {
+  getBoundingClientRect: () => ({ width: 500, height: 300 }),
+  getContext: () => drawing,
+  setAttribute(key, value) { this[key] = value; }
+});
+const nodes = { chips, map, events: box, summary, "trouble-line": trouble, "verdict-note": note };
 const state = {
   updated_utc: new Date(now).toISOString(),
   faa_updated_utc: new Date(now - 60_000).toISOString(),
@@ -44,6 +52,15 @@ vm.runInNewContext(source.replace("  init();", `
   D.state = fixture;
   allByCode.ZZZ = { name: "Example Airport" };
   window.renderEvents = renderEvents;
+  window.renderDJT = function (cards) {
+    D.cards = { airports: cards };
+    buildAirports();
+    renderEvents();
+    renderChips();
+    D.geo = { features: [] };
+    bounds = { minX: -1, maxX: 1, minY: -1, maxY: 1 };
+    renderMap();
+  };
   window.reasonText = reasonText;
   window.renderSummary = renderSummary;
   allAirports = [{ code: "AAA", level: "clear" }];
@@ -114,3 +131,18 @@ context.window.renderSummary();
 assert.equal(trouble.textContent, "FAA programs were listed at AAA. Current conditions unknown.");
 assert.equal(note.textContent, "");
 console.log("Home delay row and verdict checks passed");
+
+state.faa_updated_utc = new Date(now).toISOString();
+for (const alias of ["DJT", "PBI", "KPBI", "KDJT", " pbi "]) {
+  assert.equal(A.canonicalAirportCode(alias), "DJT");
+  assert.equal(A.airportFromSearch("?airport=" + alias.trim(), ["DJT"]), "DJT");
+  state.events = [{ airport: alias, source: "FAA", kind: "ground_stop" }];
+  const code = alias.trim();
+  context.window.renderDJT({ [code]: { code, name: "President Donald J. Trump International Airport",
+    lat: 26.6832, lon: -80.0956, level: "stop", events: [{ kind: "ground_stop" }] } });
+  assert.equal(box.children[0].children[0].children[0].href, "/airports/DJT");
+  assert.equal(box.children[0].children[1].textContent, "Ground stop");
+  assert.equal(chips.children[0].textContent, "Trouble now");
+  assert.equal(chips.children[1].href, "/airports/DJT");
+  assert.match(map["data-markers"], /^DJT:\d+:\d+$/);
+}

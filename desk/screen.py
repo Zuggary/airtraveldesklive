@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from desk.airports import AIRPORTS, BUSIEST_30, SHORT
+from desk.airports import AIRPORTS, BUSIEST_30, SHORT, canonical_code
 
 # Fixed UTC offsets (hours) for the zone words the FAA uses.
 ZONE_OFFSETS = {
@@ -108,7 +108,7 @@ def board_from_events(events: list[dict[str, Any]], prev: Optional[dict[str, dic
     for ev in events:
         if ev.get("source") != "FAA":
             continue
-        code = str(ev.get("airport") or "").upper()
+        code = canonical_code(ev.get("airport"))
         lvl = _LEVEL.get(ev.get("kind", ""))
         if not code or not lvl:
             continue

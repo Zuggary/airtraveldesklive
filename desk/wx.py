@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from desk import demo, feeds, timefmt
-from desk.airports import AIRPORTS, BUSIEST_100, TZ
+from desk.airports import AIRPORTS, BUSIEST_100, TZ, canonical_code
 
 SOURCE = "aviationweather.gov (METAR, TAF)"
 BASE = "https://aviationweather.gov/api/data"
@@ -24,13 +24,13 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 CAT_RANK = {"VFR": 0, "MVFR": 1, "IFR": 2, "LIFR": 3}
 
 
-# Stations outside the lower 48 do not use K + code. These are the ICAO ids for the Hawaii and Alaska airports on the list.
-ICAO_OTHER = {"HNL": "PHNL", "OGG": "PHOG", "KOA": "PHKO", "LIH": "PHLI", "ANC": "PANC"}
+# AviationWeather.gov station IDs that differ from K + the public airport code.
+ICAO_OTHER = {"HNL": "PHNL", "OGG": "PHOG", "KOA": "PHKO", "LIH": "PHLI", "ANC": "PANC", "DJT": "KPBI"}
 
 
 def icao(code: str) -> Optional[str]:
-    """'K' + code for the lower 48; the listed PH/PA id for Hawaii and Anchorage; None for anything else."""
-    code = (code or "").upper()
+    """Return the AviationWeather.gov station ID for a supported airport."""
+    code = canonical_code(code)
     if code not in AIRPORTS:
         return None
     if code in ICAO_OTHER:
@@ -43,7 +43,7 @@ def icao(code: str) -> Optional[str]:
 
 def wanted_codes(event_airports: list[str]) -> list[str]:
     out: list[str] = []
-    for c in list(BUSIEST_100) + [str(a).upper() for a in event_airports]:
+    for c in list(BUSIEST_100) + [canonical_code(a) for a in event_airports]:
         if icao(c) and c not in out:
             out.append(c)
     return out
@@ -195,16 +195,22 @@ def taf_next3h(taf: dict[str, Any], now_ts: float, tz: Optional[str]) -> Optiona
             "next3h_from_utc": _iso(start), "next3h_to_utc": _iso(end)}
 
 
+def _station_code(station: str) -> str:
+    station = station.strip().upper()
+    return next((code for code, ident in ICAO_OTHER.items() if ident == station),
+                canonical_code(station[1:] if station.startswith("K") else station))
+
+
 def build(metars: list[dict[str, Any]], tafs: list[dict[str, Any]], now_ts: float) -> dict[str, Any]:
-    by_taf = {str(t.get("icaoId")): t for t in tafs}
+    by_taf = {_station_code(str(t.get("icaoId") or "")): t for t in tafs}
     hubs: dict[str, Any] = {}
     for m in metars:
         ic = str(m.get("icaoId") or "")
-        code = next((c for c, i in ICAO_OTHER.items() if i == ic), ic[1:] if ic.startswith("K") else ic)
+        code = _station_code(ic)
         rec = parse_metar(m, now_ts)
         if rec is None or code not in AIRPORTS:
             continue
-        taf = by_taf.get(ic)
+        taf = by_taf.get(code)
         if taf:
             nxt = taf_next3h(taf, now_ts, TZ.get(code))
             if nxt:

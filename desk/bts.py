@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
+from desk.airports import canonical_code
 from desk.feeds import USER_AGENT
 
 PREZIP = ("https://transtats.bts.gov/PREZIP/"
@@ -147,9 +148,10 @@ def compute_zip(zip_path: Path | str) -> dict[str, Any]:
                     continue
                 if row[idv] in ("1", "1.00") or row[ia] == "":
                     continue
-                ap = airports.get(row[idest])
+                code = canonical_code(row[idest])
+                ap = airports.get(code)
                 if ap is None:
-                    ap = airports[row[idest]] = _Tally()
+                    ap = airports[code] = _Tally()
                 ot = 1 if row[ia] in ("0", "0.00") else 0
                 for t in (nation, car, ap):
                     t.done += 1

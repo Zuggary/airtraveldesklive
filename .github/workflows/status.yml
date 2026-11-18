@@ -113,6 +113,8 @@ jobs:
           done
           mkdir -p _site/airports
           cp airports/*.html _site/airports/
+          mkdir -p _site/airports/pbi
+          cp airports/pbi/index.html _site/airports/pbi/
           mkdir -p _site/airlines
           cp airlines/*.html _site/airlines/
           mkdir -p _site/assets/art
@@ -151,7 +153,13 @@ jobs:
             echo "::error::_site/airports/index.html is missing"
             missing=1
           fi
-          airport_count=$(find _site/airports -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
+          for redirect in PBI.html pbi/index.html; do
+            if [ ! -f "_site/airports/$redirect" ]; then
+              echo "::error::_site/airports/$redirect is missing"
+              missing=1
+            fi
+          done
+          airport_count=$(find _site/airports -maxdepth 1 -type f -name '*.html' ! -name 'index.html' ! -name 'PBI.html' | wc -l)
           if [ "$airport_count" -ne 100 ]; then
             echo "::error::Expected 100 airport pages in _site/airports, found $airport_count"
             missing=1

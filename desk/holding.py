@@ -13,7 +13,7 @@ import math
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
 
-from desk.airports import AIRPORTS, BUSIEST_30
+from desk.airports import AIRPORTS, BUSIEST_30, canonical_code
 from desk.tracks import distance_nm
 
 RADIUS_NM = 25.0
@@ -106,7 +106,7 @@ def count_by_hub(aircraft: Iterable[dict[str, Any]], hubs: dict[str, tuple[float
 
 
 def hub_positions(event_airports: Iterable[str] = ()) -> dict[str, tuple[float, float]]:
-    codes = list(BUSIEST_30) + [str(c).upper() for c in event_airports]
+    codes = list(BUSIEST_30) + [canonical_code(c) for c in event_airports]
     return {c: (AIRPORTS[c][1], AIRPORTS[c][2]) for c in codes if c in AIRPORTS}
 
 
