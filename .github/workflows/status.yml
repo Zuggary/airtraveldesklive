@@ -32,8 +32,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run unit tests
+      - name: Run unit tests (block only code pushes)
+        # A failing test must never freeze the live data refresh: on pushes it fails the run; on the 5-minute
+        # schedule and manual runs it only raises a warning and the data still builds and deploys.
+        if: github.event_name == 'push'
         run: python -m unittest discover -s tests -v
+
+      - name: Run unit tests (scheduled run, warn and never block data)
+        if: github.event_name != 'push'
+        run: |
+          if ! python -m unittest discover -s tests; then
+            echo "::warning::unit tests failed on a scheduled run; deploying fresh data anyway. Fix the site code."
+          fi
 
       - name: Restore radar, TSA, BTS, places and weather cache
         uses: actions/cache@v4
