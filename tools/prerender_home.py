@@ -30,7 +30,6 @@ except ImportError:  # run as a script: tools/ is on the path
 ROOT = Path(__file__).resolve().parent.parent
 HOME_TZ = "America/New_York"
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-KIND_LABEL = {"ground_stop": "Ground stop", "ground_delay": "Ground delay", "closure": "Airport closed", "delay": "Delays"}
 KIND_RANK = {"ground_stop": 4, "closure": 4, "ground_delay": 3, "delay": 2}
 
 
@@ -242,88 +241,48 @@ def impact_text(ev: dict[str, Any], place: str, stale: bool = False, tz: Any = "
     return text + "."
 
 
-_REASON_PREFIX = {"WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway",
-                  "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other"}
+# Keep these FAA terms in sync with app.js.
+_REASON_WORDS = {
+    "MIT": "traffic spacing (miles-in-trail)", "MINIT": "traffic spacing (minutes-in-trail)",
+    "WX": "weather", "VOLUME": "traffic volume", "EQUIPMENT": "equipment",
+    "RUNWAY": "runway", "RWY/TWY": "runway or taxiway", "STAFFING": "staffing", "OTHER": "other",
+}
 
 
 def reason_text(reason: Any) -> str:
-    """Turn a raw FAA reason such as 'WX:Wind' into plain words ('weather, wind')."""
-    text = str(reason or "").strip()
-    m = re.match(r"^([A-Za-z/]+):\s*(.*)$", text)
-    if not m or m.group(1).upper() not in _REASON_PREFIX:
-        return text
-    prefix = _REASON_PREFIX[m.group(1).upper()]
-    rest = m.group(2).lower()
-    return prefix if (not rest or rest in (prefix, "volume")) else f"{prefix}, {rest}"
+    parts = []
+    for part in str(reason or "").split(";"):
+        part = re.sub(r"^TM\s+Initiatives\s*:\s*", "", part.strip(), flags=re.I)
+        terms = list(filter(None, re.split(r"\s*:\s*", part)))
+        known = any(term.upper() in _REASON_WORDS for term in terms)
+        words = [_REASON_WORDS.get(term.upper(), term.lower() if known else
+                                  re.sub(r"[a-z]+", lambda m: m[0].capitalize(), term.lower()))
+                 for term in terms]
+        joiner = " due to " if terms and terms[0].upper() in ("MIT", "MINIT") else ", "
+        phrase = joiner.join(dict.fromkeys(words))
+        if phrase:
+            parts.append(phrase[0].upper() + phrase[1:])
+    return "; ".join(parts)
 
 
-def _short_dur(minutes: int) -> str:
-    """'2 h 46' for the big number on a row (no 'min' after hours, like a departures board)."""
-    h, m = divmod(int(minutes), 60)
-    if not h:
-        return f"{m} min"
-    return f"{h} h {m}" if m else f"{h} h"
-
-
-_REOPEN_RE = re.compile(r"([A-Z][a-z]{2}) (\d{1,2}) at (\d{2}):(\d{2}) UTC")
-
-
-def event_figure(ev: dict[str, Any], tz: str, now: datetime) -> tuple[str, str]:
-    """The big number and its small label for one program row. Same rule as app.js eventFigure."""
-    f = ev.get("fields") or {}
-    kind = ev.get("kind")
-    sc = _sched(ev, tz, now) if kind == "closure" else None
-    if sc:
-        return ("Closed overnight", f"reopens about {sc['reopen']} local time") if sc["in_window"] else ("Open now", f"closes again about {sc['close']} local time")
-    if kind == "closure":
-        m = _REOPEN_RE.search(str(f.get("reopen") or ""))
-        if m and m.group(1) in MONTHS:
-            from datetime import timezone as _tz
-            year = now.year
-            month = MONTHS.index(m.group(1)) + 1
-            if month < now.month - 6:
-                year += 1
-            try:
-                when = datetime(year, month, int(m.group(2)), int(m.group(3)), int(m.group(4)), tzinfo=_tz.utc)
-                # AN34 r2: the big word is the state; the date goes in the small line, in the one zone the home page uses.
-                local = when.astimezone(pt.ZoneInfo(HOME_TZ))
-                day = f"{MONTHS[local.month - 1]} {local.day}"
-                clock = pt.clock_label(when.isoformat().replace("+00:00", "Z"), HOME_TZ)
-                if when <= now:
-                    return "Closed", f"listed to reopen {day}, {clock}; that time has passed, so it may have reopened"
-                if (when - now).total_seconds() > 24 * 3600:
-                    # AN34 round 4: a listing days out is often a run of nightly closures, not one long shutdown.
-                    return "Closed", f"FAA listing runs to {day}. A listing this long is often nightly closures; check the airport for its hours"
-                return "Closed", f"listed to reopen {day}, {clock}"
-            except Exception:  # unknown zone or bad date
-                pass
-        return "Closed", "no reopening time listed"
-    if kind == "ground_stop":
-        end = str(ev.get("end_utc") or "")
-        clock = pt.clock_label(end, HOME_TZ) if end else ""
-        end_dt = pt.parse_utc(end) if end else None
-        if clock and end_dt and end_dt <= now:
-            return "Stop", f"listed to end {clock}; that time has passed, so it may have lifted"
-        if clock:
-            return clock, "listed end"
-        if f.get("end_time"):
-            return str(f["end_time"]).rstrip("."), "listed end"
-        return "Stop", "no end time listed"
-    avg = minutes_of(f.get("avg") or ev.get("avg"))
-    mx = minutes_of(f.get("max") or ev.get("max"))
-    if avg is not None:
-        small = "average hold" if kind == "ground_delay" else "average delay"
-        if mx is not None:
-            small += f" · longest {fmt_minutes(mx)}"
-        return _short_dur(avg), small
-    return "Delays", "no size listed"
+def closure_listing(ev: dict[str, Any], now: datetime) -> str:
+    end = pt.listed_utc(ev.get("reopen") or (ev.get("fields") or {}).get("reopen"), now)
+    if not end:
+        return ""
+    local = end.astimezone(pt.ZoneInfo(HOME_TZ))
+    day = f"{MONTHS[local.month - 1]} {local.day}"
+    if (end - now).total_seconds() > 86400:
+        return f"FAA listing runs to {day}. Long listings often cover nightly closures."
+    passed = " (time passed)" if end <= now else ""
+    return f"Listed reopening {day}, {pt.clock_label(end.isoformat(), HOME_TZ)}{passed}"
 
 
 def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: str, now: datetime, stale: bool = False, at: datetime | None = None) -> str:
     at = at or now  # a scheduled closure is judged at the data's own time when the data is stale
     events = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA" and e.get("kind") in KIND_RANK]
     # AN35: a daily closure outside its hours is not a row.
-    events = [e for e in events if not ((sc := _sched(e, e.get("tz"), at)) and not sc["in_window"])]
+    events = [e for e in events if not ((sc := _sched(e, e.get("tz") or
+              by_code.get(str(e.get("airport") or "").upper(), {}).get("tz"), at)) and not sc["in_window"])]
     if not state:
         return ""
     if not events:
@@ -339,34 +298,51 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
             continue
         seen.add(code)
         a = by_code.get(code) or {}
-        place = a.get("short") or ev.get("display") or code
-        full = a.get("name") or ev.get("display") or place
-        night = bool(ev.get("kind") == "closure" and _sched(ev, ev.get("tz") or a.get("tz"), at))
-        stop = ev.get("kind") in ("ground_stop", "closure") and not night
+        name = a.get("name") or ev.get("display") or a.get("short") or code
+        kind = ev["kind"]
+        fields = ev.get("fields") or {}
+        night = _sched(ev, ev.get("tz") or a.get("tz"), at) if kind == "closure" else None
+        stop = kind in ("ground_stop", "closure") and not night
         cls = "event-card event-card--night" if night else "event-card event-card--stop" if stop else "event-card"
         badge = "badge badge--night" if night else "badge badge--stop" if stop else "badge badge--delay"
-        big, small = event_figure(ev, str(ev.get("tz") or a.get("tz") or ""), at if night else now)
-        if stale:
-            big = big.replace("Open now", "Listed open").replace("Closed", "Closure listed")
-            small = small.replace("reopens about", "listed reopening").replace("closes again about", "listed closing")
+        status = "Ground stop" if kind == "ground_stop" else "Delays"
+        detail = ""
+        if kind == "closure":
+            status = "Closure listed" if stale else "Closed overnight" if night else "Closed"
+        elif kind == "ground_stop":
+            end = pt.parse_utc(ev.get("end_utc"))
+            if end:
+                detail = "listed end " + pt.clock_label(end.isoformat(), HOME_TZ)
+        else:
+            avg = minutes_of(fields.get("avg") or ev.get("avg"))
+            maximum = minutes_of(fields.get("max") or ev.get("max"))
+            if avg is not None:
+                detail = "avg " + fmt_minutes(avg)
+            elif maximum is not None:
+                detail = "max " + fmt_minutes(maximum)
+        if stale and kind != "closure":
+            status += " listed"
+        if detail:
+            status += " · " + detail
+
+        why = reason_text(ev.get("reason"))
+        if why.lower() == "closed":
+            why = ""
+        if not why and kind == "closure":
+            why = f"Listed reopening about {night['reopen']} local time" if night else closure_listing(ev, now)
+        reason_title = f' title="{_esc(why)}"' if why else ""
         href = f"/airports/{code}" if re.fullmatch(r"[A-Z]{3}", code) else "/airports/"
-        lines = [
-            f'<article class="{cls}">',
-            f'<div class="event-header"><h3 class="event-title"><a class="ev-link" href="{href}"><span class="ev-code">{_esc(code)}</span>'
-            f'<span class="ev-place">{_esc(full)}</span></a></h3>'
-            f'<span class="{badge}">{_esc("Closed overnight" if night else KIND_LABEL.get(ev["kind"], "Disruption"))}</span></div>',
-            f'<p class="event-impact">{_esc(nbsp_units(impact_text(ev, str(place), stale, ev.get("tz") or a.get("tz"), at)))}</p>',
-        ]
-        help_kind = ev.get("kind")
-        slug, label = {"ground_stop": ("ground-stop.html", "What is a ground stop?"), "ground_delay": ("ground-delay.html", "What is a ground delay?")}.get(help_kind, ("", "Help with disruption types"))
-        lines.append(f'<a class="tap" href="/help/{slug}">{label}</a>')
-        if ev.get("reason") and str(ev["reason"]).strip().lower() != "closed":
-            lines.append(f'<p class="event-reason">Reason: {_esc(reason_text(ev["reason"]))}</p>')
-        lines.append(f'<p class="event-big"><b>{_esc(nbsp_units(big))}</b><small>{_esc(small)}</small></p>')
-        sources = ", ".join(str(x) for x in (ev.get("sources") or [])) or "FAA"
-        lines.append(f'<p class="event-meta">Source: {_esc(sources)}</p>')
-        lines.append("</article>")
-        out.append("".join(lines))
+        slug, label = {
+            "ground_stop": ("ground-stop.html", "What is a ground stop?"),
+            "ground_delay": ("ground-delay.html", "What is a ground delay?"),
+        }.get(kind, ("", "Disruption guides"))
+        out.append(
+            f'<article class="{cls}"><h3 class="event-title"><a class="ev-link" href="{href}">'
+            f'<span class="ev-code">{_esc(code)}</span><span class="ev-place" title="{_esc(name)}">{_esc(name)}</span></a></h3>'
+            f'<span class="{badge}">{_esc(status)}</span>'
+            f'<p class="event-reason"{reason_title}>{_esc(why)}</p>'
+            f'<a class="event-help" href="/help/{slug}">{label}</a></article>'
+        )
     return "".join(out)
 
 

@@ -500,7 +500,7 @@
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
     fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, dateline: dateline,
-    closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
+    listedUtc: listedUtc, closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,
     changedLastHour: changedLastHour, historySeries: historySeries, checkedView: checkedView,

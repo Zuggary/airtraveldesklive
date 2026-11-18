@@ -281,7 +281,7 @@ class TestHomeScheduledClosure(unittest.TestCase):
         self.assertIn("event-card--night", row)
         self.assertNotIn("event-card--stop", row)
         self.assertIn("Closed overnight", row)
-        self.assertIn("reopens about 6:15 AM local time", row)
+        self.assertIn("Listed reopening about 6:15 AM local time", row)
         self.assertNotIn("Checked", row)
         self.assertEqual(ph.render_events(state, {"SNA": sna_card()}, "2026-11-15T19:55:00Z", DAY).count("event-card"), 0)
 

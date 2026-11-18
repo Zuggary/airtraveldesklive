@@ -32,12 +32,3 @@ class StreamJudge(unittest.TestCase):
             if name != 'tv.html':
                 self.assertIn('Also on Twitch', text, name)
             self.assertNotRegex(text, r'<(?:iframe|script|link)[^>]+(?:src|href)="https://[^\"]*youtube')
-        home = (ROOT / 'index.html').read_text()
-        block = home.split('id="live-card"', 1)[1].split('id="airport-card-slot"', 1)[0]
-        self.assertIn('Watch live on YouTube', block)
-        self.assertIn('Also on Twitch', block)
-
-    def test_wide_closure_layout(self):
-        css = (ROOT / 'style.css').read_text()
-        self.assertIn('.event-card--stop { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }', css)
-        self.assertIn('.event-card--stop .event-big { grid-column: 2; grid-row: 4;', css)

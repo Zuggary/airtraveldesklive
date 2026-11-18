@@ -259,9 +259,8 @@ class TestLongClosureListing(unittest.TestCase):
         from tools import prerender_home as ph
         now = datetime(2026, 11, 16, 6, 30, tzinfo=timezone.utc)
         far = {"kind": "closure", "fields": {"reopen": "Nov 21 at 14:15 UTC."}}
-        big, small = ph.event_figure(far, "America/Los_Angeles", now)
-        self.assertEqual(big, "Closed")
-        self.assertIn("FAA listing runs to Nov 21", small)
-        self.assertIn("often nightly closures", small)
+        listing = ph.closure_listing(far, now)
+        self.assertIn("FAA listing runs to Nov 21", listing)
+        self.assertIn("often cover nightly closures", listing)
         near = {"kind": "closure", "fields": {"reopen": "Nov 16 at 14:15 UTC."}}
-        self.assertTrue(ph.event_figure(near, "America/Los_Angeles", now)[1].startswith("listed to reopen Nov 16"))
+        self.assertTrue(ph.closure_listing(near, now).startswith("Listed reopening Nov 16"))

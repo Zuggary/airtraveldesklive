@@ -285,7 +285,7 @@ class TestHomePrerender(_Built):
         self.assertIn("People screened, Nov 12", text)
         self.assertIn("2.48 million", text)
         self.assertIn("Source: TSA checkpoint numbers, updated Nov 14", text)
-        self.assertIn("Reason: thunderstorms", text)
+        self.assertIn("Thunderstorms", text)
 
     def test_all_clear_summary(self):
         with tempfile.TemporaryDirectory() as t:

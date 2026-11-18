@@ -24,15 +24,14 @@ class WatchTest(unittest.TestCase):
         self.assertNotIn("innerHTML", js)
         self.assertIn('e.key === "Escape"', js)
 
-    def test_lists_and_home_card(self):
+    def test_watch_assets_and_home_controls(self):
         self.assertIn("watch.js", (ROOT / ".github/workflows/status.yml").read_text(encoding="utf-8"))
         self.assertIn('"./watch.js"', (ROOT / "sw.js").read_text(encoding="utf-8"))
         home = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertRegex(home, r'<button[^>]+data-watch-open[^>]*>Watch live on YouTube</button>')
+        self.assertIn('>Watch live at the top of the page</button>', home)
         self.assertNotRegex(home, r'<link[^>]+(?:preconnect|dns-prefetch)[^>]+(?:youtube|ytimg|google)')
-        self.assertIn('id="live-card"', home)
-        self.assertLess(home.index('id="live-card"'), home.index('id="airport-card-slot"'))
-        self.assertTrue((ROOT / "assets/live/stream-thumb.jpg").exists())
+        self.assertNotIn('id="live-card"', home)
+        self.assertIn('el(doc, "button", "watch-btn")', (ROOT / "watch.js").read_text(encoding="utf-8"))
 
     def test_mini_player_never_moves_the_iframe_and_keeps_its_slot(self):
         js = (ROOT / "watch.js").read_text(encoding="utf-8")

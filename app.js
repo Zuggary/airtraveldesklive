@@ -65,7 +65,7 @@
   // AN35: the moment a scheduled closure is judged at: now, or the data's own time when the data is stale.
   function atMs() {
     var u = D.state && (D.state.faa_updated_utc || D.state.updated_utc), ms = Date.parse(u || "");
-    return isFinite(ms) && A.isStale(ageMin(u)) ? ms : Date.now();
+    return isFinite(ms) && isStaleIso(u) ? ms : Date.now();
   }
   function ageMin(iso) {
     var ms = Date.parse(iso || "");
@@ -134,13 +134,19 @@
     var evs = (D.state && Array.isArray(D.state.events)) ? D.state.events : [];
     var rank = { ground_stop: 4, closure: 4, ground_delay: 3, delay: 2 };
     // AN35: a daily closure outside its hours is not an event.
-    var sorted = evs.filter(function (e) { var sc = e.kind === "closure" && A.closureSchedule(e, e.tz, atMs()); return e.source === "FAA" && rank[e.kind] && !(sc && !sc.in_window); }).sort(function (a, b) {
+    var at = atMs();
+    var sorted = evs.filter(function (e) {
+      if (e.source !== "FAA" || !rank[e.kind]) { return false; }
+      var code = String(e.airport || "").toUpperCase(), airport = allByCode[code] || byCode[code] || {};
+      var schedule = A.closureSchedule(e, e.tz || airport.tz, at);
+      return !schedule || schedule.in_window;
+    }).sort(function (a, b) {
       var d = rank[b.kind] - rank[a.kind];
       if (d) { return d; }
       return (A.minutesOf(b.fields && b.fields.avg) || 0) - (A.minutesOf(a.fields && a.fields.avg) || 0);
     });
     var seen = {}; // AN32: one row per airport, the worst program first
-    return sorted.filter(function (e) { var c = String(e.airport || ""); if (seen[c]) { return false; } seen[c] = true; return true; });
+    return sorted.filter(function (e) { var c = String(e.airport || "").toUpperCase(); if (seen[c]) { return false; } seen[c] = true; return true; });
   }
 
 
@@ -265,86 +271,84 @@
     }
   }
 
-  var REASON_PREFIX = { "WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway", "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other" };
-  function reasonText(r) {
-    return String(r || "").split(";").map(function (part) {
-      part = part.trim();
-      var m = /^([A-Za-z/]+):\s*(.*)$/.exec(part);
-      var p = m && REASON_PREFIX[m[1].toUpperCase()];
-      if (!p) { return part; }
-      var rest = m[2].toLowerCase();
-      return !rest || rest === p || rest === "volume" ? p : p + ", " + rest;
+  // Keep these FAA terms in sync with tools/prerender_home.py.
+  var REASON_WORDS = {
+    MIT: "traffic spacing (miles-in-trail)", MINIT: "traffic spacing (minutes-in-trail)",
+    WX: "weather", VOLUME: "traffic volume", EQUIPMENT: "equipment",
+    RUNWAY: "runway", "RWY/TWY": "runway or taxiway", STAFFING: "staffing", OTHER: "other"
+  };
+  function reasonText(reason) {
+    return String(reason || "").split(";").map(function (part) {
+      var terms = part.trim().replace(/^TM\s+Initiatives\s*:\s*/i, "").split(/\s*:\s*/).filter(Boolean);
+      var known = terms.some(function (term) { return Object.hasOwn(REASON_WORDS, term.toUpperCase()); });
+      var words = terms.map(function (term) {
+        var key = term.toUpperCase();
+        if (Object.hasOwn(REASON_WORDS, key)) { return REASON_WORDS[key]; }
+        return known ? term.toLowerCase() : term.toLowerCase().replace(/[a-z]+/g, function (word) {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        });
+      }).filter(function (word, index, list) { return list.indexOf(word) === index; });
+      var text = words.join(/^(MIT|MINIT)$/i.test(terms[0]) ? " due to " : ", ");
+      return text.charAt(0).toUpperCase() + text.slice(1);
     }).filter(Boolean).join("; ");
   }
 
-  var MONTH_IX = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
   function shortDur(min) { var h = Math.floor(min / 60), m = min % 60; return !h ? m + " min" : h + " h" + (m ? " " + m : ""); }
-  // The big number on a program row and its small label. Same rule as prerender_home.event_figure.
-  function eventFigure(ev, tz) {
-    var f = ev.fields || {};
-    var sc = ev.kind === "closure" && A.closureSchedule(ev, tz, atMs());
-    if (sc) { return sc.in_window ? { big: "Closed overnight", small: "reopens about " + sc.reopen + " local time" } : { big: "Open now", small: "closes again about " + sc.close + " local time" }; }
-    if (ev.kind === "closure") {
-      var mt = /([A-Z][a-z]{2}) (\d{1,2}) at (\d{2}):(\d{2}) UTC/.exec(String(f.reopen || ""));
-      if (mt && MONTH_IX.hasOwnProperty(mt[1])) {
-        var now = new Date(), y = now.getUTCFullYear();
-        if (MONTH_IX[mt[1]] < now.getUTCMonth() - 6) { y++; }
-        var d = new Date(Date.UTC(y, MONTH_IX[mt[1]], +mt[2], +mt[3], +mt[4]));
-        var day = "";
-        try { day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d); } catch (e) { day = mt[1] + " " + mt[2]; }
-        // AN34 r2: the big word is the state; the date sits in the small line, in the visitor's zone like every clock here.
-        if (d.getTime() <= Date.now()) { return { big: "Closed", small: "listed to reopen " + day + ", " + fmtTime(d) + "; that time has passed, so it may have reopened" }; }
-        // AN34 round 4: a listing days out is often a run of nightly closures, not one long shutdown.
-        if (d.getTime() - Date.now() > 24 * 3600 * 1000) { return { big: "Closed", small: "FAA listing runs to " + day + ". A listing this long is often nightly closures; check the airport for its hours" }; }
-        return { big: "Closed", small: "listed to reopen " + day + ", " + fmtTime(d) };
-      }
-      return { big: "Closed", small: "no reopening time listed" };
-    }
-    if (ev.kind === "ground_stop") {
-      var endMs = ev.end_utc ? Date.parse(ev.end_utc) : NaN;
-      if (isFinite(endMs) && endMs <= Date.now()) { return { big: "Stop", small: "listed to end " + fmtTime(new Date(endMs)) + "; that time has passed, so it may have lifted" }; }
-      if (isFinite(endMs)) { var cd = A.countdown(endMs, Date.now()); return { big: fmtTime(new Date(endMs)), small: "listed end" + (cd ? ", " + cd : "") }; }
-      if (f.end_time) { return { big: String(f.end_time).replace(/\.$/, ""), small: "listed end" }; }
-      return { big: "Stop", small: "no end time listed" };
-    }
-    var avg = A.minutesOf(f.avg || ev.avg), mx = A.minutesOf(f.max || ev.max);
-    if (avg != null) { return { big: shortDur(avg), small: (ev.kind === "ground_delay" ? "average hold" : "average delay") + (mx != null ? " \u00B7 longest " + A.fmtMinutes(mx) : "") }; }
-    return { big: "Delays", small: "no size listed" };
+
+  function closureListing(ev, now) {
+    var end = A.listedUtc(ev.reopen || (ev.fields || {}).reopen, now);
+    if (end == null) { return ""; }
+    if (end - now > 864e5) { return "FAA listing runs to " + fmtLocalDay(new Date(end).toISOString()) + ". Long listings often cover nightly closures."; }
+    return "Listed reopening " + fmtLocalDay(new Date(end).toISOString()) + ", " + fmtTime(new Date(end))
+      + (end <= now ? " (time passed)" : "");
   }
 
-  function eventCard(ev) {
+  function eventCard(ev, stale) {
     var code = String(ev.airport || "").toUpperCase();
     var a = allByCode[code] || byCode[code] || {};
-    var place = a.short || ev.display || code;
-    var night = ev.kind === "closure" && A.closureSchedule(ev, ev.tz || a.tz, atMs());
-    var stop = (ev.kind === "ground_stop" || ev.kind === "closure") && !night;
+    var name = a.name || ev.display || a.short || code;
+    var kind = ev.kind, f = ev.fields || {};
+    var night = kind === "closure" && A.closureSchedule(ev, ev.tz || a.tz, atMs());
+    var stop = (kind === "ground_stop" || kind === "closure") && !night;
     var card = el("article", "event-card" + (night ? " event-card--night" : stop ? " event-card--stop" : ""));
-    var head = el("div", "event-header");
     var h3 = el("h3", "event-title");
     var lk = el("a", "ev-link");
     lk.href = /^[A-Z]{3}$/.test(code) ? "/airports/" + code : "/airports/";
     lk.appendChild(el("span", "ev-code", code));
-    lk.appendChild(el("span", "ev-place", a.name || ev.display || place));
+    var place = el("span", "ev-place", name);
+    place.title = name;
+    lk.appendChild(place);
     h3.appendChild(lk);
-    head.appendChild(h3);
-    head.appendChild(el("span", "badge " + (night ? "badge--night" : stop ? "badge--stop" : "badge--delay"), A.kindLabel(ev.kind, ev, ev.tz || a.tz, atMs())));
-    card.appendChild(head);
-    card.appendChild(el("p", "event-impact", nbspUnits(A.impactText(ev, place, isStaleIso(D.state.updated_utc), ev.tz || a.tz, atMs()))));
-    var helpSlug = ev.kind === "ground_stop" ? "ground-stop.html" : ev.kind === "ground_delay" ? "ground-delay.html" : "";
-    var helpText = ev.kind === "ground_stop" ? "What is a ground stop?" : ev.kind === "ground_delay" ? "What is a ground delay?" : "Help with disruption types";
-    var help = el("a", "tap", helpText); help.href = "/help/" + helpSlug; card.appendChild(help);
-    if (ev.reason && String(ev.reason).toLowerCase() !== "closed") { card.appendChild(el("p", "event-reason", "Reason: " + reasonText(ev.reason))); }
-    var fig = eventFigure(ev, ev.tz || a.tz);
-    if (isStaleIso(D.state.updated_utc)) { fig.big = fig.big.replace("Open now", "Listed open").replace("Closed", "Closure listed"); fig.small = fig.small.replace("reopens about", "listed reopening").replace("closes again about", "listed closing"); }
-    var big = el("p", "event-big");
-    big.appendChild(el("b", null, nbspUnits(fig.big)));
-    big.appendChild(el("small", null, fig.small));
-    card.appendChild(big);
-    var meta = el("p", "event-meta");
-    var parts = [];
-    parts.push("Source: " + ((ev.sources && ev.sources.length) ? ev.sources.join(", ") : "FAA"));
-    meta.textContent = parts.join(" · ");
-    card.appendChild(meta);
+    card.appendChild(h3);
+
+    var status = kind === "closure" ? (stale ? "Closure listed" : night ? "Closed overnight" : "Closed")
+      : kind === "ground_stop" ? "Ground stop" : "Delays";
+    if (stale && kind !== "closure") { status += " listed"; }
+    var detail = "";
+    if (kind === "ground_delay" || kind === "delay") {
+      var avg = A.minutesOf(f.avg || ev.avg), max = A.minutesOf(f.max || ev.max);
+      if (avg != null) { detail = "avg " + A.fmtMinutes(avg); }
+      else if (max != null) { detail = "max " + A.fmtMinutes(max); }
+    } else if (kind === "ground_stop" && isFinite(Date.parse(ev.end_utc))) {
+      detail = "listed end " + fmtTime(new Date(ev.end_utc));
+    }
+    if (detail) { status += " · " + detail; }
+    card.appendChild(el("span", "badge " + (night ? "badge--night" : stop ? "badge--stop" : "badge--delay"), status));
+
+    var why = reasonText(ev.reason);
+    if (why.toLowerCase() === "closed") { why = ""; }
+    if (!why && kind === "closure") {
+      why = night ? "Listed reopening about " + night.reopen + " local time" : closureListing(ev, Date.now());
+    }
+    var reason = el("p", "event-reason", why);
+    if (why) { reason.title = why; }
+    card.appendChild(reason);
+
+    var helpSlug = kind === "ground_stop" ? "ground-stop.html" : kind === "ground_delay" ? "ground-delay.html" : "";
+    var helpText = kind === "ground_stop" ? "What is a ground stop?" : kind === "ground_delay" ? "What is a ground delay?" : "Disruption guides";
+    var help = el("a", "event-help", helpText);
+    help.href = "/help/" + helpSlug;
+    card.appendChild(help);
     return card;
   }
 
@@ -370,12 +374,12 @@
     box.textContent = "";
     if (!D.state) { return; }
     var list = faaEvents();
+    var staleNow = isStaleIso(D.state.faa_updated_utc || D.state.updated_utc);
     if (!list.length) {
-      var staleNow = isStaleIso(D.state.updated_utc);
       box.appendChild(el("p", "empty-state", staleNow ? "No FAA programs were listed at the last check." : "No FAA delays or ground stops are listed right now."));
       return;
     }
-    list.forEach(function (ev) { box.appendChild(eventCard(ev)); });
+    list.forEach(function (ev) { box.appendChild(eventCard(ev, staleNow)); });
   }
 
   // ---------- 2: search and board ----------
