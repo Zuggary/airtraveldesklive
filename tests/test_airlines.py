@@ -433,7 +433,7 @@ class TestWiring(unittest.TestCase):
     def test_generated_folder_is_ignored_like_airports(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").split()
         self.assertIn("airlines/", ignore)
-        self.assertIn("airports/", ignore)
+        self.assertIn("/airports/", ignore)  # anchored: assets/art/airports/ is committed
 
     def test_service_worker_has_no_airline_page_list(self) -> None:
         sw = (ROOT / "sw.js").read_text(encoding="utf-8")

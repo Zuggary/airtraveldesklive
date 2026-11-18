@@ -1,0 +1,1091 @@
+{
+ "FLL": {
+  "day": "ap-FLL-day.webp",
+  "night": "ap-FLL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152806,
+   152220
+  ]
+ },
+ "MIA": {
+  "day": "ap-MIA-day.webp",
+  "night": "ap-MIA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151462,
+   143298
+  ]
+ },
+ "ATL": {
+  "day": "ap-ATL-day.webp",
+  "night": "ap-ATL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   148742,
+   145494
+  ]
+ },
+ "SFO": {
+  "day": "ap-SFO-day.webp",
+  "night": "ap-SFO-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   149518,
+   106850
+  ]
+ },
+ "DEN": {
+  "day": "ap-DEN-day.webp",
+  "night": "ap-DEN-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   147344,
+   78452
+  ]
+ },
+ "DFW": {
+  "day": "ap-DFW-day.webp",
+  "night": "ap-DFW-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152484,
+   136956
+  ]
+ },
+ "ORD": {
+  "day": "ap-ORD-day.webp",
+  "night": "ap-ORD-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   150360,
+   129958
+  ]
+ },
+ "LAX": {
+  "day": "ap-LAX-day.webp",
+  "night": "ap-LAX-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   150054,
+   144556
+  ]
+ },
+ "JFK": {
+  "day": "ap-JFK-day.webp",
+  "night": "ap-JFK-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   148208,
+   114536
+  ]
+ },
+ "LAS": {
+  "day": "ap-LAS-day.webp",
+  "night": "ap-LAS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   147868,
+   149638
+  ]
+ },
+ "MCO": {
+  "day": "ap-MCO-day.webp",
+  "night": "ap-MCO-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151194,
+   147710
+  ]
+ },
+ "CLT": {
+  "day": "ap-CLT-day.webp",
+  "night": "ap-CLT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   149036,
+   142968
+  ]
+ },
+ "SEA": {
+  "day": "ap-SEA-day.webp",
+  "night": "ap-SEA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   150668,
+   148740
+  ]
+ },
+ "PHX": {
+  "day": "ap-PHX-day.webp",
+  "night": "ap-PHX-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   146378,
+   152022
+  ]
+ },
+ "EWR": {
+  "day": "ap-EWR-day.webp",
+  "night": "ap-EWR-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   150576,
+   151576
+  ]
+ },
+ "IAH": {
+  "day": "ap-IAH-day.webp",
+  "night": "ap-IAH-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152566,
+   135560
+  ]
+ },
+ "BOS": {
+  "day": "ap-BOS-day.webp",
+  "night": "ap-BOS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151958,
+   145000
+  ]
+ },
+ "MSP": {
+  "day": "ap-MSP-day.webp",
+  "night": "ap-MSP-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152006,
+   145134
+  ]
+ },
+ "LGA": {
+  "day": "ap-LGA-day.webp",
+  "night": "ap-LGA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   150482,
+   144582
+  ]
+ },
+ "DTW": {
+  "day": "ap-DTW-day.webp",
+  "night": "ap-DTW-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   148768,
+   141578
+  ]
+ },
+ "PHL": {
+  "day": "ap-PHL-day.webp",
+  "night": "ap-PHL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152674,
+   137942
+  ]
+ },
+ "SLC": {
+  "day": "ap-SLC-day.webp",
+  "night": "ap-SLC-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   153272,
+   119954
+  ]
+ },
+ "BWI": {
+  "day": "ap-BWI-day.webp",
+  "night": "ap-BWI-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151846,
+   153554
+  ]
+ },
+ "DCA": {
+  "day": "ap-DCA-day.webp",
+  "night": "ap-DCA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   153098,
+   143042
+  ]
+ },
+ "SAN": {
+  "day": "ap-SAN-day.webp",
+  "night": "ap-SAN-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151530,
+   140952
+  ]
+ },
+ "IAD": {
+  "day": "ap-IAD-day.webp",
+  "night": "ap-IAD-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   153106,
+   111530
+  ]
+ },
+ "TPA": {
+  "day": "ap-TPA-day.webp",
+  "night": "ap-TPA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152292,
+   150252
+  ]
+ },
+ "BNA": {
+  "day": "ap-BNA-day.webp",
+  "night": "ap-BNA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151468,
+   148682
+  ]
+ },
+ "AUS": {
+  "day": "ap-AUS-day.webp",
+  "night": "ap-AUS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152136,
+   126630
+  ]
+ },
+ "MDW": {
+  "day": "ap-MDW-day.webp",
+  "night": "ap-MDW-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   153412,
+   144174
+  ]
+ },
+ "MSY": {
+  "day": "ap-MSY-day.webp",
+  "night": "ap-MSY-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   153272,
+   145668
+  ]
+ },
+ "SJC": {
+  "day": "ap-SJC-day.webp",
+  "night": "ap-SJC-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   153032,
+   149666
+  ]
+ },
+ "HNL": {
+  "day": "ap-HNL-day.webp",
+  "night": "ap-HNL-night.webp",
+  "source": "bake",
+  "imagery": "Sentinel-2 (EOX cloudless)",
+  "runway_lights": true,
+  "bytes": [
+   88198,
+   82124
+  ]
+ },
+ "STL": {
+  "day": "ap-STL-day.webp",
+  "night": "ap-STL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151846,
+   152690
+  ]
+ },
+ "SMF": {
+  "day": "ap-SMF-day.webp",
+  "night": "ap-SMF-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   144890,
+   88876
+  ]
+ },
+ "BDL": {
+  "day": "ap-BDL-day.webp",
+  "night": "ap-BDL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151654,
+   127666
+  ]
+ },
+ "PIT": {
+  "day": "ap-PIT-day.webp",
+  "night": "ap-PIT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   150550,
+   134160
+  ]
+ },
+ "CMH": {
+  "day": "ap-CMH-day.webp",
+  "night": "ap-CMH-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151154,
+   135778
+  ]
+ },
+ "MCI": {
+  "day": "ap-MCI-day.webp",
+  "night": "ap-MCI-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152442,
+   70518
+  ]
+ },
+ "OGG": {
+  "day": "ap-OGG-day.webp",
+  "night": "ap-OGG-night.webp",
+  "source": "bake",
+  "imagery": "Sentinel-2 (EOX cloudless)",
+  "runway_lights": false,
+  "bytes": [
+   61648,
+   38884
+  ]
+ },
+ "ONT": {
+  "day": "ap-ONT-day.webp",
+  "night": "ap-ONT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   149960,
+   115570
+  ]
+ },
+ "RSW": {
+  "day": "ap-RSW-day.webp",
+  "night": "ap-RSW-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153022,
+   150050
+  ]
+ },
+ "MKE": {
+  "day": "ap-MKE-day.webp",
+  "night": "ap-MKE-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151168,
+   122194
+  ]
+ },
+ "BOI": {
+  "day": "ap-BOI-day.webp",
+  "night": "ap-BOI-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151864,
+   145930
+  ]
+ },
+ "RNO": {
+  "day": "ap-RNO-day.webp",
+  "night": "ap-RNO-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150126,
+   152010
+  ]
+ },
+ "ELP": {
+  "day": "ap-ELP-day.webp",
+  "night": "ap-ELP-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151432,
+   151606
+  ]
+ },
+ "ALB": {
+  "day": "ap-ALB-day.webp",
+  "night": "ap-ALB-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153180,
+   148126
+  ]
+ },
+ "ORF": {
+  "day": "ap-ORF-day.webp",
+  "night": "ap-ORF-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152366,
+   147596
+  ]
+ },
+ "CHS": {
+  "day": "ap-CHS-day.webp",
+  "night": "ap-CHS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152288,
+   153422
+  ]
+ },
+ "MEM": {
+  "day": "ap-MEM-day.webp",
+  "night": "ap-MEM-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   146788,
+   139378
+  ]
+ },
+ "OKC": {
+  "day": "ap-OKC-day.webp",
+  "night": "ap-OKC-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152758,
+   102108
+  ]
+ },
+ "PBI": {
+  "day": "ap-PBI-day.webp",
+  "night": "ap-PBI-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151414,
+   143804
+  ]
+ },
+ "SRQ": {
+  "day": "ap-SRQ-day.webp",
+  "night": "ap-SRQ-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   151410,
+   150146
+  ]
+ },
+ "GEG": {
+  "day": "ap-GEG-day.webp",
+  "night": "ap-GEG-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   146900,
+   124352
+  ]
+ },
+ "MHT": {
+  "day": "ap-MHT-day.webp",
+  "night": "ap-MHT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150928,
+   145194
+  ]
+ },
+ "BTV": {
+  "day": "ap-BTV-day.webp",
+  "night": "ap-BTV-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152942,
+   148678
+  ]
+ },
+ "COS": {
+  "day": "ap-COS-day.webp",
+  "night": "ap-COS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151138,
+   100244
+  ]
+ },
+ "BHM": {
+  "day": "ap-BHM-day.webp",
+  "night": "ap-BHM-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152888,
+   124138
+  ]
+ },
+ "GRR": {
+  "day": "ap-GRR-day.webp",
+  "night": "ap-GRR-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153202,
+   98268
+  ]
+ },
+ "SYR": {
+  "day": "ap-SYR-day.webp",
+  "night": "ap-SYR-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152050,
+   147118
+  ]
+ },
+ "TYS": {
+  "day": "ap-TYS-day.webp",
+  "night": "ap-TYS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150174,
+   145426
+  ]
+ },
+ "MSN": {
+  "day": "ap-MSN-day.webp",
+  "night": "ap-MSN-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   147012,
+   128992
+  ]
+ },
+ "HSV": {
+  "day": "ap-HSV-day.webp",
+  "night": "ap-HSV-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   146316,
+   70886
+  ]
+ },
+ "MYR": {
+  "day": "ap-MYR-day.webp",
+  "night": "ap-MYR-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153050,
+   143692
+  ]
+ },
+ "LIH": {
+  "day": "ap-LIH-day.webp",
+  "night": "ap-LIH-night.webp",
+  "source": "bake",
+  "imagery": "Sentinel-2 (EOX cloudless)",
+  "runway_lights": false,
+  "bytes": [
+   66970,
+   40960
+  ]
+ },
+ "PDX": {
+  "day": "ap-PDX-day.webp",
+  "night": "ap-PDX-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   145562,
+   101392
+  ]
+ },
+ "HOU": {
+  "day": "ap-HOU-day.webp",
+  "night": "ap-HOU-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152782,
+   151098
+  ]
+ },
+ "RDU": {
+  "day": "ap-RDU-day.webp",
+  "night": "ap-RDU-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   148386,
+   116086
+  ]
+ },
+ "SNA": {
+  "day": "ap-SNA-day.webp",
+  "night": "ap-SNA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152600,
+   145320
+  ]
+ },
+ "IND": {
+  "day": "ap-IND-day.webp",
+  "night": "ap-IND-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   143732,
+   87100
+  ]
+ },
+ "CLE": {
+  "day": "ap-CLE-day.webp",
+  "night": "ap-CLE-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   149418,
+   142522
+  ]
+ },
+ "SAT": {
+  "day": "ap-SAT-day.webp",
+  "night": "ap-SAT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153428,
+   132968
+  ]
+ },
+ "BUR": {
+  "day": "ap-BUR-day.webp",
+  "night": "ap-BUR-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153024,
+   137766
+  ]
+ },
+ "LGB": {
+  "day": "ap-LGB-day.webp",
+  "night": "ap-LGB-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153034,
+   151568
+  ]
+ },
+ "JAX": {
+  "day": "ap-JAX-day.webp",
+  "night": "ap-JAX-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150276,
+   144084
+  ]
+ },
+ "ABQ": {
+  "day": "ap-ABQ-day.webp",
+  "night": "ap-ABQ-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   147756,
+   113460
+  ]
+ },
+ "OMA": {
+  "day": "ap-OMA-day.webp",
+  "night": "ap-OMA-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151884,
+   136750
+  ]
+ },
+ "TUS": {
+  "day": "ap-TUS-day.webp",
+  "night": "ap-TUS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151042,
+   147862
+  ]
+ },
+ "PVD": {
+  "day": "ap-PVD-day.webp",
+  "night": "ap-PVD-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150094,
+   150146
+  ]
+ },
+ "BUF": {
+  "day": "ap-BUF-day.webp",
+  "night": "ap-BUF-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153302,
+   144042
+  ]
+ },
+ "RIC": {
+  "day": "ap-RIC-day.webp",
+  "night": "ap-RIC-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150662,
+   151144
+  ]
+ },
+ "SAV": {
+  "day": "ap-SAV-day.webp",
+  "night": "ap-SAV-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150694,
+   131362
+  ]
+ },
+ "SDF": {
+  "day": "ap-SDF-day.webp",
+  "night": "ap-SDF-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151334,
+   145512
+  ]
+ },
+ "TUL": {
+  "day": "ap-TUL-day.webp",
+  "night": "ap-TUL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   148784,
+   124864
+  ]
+ },
+ "CVG": {
+  "day": "ap-CVG-day.webp",
+  "night": "ap-CVG-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   146530,
+   86386
+  ]
+ },
+ "DSM": {
+  "day": "ap-DSM-day.webp",
+  "night": "ap-DSM-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   147476,
+   132974
+  ]
+ },
+ "ICT": {
+  "day": "ap-ICT-day.webp",
+  "night": "ap-ICT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150588,
+   134070
+  ]
+ },
+ "PWM": {
+  "day": "ap-PWM-day.webp",
+  "night": "ap-PWM-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151702,
+   139372
+  ]
+ },
+ "ANC": {
+  "day": "ap-ANC-day.webp",
+  "night": "ap-ANC-night.webp",
+  "source": "bake",
+  "imagery": "Sentinel-2 (EOX cloudless)",
+  "runway_lights": false,
+  "bytes": [
+   89242,
+   71268
+  ]
+ },
+ "GSO": {
+  "day": "ap-GSO-day.webp",
+  "night": "ap-GSO-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153164,
+   152320
+  ]
+ },
+ "LIT": {
+  "day": "ap-LIT-day.webp",
+  "night": "ap-LIT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153098,
+   124238
+  ]
+ },
+ "DAY": {
+  "day": "ap-DAY-day.webp",
+  "night": "ap-DAY-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   138840,
+   57018
+  ]
+ },
+ "ROC": {
+  "day": "ap-ROC-day.webp",
+  "night": "ap-ROC-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   153468,
+   151742
+  ]
+ },
+ "PSP": {
+  "day": "ap-PSP-day.webp",
+  "night": "ap-PSP-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   146076,
+   129712
+  ]
+ },
+ "LEX": {
+  "day": "ap-LEX-day.webp",
+  "night": "ap-LEX-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   152698,
+   122036
+  ]
+ },
+ "FAT": {
+  "day": "ap-FAT-day.webp",
+  "night": "ap-FAT-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   150028,
+   139032
+  ]
+ },
+ "KOA": {
+  "day": "ap-KOA-day.webp",
+  "night": "ap-KOA-night.webp",
+  "source": "bake",
+  "imagery": "Sentinel-2 (EOX cloudless)",
+  "runway_lights": false,
+  "bytes": [
+   45044,
+   38346
+  ]
+ },
+ "PNS": {
+  "day": "ap-PNS-day.webp",
+  "night": "ap-PNS-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": false,
+  "bytes": [
+   151068,
+   147808
+  ]
+ },
+ "DAL": {
+  "day": "ap-DAL-day.webp",
+  "night": "ap-DAL-night.webp",
+  "source": "bake",
+  "imagery": "NAIP",
+  "runway_lights": true,
+  "bytes": [
+   152456,
+   143720
+  ]
+ }
+}

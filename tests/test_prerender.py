@@ -157,7 +157,7 @@ class TestAirportPrerender(_Built):
         self.assertIn("Weather now: thunderstorms, wind 28 mph gusting 40 mph", den)
         self.assertIn("FAA data 8 min old, checked 2:50 AM MST. Source: FAA NAS status.", den)
         # AN34 round 3: the reason is in the lead under the H1, not in a repeat FAA tile.
-        self.assertIn("Reason listed: thunderstorms", den)
+        self.assertIn("Reason listed: Thunderstorms", den)
         ord_text = visible_text(self.pages["ORD"])
         self.assertIn("wind calm", ord_text)
 

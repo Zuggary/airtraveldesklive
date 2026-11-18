@@ -103,7 +103,8 @@ class TestAirportPageNight(unittest.TestCase):
     def test_open_hours_read_as_open_with_the_listing_noted(self):
         page = self.build(sna_card(), DAY, "2026-11-15T19:55:00Z")
         self.assertIn("No FAA delays at", page)
-        self.assertIn("no FAA arrival or departure programs are listed", page)
+        self.assertIn("No FAA arrival or departure programs are active.", page)
+        self.assertNotIn("Your flight may still be delayed.", page)
 
     def test_stale_page_judges_the_schedule_at_the_data_time(self):
         later = datetime(2026, 11, 15, 22, 0, tzinfo=timezone.utc)   # 12 hours after the reading, outside the closed hours

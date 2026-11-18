@@ -380,7 +380,7 @@ def _render_live(
         "wx": pt.weather_summary(wx),
         "clock": clock,
         "as_of": pt.as_of_text(updated_utc, tz, now),
-        "level": "stale" if stale else lvl,
+        "level": "stale" if stale or unknown else lvl,
     }
 
 
@@ -446,29 +446,31 @@ def _night_schedule(entry: dict[str, Any] | None, now: Any) -> dict[str, Any] | 
 def _status_meaning(entry: dict[str, Any] | None, lvl: str, stale: bool) -> str:
     """Airport-wide FAA program meaning, without individual-flight claims."""
     if stale or not entry or entry.get("level") not in ("clear", "delay", "stop", "closed"):
-        return "Last known status: current arrivals and departures are unconfirmed; this is airport-wide, not the status of any individual flight."
+        return "Last known status: airport-wide conditions are unconfirmed. Check your flight with your airline."
     kinds = {e.get("kind") for e in entry.get("events", []) if e}
     directions = {str(e.get("direction", "")).lower() for e in entry.get("events", []) if e and e.get("kind") == "delay"}
     departure = "departure_delay" in kinds or "departure" in directions
     if lvl in ("closed", "night"):
-        meaning = "the FAA lists a closure affecting arrivals and departures"
+        meaning = "The airport is closed to arrivals and departures."
     elif lvl == "stop":
-        meaning = "departures to this airport are held at their origin airports, rather than departures from here"
+        meaning = "Flights bound for this airport are held at their departure airports."
     elif "ground_delay" in kinds:
-        meaning = "arrivals are held at their origin airports, rather than departures from here"
+        meaning = "Flights bound for this airport are delayed at their departure airports."
         if departure:
-            meaning += "; departure delays are also listed here"
+            meaning += " Departures are also delayed airport-wide."
     elif departure and "arrival" in directions:
-        meaning = "the FAA lists both arrival and departure delays"
+        meaning = "Arrivals and departures are delayed airport-wide."
     elif departure:
-        meaning = "departures from this airport are delayed; this does not describe arrivals"
+        meaning = "Departures are delayed airport-wide."
     elif "arrival" in directions:
-        meaning = "arrivals at this airport are delayed; this does not describe departures"
+        meaning = "Arrivals are delayed airport-wide."
     elif lvl == "clear":
-        meaning = "no FAA arrival or departure programs are listed"
+        meaning = "No FAA arrival or departure programs are active."
+        if entry.get("level") == "clear" and not kinds:
+            meaning = "No FAA program is listed. Your flight may still be delayed."
     else:
-        meaning = "the FAA lists delays without a confirmed arrival or departure direction"
-    return "Airport-wide status: " + meaning + "; this is not the status of any individual flight."
+        meaning = "The FAA lists airport-wide delays."
+    return meaning + " Check your flight with your airline."
 
 
 def _lead(entry: dict[str, Any] | None, short: str, code: str, live: dict[str, Any], now: Any = None) -> list[str]:
@@ -522,7 +524,7 @@ def _help_card(code: str, lvl: str) -> list[str]:
 
 ART_SIZES = (1440, 2880)
 ART_STATE_SIZES = (720, 1440)
-ART_NOTE = "Pictures on this site are generated illustrations, not photos of real events or airports."
+ART_NOTE = "Airport aerial imagery is credited where shown. Generated illustrations depict fictional scenes."
 
 
 def solar_is_day(lat: float, lon: float, when: datetime) -> bool:
@@ -550,8 +552,26 @@ def _hero_is_day(airport_info: dict[str, Any], now: Any) -> bool:
         return False
 
 
-def hero_art_key(kind: str, lvl: str, is_day: bool) -> str:
+AERIAL_ART = {
+    code: {phase: "airports/" + Path(entry[phase]).stem for phase in ("day", "night")}
+    for code, entry in _load_json(ROOT / "assets/art/airports/manifest.json").items()
+}
+_NIGHT_NOTE = " Night view is a rendering, not a photograph."
+_CREDITS = {
+    "NAIP": "Aerial imagery: USGS NAIP (public domain)." + _NIGHT_NOTE,
+    "Sentinel-2 (EOX cloudless)": "Aerial imagery: Sentinel-2 cloudless (EOX / Copernicus)." + _NIGHT_NOTE,
+}
+AERIAL_CREDIT_BY_CODE = {
+    code: _CREDITS[entry.get("imagery", "NAIP")]
+    for code, entry in _load_json(ROOT / "assets/art/airports/manifest.json").items()
+}
+AERIAL_CREDIT = _CREDITS["NAIP"]
+
+
+def hero_art_key(kind: str, lvl: str, is_day: bool, code: str = "") -> str:
     """AN38: which hero picture the airport state and the time of day choose. Same rule as ATDHeroArt in the page script."""
+    if code in AERIAL_ART:
+        return AERIAL_ART[code]["day" if is_day else "night"]
     if lvl == "night":
         return "ap-sched-night"
     if lvl in ("delay", "stop", "closed"):
@@ -559,22 +579,29 @@ def hero_art_key(kind: str, lvl: str, is_day: bool) -> str:
     return "ap-clear-day" if is_day else f"airport-{kind}"
 
 
-def hero_preload(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../") -> str:
+def hero_preload(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../", code: str = "") -> str:
     """AN38 LCP fix: the hero picture is the largest thing on the first screen, so it is the LCP element. Fetch its small
     AVIF (3 to 9 KB) early from the head instead of late (fetchpriority low), so LCP lands with the text."""
-    key = hero_art_key(kind, lvl, is_day)
+    key = hero_art_key(kind, lvl, is_day, code)
     base = f"{prefix}assets/art/{key}"
+    if code in AERIAL_ART:
+        return f'  <link rel="preload" as="image" type="image/webp" href="{base}.webp" fetchpriority="high">'
     sizes = ART_SIZES if key.startswith("airport-") else ART_STATE_SIZES
     avif = ", ".join(f"{base}-{w}.avif {w}w" for w in sizes)
     return f'  <link rel="preload" as="image" type="image/avif" imagesrcset="{avif}" imagesizes="100vw" fetchpriority="high">'
 
 
-def _hero_art(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../") -> list[str]:
-    """AN34 r2 and AN38: the GPU-made airfield picture behind a hero band. It follows the airport's state (clear, delay,
-    ground stop, closed, closed overnight) and the time of day; airport-type night art is the clear-night picture
-    (design/art-log.md). Decoration only (empty alt): it shows a kind of airfield, never this airport or an event."""
-    key = hero_art_key(kind, lvl, is_day)
+def _hero_art(kind: str, lvl: str = "clear", is_day: bool = False, prefix: str = "../", code: str = "") -> list[str]:
+    """Render a decorative aerial view or the generic airport status illustration."""
+    key = hero_art_key(kind, lvl, is_day, code)
     base = f"{prefix}assets/art/{key}"
+    if code in AERIAL_ART:
+        return [
+            f'        <div class="band-art" aria-hidden="true" data-art="{key}"><picture>',
+            f'          <source type="image/webp" srcset="{base}.webp 1600w" sizes="100vw">',
+            f'          <img src="{base}.webp" alt="" width="1600" height="700" decoding="async" fetchpriority="high">',
+            "        </picture></div>",
+        ]
     sizes = ART_SIZES if key.startswith("airport-") else ART_STATE_SIZES
     avif = ", ".join(f"{base}-{w}.avif {w}w" for w in sizes)
     jpg = ", ".join(f"{base}-{w}.jpg {w}w" for w in sizes)
@@ -591,6 +618,7 @@ HERO_ART_JS = r"""  <script>
   (function () {
     "use strict";
     var KIND = __KIND__, LAT = __LAT__, LON = __LON__;
+    var aerial = __AERIAL__;
     var box = document.querySelector("#ap-hero .band-art");
     var hero = document.getElementById("ap-hero");
     if (!box || !hero) { return; }
@@ -599,20 +627,40 @@ HERO_ART_JS = r"""  <script>
       try { if (LAT === null || !window.Sun) { return null; } var ms = Date.now(); return window.Sun.altitude(LAT, LON, ms, window.Sun.subsolar(ms)) > -0.833; } catch (e) { return null; }
     }
     function keyFor(lvl, day) {
+      if (aerial) { return aerial[day ? "day" : "night"]; }
       if (lvl === "night") { return "ap-sched-night"; }
       if (lvl === "delay" || lvl === "stop" || lvl === "closed") { return "ap-" + lvl + (day ? "-day" : "-night"); }
       return day ? "ap-clear-day" : "airport-" + KIND;
     }
     function paint(key) {
       if (box.getAttribute("data-art") === key) { return; }
-      var sizes = key.indexOf("airport-") === 0 ? [1440, 2880] : [720, 1440];
       var base = "../assets/art/" + key;
-      function set(ext) { return sizes.map(function (w) { return base + "-" + w + "." + ext + " " + w + "w"; }).join(", "); }
       var src = box.querySelector("source"), img = box.querySelector("img");
       if (!src || !img) { return; }
+      if (aerial) {
+        var url = base + ".webp";
+        src.setAttribute("type", "image/webp");
+        src.setAttribute("srcset", url + " 1600w");
+        img.removeAttribute("srcset");
+        img.setAttribute("width", "1600");
+        img.setAttribute("height", "700");
+        img.setAttribute("src", url);
+        box.setAttribute("data-art", key);
+        var checked = document.getElementById("checked-line");
+        if (checked && !document.getElementById("ap-art-credit")) {
+          var credit = document.createElement("p");
+          credit.id = "ap-art-credit";
+          credit.className = "last-checked";
+          credit.textContent = __AERIAL_CREDIT__[ATD_ME && ATD_ME.getAttribute("data-code")] || "";
+          checked.insertAdjacentElement("afterend", credit);
+        }
+        return;
+      }
+      var sizes = key.indexOf("airport-") === 0 ? [1440, 2880] : [720, 1440];
+      function set(ext) { return sizes.map(function (w) { return base + "-" + w + "." + ext + " " + w + "w"; }).join(", "); }
       src.setAttribute("srcset", set("avif"));
       img.setAttribute("srcset", set("jpg"));
-      img.setAttribute("src", base + "-" + (key.indexOf("airport-") === 0 ? 1440 : 720) + ".jpg");
+      img.setAttribute("src", base + "-" + sizes[0] + ".jpg");
       box.setAttribute("data-art", key);
     }
     function update(lvl) {
@@ -626,14 +674,6 @@ HERO_ART_JS = r"""  <script>
   })();
   </script>"""
 
-
-def _hero_art_script(kind: str, lat: Any, lon: Any) -> str:
-    """AN38: swaps the hero picture when the airport state changes (the status script calls ATDHeroArt) and at dusk or dawn."""
-    try:
-        la, lo = float(lat), float(lon)
-    except (TypeError, ValueError):
-        la = lo = None
-    return HERO_ART_JS.replace("__KIND__", json.dumps(kind)).replace("__LAT__", json.dumps(la)).replace("__LON__", json.dumps(lo))
 
 
 def _airline_home(url: Any) -> str:
@@ -961,6 +1001,8 @@ def airport_js() -> str:
         'var KIND = (ATD_ME && ATD_ME.getAttribute("data-kind")) || "inland";\n'
         '    var LAT = ATD_ME && ATD_ME.getAttribute("data-lat") ? parseFloat(ATD_ME.getAttribute("data-lat")) : null;\n'
         '    var LON = ATD_ME && ATD_ME.getAttribute("data-lon") ? parseFloat(ATD_ME.getAttribute("data-lon")) : null;')
+    hero = hero.replace("__AERIAL__", "(" + json.dumps(AERIAL_ART) + ')[ATD_ME && ATD_ME.getAttribute("data-code")]')
+    hero = hero.replace("__AERIAL_CREDIT__", json.dumps(AERIAL_CREDIT_BY_CODE))
     if "__KIND__" in hero or "__LAT__" in hero:
         raise ValueError("airport.js: hero art placeholders were left in the shared script")
     return AIRPORT_JS_HEAD + "var ATD_ME = document.currentScript;\n" + sun + "\n" + hero + "\n" + live + "\n"
@@ -1056,14 +1098,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         "      if (lvl === \"delay\" && Array.isArray(a.events) && a.events.some(function (ev) { return ev && ev.kind === \"ground_delay\"; })) { return \"Ground delay program\"; }",
         "      return BADGE_LABEL[lvl];",
         "    }",
-        '    var RP = { WX: "weather", VOLUME: "traffic volume", "RWY/TWY": "runway or taxiway", EQUIPMENT: "equipment", STAFFING: "staffing", OTHER: "other" };',
-        '    function reasonPlain(r) {',
-        '      return String(r || "").split(";").map(function (x) {',
-        '        x = x.trim(); var m = /^([A-Za-z/]+):\\s*(.*)$/.exec(x); var p = m && RP[m[1].toUpperCase()];',
-        '        if (!p) { return x; }',
-        '        var rest = m[2].toLowerCase(); return !rest || rest === p || rest === "volume" ? p : p + ", " + rest;',
-        '      }).filter(Boolean).join("; ");',
-        '    }',
+        "\n".join("  " + line for line in pt.CARD_REASON_MAPPER_JS.splitlines()),
         "    function el(tag, cls, text) {",
         "      var n = document.createElement(tag);",
         "      if (cls) { n.className = cls; }",
@@ -1253,18 +1288,20 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '    }',
         '    var checkedLine = document.getElementById("checked-line");',
         '    var heading = document.getElementById("ap-now-word");',
+        '    var legacyReminder = hero && hero.querySelector(".ap-hero-main > .small");',
+        '    if (legacyReminder && legacyReminder.textContent.indexOf("No FAA program does not guarantee") === 0) { legacyReminder.hidden = true; }',
         '    function statusMeaning(a, lvl, stale) {',
-        '      if (stale || !a || ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { return "Last known status: current arrivals and departures are unconfirmed; this is airport-wide, not the status of any individual flight."; }',
+        '      if (stale || !a || ["clear", "delay", "stop", "closed"].indexOf(a.level) < 0) { return "Last known status: airport-wide conditions are unconfirmed. Check your flight with your airline."; }',
         '      var kinds = (a.events || []).filter(Boolean).map(function (e) { return e.kind; }), meaning; var directions = (a.events || []).filter(Boolean).filter(function (e) { return e.kind === "delay"; }).map(function (e) { return String(e.direction || "").toLowerCase(); }); var departure = kinds.indexOf("departure_delay") >= 0 || directions.indexOf("departure") >= 0;',
-        '      if (lvl === "closed" || lvl === "night") { meaning = "the FAA lists a closure affecting arrivals and departures"; }',
-        '      else if (lvl === "stop") { meaning = "departures to this airport are held at their origin airports, rather than departures from here"; }',
-        '      else if (kinds.indexOf("ground_delay") >= 0) { meaning = "arrivals are held at their origin airports, rather than departures from here"; if (departure) { meaning += "; departure delays are also listed here"; } }',
-        '      else if (departure && directions.indexOf("arrival") >= 0) { meaning = "the FAA lists both arrival and departure delays"; }',
-        '      else if (departure) { meaning = "departures from this airport are delayed; this does not describe arrivals"; }',
-        '      else if (directions.indexOf("arrival") >= 0) { meaning = "arrivals at this airport are delayed; this does not describe departures"; }',
-        '      else if (lvl === "clear") { meaning = "no FAA arrival or departure programs are listed"; }',
-        '      else { meaning = "the FAA lists delays without a confirmed arrival or departure direction"; }',
-        '      return "Airport-wide status: " + meaning + "; this is not the status of any individual flight.";',
+        '      if (lvl === "closed" || lvl === "night") { meaning = "The airport is closed to arrivals and departures."; }',
+        '      else if (lvl === "stop") { meaning = "Flights bound for this airport are held at their departure airports."; }',
+        '      else if (kinds.indexOf("ground_delay") >= 0) { meaning = "Flights bound for this airport are delayed at their departure airports."; if (departure) { meaning += " Departures are also delayed airport-wide."; } }',
+        '      else if (departure && directions.indexOf("arrival") >= 0) { meaning = "Arrivals and departures are delayed airport-wide."; }',
+        '      else if (departure) { meaning = "Departures are delayed airport-wide."; }',
+        '      else if (directions.indexOf("arrival") >= 0) { meaning = "Arrivals are delayed airport-wide."; }',
+        '      else if (lvl === "clear") { meaning = a.level === "clear" && !kinds.length ? "No FAA program is listed. Your flight may still be delayed." : "No FAA arrival or departure programs are active."; }',
+        '      else { meaning = "The FAA lists airport-wide delays."; }',
+        '      return meaning + " Check your flight with your airline.";',
         '    }',
         '    function addHelpLinks(n) {',
         '      if (!n) { return; }',
@@ -1327,8 +1364,8 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      }',
         '      var asOf = "as of " + (asClock || "an unknown time") + " (" + agoText(updMin) + ")";',
         '      if (verdictEl) { verdictEl.textContent = ""; verdictEl.appendChild(verdict(a, lvl, stale, label, asOf)); }',
-        '      if (hero) { hero.className = hero.className.replace(/\\bap-hero--\\w+/, "ap-hero--" + (stale ? "stale" : lvl)); }',
-        '      if (window.ATDHeroArt) { window.ATDHeroArt(stale ? "stale" : lvl); }',
+        '      if (hero) { hero.className = hero.className.replace(/\\bap-hero--\\w+/, "ap-hero--" + (stale || unknown ? "stale" : lvl)); }',
+        '      if (window.ATDHeroArt) { window.ATDHeroArt(stale || unknown ? "stale" : lvl); }',
         '      scaleHelp(stale ? "stale" : lvl);',
         '      var map = document.getElementById("ap-map"); if (map) { map.setAttribute("data-status", stale || unknown ? "stale" : lvl); }',
         '      var pulse = document.querySelector("#ap-now-title .pulse");',
@@ -1352,7 +1389,7 @@ def _right_now_script(code: str, tz: str = "", short: str = "") -> str:
         '      var changed = (stale ? "stale" : lvl) !== INITIAL_LVL;',
         '      if (changed) { for (var li = 0; li < leads.length; li++) { leads[li].hidden = true; } }',
         '      var hasLead = !changed && leads.length > 0;',
-        '      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && lvl !== "night" ? "Reason listed: " + reasonPlain(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }',
+        '      if (reasonEl) { reasonEl.textContent = a.reason && lvl !== "clear" && lvl !== "night" ? "Reason listed: " + reasonText(a.reason) + "." : ""; reasonEl.hidden = !reasonEl.textContent; }',
         '      if (w && w.now_text) {',
         '        var wxText = w.now_text + (w.temp_f != null ? ", " + Math.round(w.temp_f) + "\\u00b0F" : "");',
         '        if (w.wind_kt != null) { wxText += ", wind " + windText(w, true); }',
@@ -1683,6 +1720,8 @@ def render_airport_page(
         ]
 
     lvl = live.get("level", "none")
+    art_kind = airport_type(code)
+    art_day = _hero_is_day(airport_info, now)
     short = str((live_entry or {}).get("short") or desk_airports.SHORT.get(code) or city.split(",")[0] or code)
     try:
         map_lat = float(airport_info.get("lat"))
@@ -1698,7 +1737,7 @@ def render_airport_page(
 
     parts = [
         _render_head(title=title, description=description, canonical=canonical, breadcrumb=breadcrumb,
-                     preload=hero_preload(airport_type(code), lvl, _hero_is_day(airport_info, now))),
+                     preload=hero_preload(art_kind, lvl, art_day, code=code)),
         f'<body class="page-airport">',
         _render_header(),
         f'    <main id="main-content" class="airport-main">',
@@ -1709,7 +1748,7 @@ def render_airport_page(
             else '      <p id="stale-notice" class="stale-notice" role="status" hidden></p>'
         ),
         f'      <section id="ap-hero" class="ap-hero band ap-hero--{_esc(lvl)}" aria-labelledby="ap-verdict">',
-        *_hero_art(airport_type(code), lvl, _hero_is_day(airport_info, now)),
+        *_hero_art(art_kind, lvl, art_day, code=code),
         '       <div class="ap-hero-main">',
         f'        <p id="ap-now-title" class="dateline ap-eyebrow"><span id="ap-now-word">{"Last known status" if live["stale"] or not live["has"] or (live_entry or {}).get("level") not in ("clear", "delay", "stop", "closed") else _esc(pt.airport_dateline(live_updated_utc, tz, short) or "Latest FAA check")}</span></p>',
         '        <div class="lockup">',
@@ -1717,15 +1756,15 @@ def render_airport_page(
         f'          <p class="ap-name"><strong>{_esc(name)} ({_esc(code)})</strong><span>{_esc(city)}</span></p>',
         "        </div>",
         f'        <h1 id="ap-verdict" class="airport-page-title ap-verdict">{_verdict(live_entry, name, short, live, now, tz)}</h1>',
-        '        <p class="small">No FAA program does not guarantee your flight is on time: check your airline.</p>',
         *_lead(live_entry, short, code, live, now),
         (
             f'        <p id="checked-line" class="last-checked">{_esc(live["checked_pre"])}{_src_link("FAA NAS status")}{_esc(live["checked_post"])}</p>'
             if live["has"]
             else f'        <p id="checked-line" class="last-checked">{_esc(live["checked"])}</p>'
         ),
+        *([f'        <p id="ap-art-credit" class="last-checked">{_esc(AERIAL_CREDIT_BY_CODE[code])}</p>'] if code in AERIAL_ART else []),
         (
-            f'        <p id="ap-reason" class="ap-reason">Reason listed: {_esc(pt.reason_plain(live_entry["reason"]))}.</p>'
+            f'        <p id="ap-reason" class="ap-reason">Reason listed: {_esc(pt.reason_text(live_entry["reason"]))}.</p>'
             if live["has"] and (live_entry or {}).get("reason") and pt.effective_level(live_entry, now) not in ("clear", "night")
             else '        <p id="ap-reason" class="ap-reason" hidden></p>'
         ),
@@ -1793,7 +1832,7 @@ def render_airport_page(
         "    </main>",
         _render_footer(),
         '  <script src="../sun.js" type="text/atd-late"></script>' if tz else "",
-        _airport_js_tag(code, tz, short, airport_type(code), airport_info.get("lat") if tz else None, airport_info.get("lon") if tz else None),
+        _airport_js_tag(code, tz, short, art_kind, airport_info.get("lat") if tz else None, airport_info.get("lon") if tz else None),
         '  <script src="../apmap.js" type="text/atd-late"></script>' if regional else "",
         LATE_LOADER,
         '<script src="/count.js" defer></script>',

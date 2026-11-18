@@ -6,6 +6,30 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
+  // The Python prerender reads this JSON table, and airport.js embeds this mapper.
+  // BEGIN CARD REASON MAPPER
+  var CARD_REASON_WORDS = {
+    "MIT": "traffic spacing (miles-in-trail)", "MINIT": "traffic spacing (minutes-in-trail)",
+    "WX": "weather", "VOLUME": "traffic volume", "EQUIPMENT": "equipment",
+    "RUNWAY": "runway", "RWY/TWY": "runway or taxiway", "STAFFING": "staffing", "OTHER": "other"
+  };
+  function reasonText(reason) {
+    return String(reason || "").split(";").map(function (part) {
+      var terms = part.trim().replace(/^TM\s+Initiatives\s*:\s*/i, "").split(/\s*:\s*/).filter(Boolean);
+      var known = terms.some(function (term) { return Object.hasOwn(CARD_REASON_WORDS, term.toUpperCase()); });
+      var words = terms.map(function (term) {
+        var key = term.toUpperCase();
+        if (Object.hasOwn(CARD_REASON_WORDS, key)) { return CARD_REASON_WORDS[key]; }
+        return known ? term.toLowerCase() : term.toLowerCase().replace(/[a-z]+/g, function (word) {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        });
+      }).filter(function (word, index, list) { return list.indexOf(word) === index; });
+      var text = words.join(/^(MIT|MINIT)$/i.test(terms[0]) ? " due to " : ", ");
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }).filter(Boolean).join("; ");
+  }
+  // END CARD REASON MAPPER
+
   // Extra words people type for an airport. A search aid only.
   var ALIASES = {
     ORD: "ohare o hare", LGA: "la guardia laguardia", DCA: "reagan national washington",
@@ -499,7 +523,7 @@
 
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
-    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, dateline: dateline,
+    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, reasonText: reasonText, dateline: dateline,
     listedUtc: listedUtc, closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,

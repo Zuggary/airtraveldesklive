@@ -68,8 +68,9 @@ class Freshness(unittest.TestCase):
             verdict = bap._verdict(a, a['name'], a['short'], live, NOW, a['tz'])
             self.assertEqual(live['stale'], age == 180)
             self.assertIn('as of' if age == 180 else 'right now', verdict)
-        self.assertIn(claims()['reminder'], (ROOT / 'index.html').read_text())
-        self.assertIn(claims()['reminder'], (ROOT / 'tools/build_airport_pages.py').read_text())
+            meaning = bap._status_meaning(a, 'clear', live['stale'])
+            self.assertEqual('Your flight may still be delayed.' in meaning, age == 5)
+        self.assertNotIn(claims()['reminder'], (ROOT / 'index.html').read_text())
 
     def test_every_event_impact(self):
         for kind in claims()['event_kinds']:

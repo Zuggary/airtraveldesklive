@@ -12,6 +12,6 @@ data/national.json
 data/board-history.json
 data/sources.json
 data/link-report.json
-airports/
+/airports/
 data/places-more.json
 airlines/

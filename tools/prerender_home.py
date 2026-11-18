@@ -241,28 +241,7 @@ def impact_text(ev: dict[str, Any], place: str, stale: bool = False, tz: Any = "
     return text + "."
 
 
-# Keep these FAA terms in sync with app.js.
-_REASON_WORDS = {
-    "MIT": "traffic spacing (miles-in-trail)", "MINIT": "traffic spacing (minutes-in-trail)",
-    "WX": "weather", "VOLUME": "traffic volume", "EQUIPMENT": "equipment",
-    "RUNWAY": "runway", "RWY/TWY": "runway or taxiway", "STAFFING": "staffing", "OTHER": "other",
-}
-
-
-def reason_text(reason: Any) -> str:
-    parts = []
-    for part in str(reason or "").split(";"):
-        part = re.sub(r"^TM\s+Initiatives\s*:\s*", "", part.strip(), flags=re.I)
-        terms = list(filter(None, re.split(r"\s*:\s*", part)))
-        known = any(term.upper() in _REASON_WORDS for term in terms)
-        words = [_REASON_WORDS.get(term.upper(), term.lower() if known else
-                                  re.sub(r"[a-z]+", lambda m: m[0].capitalize(), term.lower()))
-                 for term in terms]
-        joiner = " due to " if terms and terms[0].upper() in ("MIT", "MINIT") else ", "
-        phrase = joiner.join(dict.fromkeys(words))
-        if phrase:
-            parts.append(phrase[0].upper() + phrase[1:])
-    return "; ".join(parts)
+reason_text = pt.reason_text
 
 
 def closure_listing(ev: dict[str, Any], now: datetime) -> str:

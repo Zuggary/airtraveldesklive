@@ -271,27 +271,7 @@
     }
   }
 
-  // Keep these FAA terms in sync with tools/prerender_home.py.
-  var REASON_WORDS = {
-    MIT: "traffic spacing (miles-in-trail)", MINIT: "traffic spacing (minutes-in-trail)",
-    WX: "weather", VOLUME: "traffic volume", EQUIPMENT: "equipment",
-    RUNWAY: "runway", "RWY/TWY": "runway or taxiway", STAFFING: "staffing", OTHER: "other"
-  };
-  function reasonText(reason) {
-    return String(reason || "").split(";").map(function (part) {
-      var terms = part.trim().replace(/^TM\s+Initiatives\s*:\s*/i, "").split(/\s*:\s*/).filter(Boolean);
-      var known = terms.some(function (term) { return Object.hasOwn(REASON_WORDS, term.toUpperCase()); });
-      var words = terms.map(function (term) {
-        var key = term.toUpperCase();
-        if (Object.hasOwn(REASON_WORDS, key)) { return REASON_WORDS[key]; }
-        return known ? term.toLowerCase() : term.toLowerCase().replace(/[a-z]+/g, function (word) {
-          return word.charAt(0).toUpperCase() + word.slice(1);
-        });
-      }).filter(function (word, index, list) { return list.indexOf(word) === index; });
-      var text = words.join(/^(MIT|MINIT)$/i.test(terms[0]) ? " due to " : ", ");
-      return text.charAt(0).toUpperCase() + text.slice(1);
-    }).filter(Boolean).join("; ");
-  }
+  var reasonText = A.reasonText;
 
   function shortDur(min) { var h = Math.floor(min / 60), m = min % 60; return !h ? m + " min" : h + " h" + (m ? " " + m : ""); }
 

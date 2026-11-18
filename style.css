@@ -340,6 +340,7 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .ev-link:hover .ev-place { text-decoration: underline; }
 .ev-code { font: 700 1.25rem/1 var(--font-display); }
 .ev-place, .event-card .event-reason { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .ev-place, .event-card .event-reason { overflow: visible; text-overflow: clip; white-space: normal; } }
 .event-impact, .event-reason { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
 .event-help { position: relative; display: flex; align-items: center; min-height: 44px; font-size: var(--fs-xs); }
 .empty-state { margin: 0; padding: 16px 18px; border-radius: var(--radius); background: var(--green-soft); color: var(--green-text); font-weight: 600; }
@@ -989,6 +990,16 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
   background:
     linear-gradient(90deg, rgba(7, 10, 14, 0.82) 0%, rgba(7, 10, 14, 0.5) 50%, rgba(7, 10, 14, 0.12) 100%),
     linear-gradient(0deg, rgba(7, 10, 14, 0.55) 0%, transparent 40%);
+}
+.ap-hero .band-art[data-art^="airports/"] img { object-position: 50% 75%; }
+.ap-hero--delay .band-art[data-art^="airports/"] { --art-tint: rgba(191, 119, 26, 0.22); }
+.ap-hero--stop .band-art[data-art^="airports/"],
+.ap-hero--closed .band-art[data-art^="airports/"] { --art-tint: rgba(171, 37, 44, 0.26); }
+.ap-hero .band-art[data-art^="airports/"] picture::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--art-tint, transparent);
 }
 /* AN38 day art is brighter: a stronger veil behind the text column keeps small text at AA (4.5:1) */
 .ap-hero .band-art[data-art$="-day"]::after {

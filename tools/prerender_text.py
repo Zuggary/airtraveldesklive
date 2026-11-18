@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from html import escape
 
+import json
 import re
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -389,6 +391,29 @@ def stale_chip_text(entry: dict[str, Any], iso: Any, tz: str) -> str:
 
 _REASON_PREFIX = {"WX": "weather", "VOLUME": "traffic volume", "RWY/TWY": "runway or taxiway",
                   "EQUIPMENT": "equipment", "STAFFING": "staffing", "OTHER": "other"}
+
+
+# The home and airport builds share the browser card mapper's vocabulary.
+CARD_REASON_MAPPER_JS = (Path(__file__).resolve().parents[1] / "lib.js").read_text(encoding="utf-8").split(
+    "  // BEGIN CARD REASON MAPPER\n", 1
+)[1].split("  // END CARD REASON MAPPER", 1)[0]
+_CARD_REASON_WORDS = json.loads(CARD_REASON_MAPPER_JS.split("=", 1)[1].split(";", 1)[0])
+
+
+def reason_text(reason: Any) -> str:
+    parts = []
+    for part in str(reason or "").split(";"):
+        part = re.sub(r"^TM\s+Initiatives\s*:\s*", "", part.strip(), flags=re.I)
+        terms = list(filter(None, re.split(r"\s*:\s*", part)))
+        known = any(term.upper() in _CARD_REASON_WORDS for term in terms)
+        words = [_CARD_REASON_WORDS.get(term.upper(), term.lower() if known else
+                                  re.sub(r"[a-z]+", lambda m: m[0].capitalize(), term.lower()))
+                 for term in terms]
+        joiner = " due to " if terms and terms[0].upper() in ("MIT", "MINIT") else ", "
+        phrase = joiner.join(dict.fromkeys(words))
+        if phrase:
+            parts.append(phrase[0].upper() + phrase[1:])
+    return "; ".join(parts)
 
 
 def reason_plain(reason: Any) -> str:
