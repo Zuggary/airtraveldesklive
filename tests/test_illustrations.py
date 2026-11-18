@@ -62,6 +62,8 @@ class TestOldArtGone(unittest.TestCase):
             self.assertNotIn("library.json", text, name)
             self.assertNotIn("illus-tag", text, name)
             self.assertNotIn(">Illustration<", text, name)
+            if name == ".github/workflows/status.yml":
+                text = text.replace("assets/art/airports/*.webp", "")
             self.assertNotIn(".webp", text, name)
 
     def test_no_pill_or_card_css(self) -> None:

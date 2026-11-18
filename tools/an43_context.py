@@ -8,6 +8,8 @@ from __future__ import annotations
 from html import escape
 from typing import Any
 
+from desk.airports import BUSIEST_100
+
 PARTS = (("early morning (5 to 9 am)", range(5, 9)), ("late morning and midday (9 am to 2 pm)", range(9, 14)),
          ("afternoon (2 to 6 pm)", range(14, 18)), ("evening (6 pm to midnight)", range(18, 24)))
 CAUSE_EXPLAIN = {
@@ -204,9 +206,16 @@ def render_context(code: str, short: str, prof: dict[str, Any] | None, city: str
     ds = [x for x in (a.get("top_destinations") or []) if x.get("ontime") is not None][:5]
     if len(ds) >= 3:
         w = min(ds, key=lambda x: x["ontime"]); bst = max(ds, key=lambda x: x["ontime"])
-        names = ", ".join(f'<a class="tap" href="/airports/{escape(x["code"])}">{escape(x["code"])}</a>' for x in ds[:5])
-        p(f"        <p>The busiest routes from {C} go to {names}. Of those five, flights to {escape(bst['code'])} were the most punctual ({bst['ontime']:.0f}% on time) "
-          f"and flights to {escape(w['code'])} the least ({w['ontime']:.0f}%). A late route usually reflects trouble at the other end, so check that airport's page too.</p>")
+        names = []
+        for destination in ds:
+            destination_code = destination["code"]
+            label = escape(destination_code)
+            if destination_code in BUSIEST_100:
+                label = f'<a class="tap" href="/airports/{label}">{label}</a>'
+            names.append(label)
+        route_names = ", ".join(names)
+        p(f"        <p>The busiest routes from {C} go to {route_names}. Of those five, flights to {escape(bst['code'])} were the most punctual ({bst['ontime']:.0f}% on time) "
+          f"and flights to {escape(w['code'])} the least ({w['ontime']:.0f}%). A late route usually reflects trouble at the other end, so check the destination's status too.</p>")
     p(f'        <p class="small">Source: <a class="tap" href="https://www.transtats.bts.gov/" rel="noopener">BTS TranStats</a>, Reporting Carrier On-Time Performance, {period}. '
       "Departure figures count flights leaving this airport; delay causes count late arrivals into it.</p>")
     p("      </section>")

@@ -107,6 +107,13 @@ jobs:
           cp airlines/*.html _site/airlines/
           mkdir -p _site/assets/art
           cp assets/art/*.avif assets/art/*.jpg _site/assets/art/
+          mkdir -p _site/assets/art/airports
+          if ls assets/art/airports/*.webp >/dev/null 2>&1; then
+            cp assets/art/airports/*.webp _site/assets/art/airports/
+          fi
+          if [ -f assets/art/airports/manifest.json ]; then
+            cp assets/art/airports/manifest.json _site/assets/art/airports/
+          fi
           mkdir -p _site/assets/live
           cp assets/live/*.jpg _site/assets/live/
           mkdir -p _site/data
@@ -150,6 +157,9 @@ jobs:
             missing=1
           fi
           exit $missing
+
+      - name: Check published internal references
+        run: python tools/check_site.py --site _site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
