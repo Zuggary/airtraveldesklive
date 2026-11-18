@@ -539,6 +539,22 @@
   }
   (function () { var b = $("mine-clear"); if (b) { b.addEventListener("click", clearMine); } })();
 
+  function historyRows(rows, hourCount) {
+    var merged = Object.create(null);
+    var codes = Object.keys(rows).sort();
+    var aliases = codes.filter(function (code) { return code !== A.canonicalAirportCode(code); });
+    codes.filter(function (code) { return code === A.canonicalAirportCode(code); }).concat(aliases).forEach(function (rawCode) {
+      var row = rows[rawCode];
+      if (typeof row !== "string" || row.length !== hourCount) { return; }
+      var code = A.canonicalAirportCode(rawCode);
+      var current = merged[code];
+      merged[code] = current ? current.replace(/./g, function (cell, i) {
+        return cell === "-" ? row[i] : cell;
+      }) : row;
+    });
+    return merged;
+  }
+
   function histTrouble(code) {
     var row = D.hist && D.hist.airports && D.hist.airports[code];
     return typeof row === "string" && /[ds]/.test(row.slice(-24));
@@ -1552,7 +1568,11 @@
       getJson("data/bts.json", true), getJson("data/tsa.json", true), getJson("data/airport-guide.json"),
       getJson("data/history-summary.json", true)
     ]).then(function (r) {
-      if (r[6] && r[6].airports) { D.hist = r[6]; renderBoard(); }
+      if (r[6] && r[6].airports) {
+        D.hist = r[6];
+        D.hist.airports = historyRows(D.hist.airports, (D.hist.hours || []).length);
+        renderBoard();
+      }
       D.places = r[0]; D.security = r[1]; D.commit = r[2];
       D.bts = (r[3] && r[3].nation) ? r[3] : null;
       D.tsa = r[4];

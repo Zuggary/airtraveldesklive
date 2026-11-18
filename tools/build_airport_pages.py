@@ -708,6 +708,20 @@ def _actions(code: str, airlines: list[dict[str, Any]] | None, airport_site: str
     ]
 
 
+def _history_rows(rows: dict[str, str], hour_count: int) -> dict[str, str]:
+    merged: dict[str, list[str]] = {}
+    for raw_code in sorted(rows, key=lambda code: (code != desk_airports.canonical_code(code), code)):
+        row = rows[raw_code]
+        if not isinstance(row, str) or len(row) != hour_count:
+            continue
+        code = desk_airports.canonical_code(raw_code)
+        cells = merged.setdefault(code, ["-"] * hour_count)
+        for i, cell in enumerate(row):
+            if cells[i] == "-":
+                cells[i] = cell
+    return {code: "".join(cells) for code, cells in merged.items()}
+
+
 def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[str]:
     """Past hours at this airport, from data/history-summary.json (a copy of our own hourly archive). Past facts only."""
     row = ((history or {}).get("airports") or {}).get(code)
@@ -2088,7 +2102,7 @@ def build_pages(
     bts_data = _load_json(data_dir / "bts.json")
     history_data = _load_json(data_dir / "history-summary.json")
     if history_data.get("airports"):
-        history_data["airports"] = desk_airports.airport_rows(history_data["airports"])
+        history_data["airports"] = _history_rows(history_data["airports"], len(history_data.get("hours") or []))
     an43_path = data_dir / "an43" / "bts-profile.json"
     an43_profile = _load_json(an43_path) if an43_path.exists() else None
 

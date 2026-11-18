@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from desk import airports, feeds, holding, state, tracks, wx
-from tools import archive_snapshot, build_status, build_web, prerender_home
+from tools import archive_lib, archive_snapshot, build_airport_pages, build_status, build_web, prerender_home
 
 
 class TestDJT(unittest.TestCase):
@@ -50,17 +50,48 @@ class TestDJT(unittest.TestCase):
             self.assertIn('href="/airports/DJT"', events)
             self.assertIn("Ground stop", events)
 
-    def test_historical_snapshot_preserves_both_identifiers_under_djt(self):
-        archive_rows = [
-            {"airport": "DJT", "hour_utc": "2026-11-18T12:00Z", "delay": True},
-            {"airport": "PBI", "hour_utc": "2026-11-18T12:00Z", "ground_stop": True},
-            {"airport": "PBI", "hour_utc": "2026-11-18T13:00Z", "ground_stop": True},
+    def test_canonical_code_uses_alias_map(self):
+        for code in ("PBI", "KPBI", "KDJT", "DJT", " pbi "):
+            self.assertEqual(airports.canonical_code(code), "DJT")
+        self.assertEqual(airports.canonical_code("MIA"), "MIA")
+        self.assertEqual(airports.canonical_code("KZZZ"), "KZZZ")
+        with patch.dict(airports.CODE_ALIASES, {"KZZZ": "ZZZ"}):
+            self.assertEqual(airports.canonical_code(" kzzz "), "ZZZ")
+
+    def test_historical_snapshot_merges_rows_by_hour(self):
+        hours = [f"2026-11-18T{hour}:00Z" for hour in range(10, 14)]
+        observations = [
+            (hours[0], "PBI", {"ground_stop": True}),
+            (hours[1], "KPBI", {"closure": True}),
+            (hours[1], "PBI", {"delay": True}),
+            (hours[2], "PBI", {"ground_stop": True}),
+            (hours[2], "DJT", {}),
+            (hours[3], "DJT", {"delay": True}),
+            (hours[3], "MIA", {}),
         ]
+        rows = [dict(fields, k=archive_lib.row_key(hour, code), type="airport",
+                     hour_utc=hour, airport=code) for hour, code, fields in observations]
         now = datetime(2026, 11, 18, 13, tzinfo=timezone.utc)
-        with patch.object(archive_snapshot.al, "iter_rows", return_value=archive_rows):
-            snapshot = archive_snapshot.build(hours=2, now=now)
-        self.assertEqual(snapshot["airports"], {"DJT": "ds"})
-        self.assertEqual(snapshot["rows"], 2)
+        with tempfile.TemporaryDirectory() as tmp:
+            month = Path(tmp) / "2026-11.jsonl"
+            for order in (rows, list(reversed(rows))):
+                month.write_text("".join(json.dumps(row) + "\n" for row in order))
+                snapshot = archive_snapshot.build(hours=4, directory=tmp, now=now)
+                self.assertEqual(snapshot["hours"], hours)
+                self.assertEqual(snapshot["airports"], {"DJT": "sscd", "MIA": "---c"})
+                self.assertEqual(snapshot["rows"], 5)
+                for code in ("PBI", "DJT"):
+                    result = list(archive_lib.iter_rows(airports=[code], directory=tmp))
+                    self.assertEqual([row["hour_utc"] for row in result], hours)
+                    self.assertEqual([row["airport"] for row in result], ["DJT"] * 4)
+
+    def test_legacy_history_summary_merges_before_rendering(self):
+        rows = {"PBI": "ssd-", "DJT": "--cd", "MIA": "---c"}
+        expected = {"DJT": "sscd", "MIA": "---c"}
+        self.assertEqual(build_airport_pages._history_rows(rows, 4), expected)
+        with patch.dict(airports.CODE_ALIASES, {"ZZZ": "DJT"}):
+            self.assertEqual(build_airport_pages._history_rows({"ZZZ": "s", "DJT": "-"}, 1),
+                             {"DJT": "s"})
 
     def test_weather_station_aliases(self):
         now = 1_800_000_000

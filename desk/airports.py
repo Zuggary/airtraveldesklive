@@ -230,10 +230,13 @@ def _names() -> dict[str, list[str]]:
     return _NAMES
 
 
+CODE_ALIASES = {"PBI": "DJT", "KPBI": "DJT", "KDJT": "DJT"}
+
+
 def canonical_code(code: str | None) -> str:
-    """Normalize West Palm Beach feed identifiers to the public airport code."""
+    """Normalize an airport identifier to its current public code."""
     norm = (code or "").strip().upper()
-    return "DJT" if norm in {"PBI", "KPBI", "KDJT"} else norm
+    return CODE_ALIASES.get(norm, norm)
 
 
 def airport_rows(rows: dict | None) -> dict:

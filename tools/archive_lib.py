@@ -24,6 +24,9 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Optional
 
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from desk.airports import canonical_code  # noqa: E402
+
 DEFAULT_DIR = Path.home() / "factory-scratch" / "an-archive"
 NATIONAL = "NATIONAL"
 STALE_MIN = 30
@@ -221,19 +224,19 @@ def _range_hours(start: Any, end: Any) -> tuple:
 def iter_rows(start: Any = None, end: Any = None, airports: Optional[Iterable[str]] = None,
               directory: Optional[os.PathLike] = None, kind: str = "airport") -> Iterator[dict]:
     """Rows with start <= hour < end, in hour order. start/end: ISO text, 'YYYY-MM', 'YYYY-MM-DD', date or datetime
-    (None = open). `kind` is 'airport' (default), 'national' or 'all'."""
+    (None = open). `kind` is 'airport' (default), 'national' or 'all'.
+    Airport aliases are merged per hour, preferring rows stored under the current code."""
     d = archive_dir(directory)
     lo, hi = _range_hours(start, end)
-    want = {a.upper() for a in airports} if airports else None
+    want = {canonical_code(a) for a in airports} if airports else None
     for path in month_files(d):
         month = path.stem
         if lo and month < lo[:7]:
             continue
         if hi and month > hi[:7]:
             continue
-        rows = read_month(path)
-        for k in sorted(rows):
-            r = rows[k]
+        selected = {}
+        for k, r in read_month(path).items():
             h = r.get("hour_utc", "")
             if lo and h < lo:
                 continue
@@ -244,13 +247,23 @@ def iter_rows(start: Any = None, end: Any = None, airports: Optional[Iterable[st
                 continue
             if kind == "national" and not is_nat:
                 continue
-            if want is not None and r.get("airport") not in want:
+            raw_code = r.get("airport")
+            code = canonical_code(raw_code)
+            if want is not None and code not in want:
                 continue
-            yield r
+            key = (h, code)
+            # Prefer the current code, then use the archival key to break ties between aliases.
+            priority = (raw_code != code, k)
+            if key not in selected or priority < selected[key][0]:
+                selected[key] = (priority, r)
+        for (hour, code), (_, row) in sorted(selected.items()):
+            if row.get("airport") != code:
+                row = dict(row, airport=code, k=row_key(hour, code))
+            yield row
 
 
 def hour_counts(directory: Optional[os.PathLike] = None) -> dict:
-    """hour_utc -> number of airport rows archived for that hour."""
+    """hour_utc -> number of distinct airports with a reading for that hour."""
     c: Counter = Counter()
     for r in iter_rows(directory=directory):
         c[r["hour_utc"]] += 1
@@ -283,7 +296,7 @@ def delay_share(airport: str, month_range: Any = None, directory: Optional[os.Pa
     c = {f: sum(1 for r in fresh if r.get(f)) for f in FLAG_FIELDS}
     n_any = sum(1 for r in fresh if is_any_delay(r))
     out = {
-        "airport": airport.upper(),
+        "airport": canonical_code(airport),
         "archived_hours": hours,
         "stale_rows_excluded": len(rows) - len(fresh),
         "hours_with_ground_stop": c["ground_stop"],
@@ -341,7 +354,7 @@ def archive_stats(directory: Optional[os.PathLike] = None) -> dict:
                 national_rows += 1
             else:
                 airports_rows += 1
-                codes.add(r.get("airport"))
+                codes.add(canonical_code(r.get("airport")))
             hours.add(r["hour_utc"])
             sources[r.get("source", "?")] += 1
             if r.get("stale"):

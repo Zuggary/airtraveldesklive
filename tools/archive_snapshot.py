@@ -22,8 +22,6 @@ except ImportError:  # run as a script
     import archive_lib as al  # type: ignore[no-redef]
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-from desk.airports import canonical_code  # noqa: E402
 
 
 def letter(row: dict) -> str:
@@ -39,16 +37,8 @@ def build(hours: int = 72, directory=None, now: datetime | None = None) -> dict:
     keys = [al.hour_key(now - timedelta(hours=i)) for i in range(hours - 1, -1, -1)]
     start, end = keys[0], al.hour_key(now + timedelta(hours=1))
     cells: dict[str, dict[str, str]] = {}
-    total = 0
-    for r in al.iter_rows(start=start, end=end, directory=directory):
-        raw_code, hour = r["airport"], r["hour_utc"]
-        code = canonical_code(raw_code)
-        by_hour = cells.setdefault(code, {})
-        if hour not in by_hour:
-            total += 1
-            by_hour[hour] = letter(r)
-        elif raw_code == code:
-            by_hour[hour] = letter(r)
+    for row in al.iter_rows(start=start, end=end, directory=directory):
+        cells.setdefault(row["airport"], {})[row["hour_utc"]] = letter(row)
     airports = {code: "".join(by_hour.get(k, "-") for k in keys) for code, by_hour in sorted(cells.items())}
     seen = sorted({k for by in cells.values() for k in by})
     return {
@@ -57,7 +47,7 @@ def build(hours: int = 72, directory=None, now: datetime | None = None) -> dict:
         "hours": keys,
         "first_reading_utc": seen[0] if seen else "",
         "last_reading_utc": seen[-1] if seen else "",
-        "rows": total,
+        "rows": sum(map(len, cells.values())),
         "airports": airports,
     }
 

@@ -52,6 +52,7 @@ vm.runInNewContext(source.replace("  init();", `
   D.state = fixture;
   allByCode.ZZZ = { name: "Example Airport" };
   window.renderEvents = renderEvents;
+  window.historyRows = historyRows;
   window.renderDJT = function (cards) {
     D.cards = { airports: cards };
     buildAirports();
@@ -65,6 +66,11 @@ vm.runInNewContext(source.replace("  init();", `
   window.renderSummary = renderSummary;
   allAirports = [{ code: "AAA", level: "clear" }];
 `), context);
+
+const history = { PBI: "ssd-", DJT: "--cd", MIA: "---c" };
+const expectedHistory = { DJT: "sscd", MIA: "---c" };
+assert.deepEqual({ ...context.window.historyRows(history, 4) }, expectedHistory);
+assert.deepEqual({ ...context.window.historyRows({ DJT: "--cd", PBI: "ssd-", MIA: "---c" }, 4) }, expectedHistory);
 
 const cases = {
   "TM Initiatives:MIT: WX": "Traffic spacing (miles-in-trail) due to weather",
