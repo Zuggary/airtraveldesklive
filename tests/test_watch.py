@@ -1,5 +1,5 @@
 """AN52: the Watch live button (watch.js): on every page, no YouTube request until pressed, deploy and offline lists carry it."""
-import re, subprocess, unittest
+import re, shutil, subprocess, unittest
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,6 +63,7 @@ class WatchTest(unittest.TestCase):
         for p in [ROOT / "index.html", ROOT / "stuck.html"]:
             self.assertNotRegex(p.read_text(), r'<(?:iframe|script)[^>]+(?:src=[\"\']https://[^\"\']*youtube)')
 
+    @unittest.skipUnless(shutil.which("node"), "Node unavailable")
     def test_node_unit(self):
         r = subprocess.run(["node", str(ROOT / "tests/node/test_watch.js")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)

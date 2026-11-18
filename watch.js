@@ -27,7 +27,6 @@
     var btn = el(doc, "button", "watch-btn");
     btn.type = "button";
     btn.setAttribute("aria-expanded", "false");
-    btn.setAttribute("aria-controls", "watch-drawer");
     var dot = el(doc, "span", "watch-btn-dot");
     dot.setAttribute("aria-hidden", "true");
     btn.appendChild(dot);
@@ -39,6 +38,7 @@
     drawer.id = "watch-drawer";
     drawer.setAttribute("aria-label", "Live video");
     drawer.hidden = true;
+    drawer.inert = true;
     var inner = el(doc, "div", "watch-drawer-in");
     var bar = el(doc, "div", "watch-drawer-bar");
     bar.appendChild(el(doc, "p", "watch-drawer-note", "Loads from YouTube (Google), which can set its own cookies once it loads. The voice reads the FAA updates around the clock."));
@@ -71,7 +71,10 @@
     drawer.appendChild(inner);
     header.parentNode.insertBefore(drawer, header.nextSibling);
 
+    btn.setAttribute("aria-controls", drawer.id);
+
     var isOpen = false;
+    var opener = btn;
     var hideTimer = null;
     var reduce = win.matchMedia && win.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -88,18 +91,31 @@
       box.insertBefore(f, mini);
     }
 
-    function setOpen(next, fromTeaser) {
+    function syncTeasers() {
+      var teasers = doc.querySelectorAll("[data-watch-open]");
+      for (var i = 0; i < teasers.length; i++) {
+        teasers[i].setAttribute("aria-controls", drawer.id);
+        teasers[i].setAttribute("aria-expanded", String(isOpen));
+      }
+    }
+
+    function setOpen(next, trigger) {
       if (next === isOpen) { return; }
       isOpen = next;
       btn.setAttribute("aria-expanded", next ? "true" : "false");
+      syncTeasers();
       win.clearTimeout(hideTimer);
       if (next) {
+        opener = trigger;
         if (!box.querySelector("iframe")) { mountPlayer(); }
         drawer.hidden = false;
-        if (reduce) { drawer.classList.add("open"); } else { win.requestAnimationFrame(function () { win.requestAnimationFrame(function () { drawer.classList.add("open"); }); }); }
+        drawer.inert = false;
+        if (reduce) { drawer.classList.add("open"); } else { win.requestAnimationFrame(function () { win.requestAnimationFrame(function () { if (isOpen) { drawer.classList.add("open"); } }); }); }
         if (win.scrollY > 120) { win.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); }
-        if (fromTeaser) { close.focus(); }
+        if (opener !== btn) { close.focus({ preventScroll: true }); }
       } else {
+        (opener.isConnected ? opener : btn).focus();
+        drawer.inert = true;
         drawer.classList.remove("open");
         undock();
         var old = box.querySelector(".watch-holder, iframe");
@@ -131,7 +147,7 @@
       io.observe(frame);
     }
     expand.addEventListener("click", function () { undock(); win.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); });
-    x.addEventListener("click", function () { setOpen(false); btn.focus(); });
+    x.addEventListener("click", function () { setOpen(false); });
     /* desktop: drag the mini player by its top strip; it stays inside the window */
     grab.addEventListener("pointerdown", function (e) {
       if (win.innerWidth < 700 || e.button > 0) { return; }
@@ -198,6 +214,7 @@
       softUsed = true;
       main.parentNode.replaceChild(doc.importNode(nmain, true), main);
       if (foot && nfoot) { foot.parentNode.replaceChild(doc.importNode(nfoot, true), foot); }
+      syncTeasers();
       /* run the new page's own scripts again, in order, against the new address */
       var srcs = ndoc.querySelectorAll("script[src]");
       for (var n = 0; n < srcs.length; n++) {
@@ -251,16 +268,16 @@
       go(u, true);
     });
 
-    btn.addEventListener("click", function () { setOpen(!isOpen, false); });
-    close.addEventListener("click", function () { setOpen(false); btn.focus(); });
+    btn.addEventListener("click", function () { setOpen(!isOpen, btn); });
+    close.addEventListener("click", function () { setOpen(false); });
     docAdd.call(doc, "keydown", function (e) {
-      if (e.key === "Escape" && isOpen) { setOpen(false); btn.focus(); }
+      if (e.key === "Escape" && isOpen && !e.defaultPrevented) { setOpen(false); }
     });
-
-    var cards = doc.querySelectorAll("[data-watch-open]");
-    for (var i = 0; i < cards.length; i++) {
-      cards[i].addEventListener("click", function () { setOpen(true, true); });
-    }
+    docAdd.call(doc, "click", function (e) {
+      var teaser = e.target && e.target.closest ? e.target.closest("[data-watch-open]") : null;
+      if (teaser && teaser !== btn) { setOpen(!isOpen, teaser); }
+    });
+    syncTeasers();
   }
 
   var api = { playerSrc: playerSrc, CHANNEL: CHANNEL };

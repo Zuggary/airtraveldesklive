@@ -580,6 +580,7 @@
 
   function initSearch() {
     var input = $("airport-search"), list = $("search-results"), empty = $("search-empty");
+    var status = $("search-status");
     var res = [], active = 0;
     function go(a) { if (a) { setLast(a.code); window.location.href = "/airports/" + a.code; } }
     function draw() {
@@ -600,12 +601,19 @@
     function run() {
       var q = input.value;
       empty.hidden = true;
-      if (!A.norm(q)) { res = []; list.hidden = true; list.textContent = ""; return; }
+      if (!A.norm(q)) { res = []; list.hidden = true; list.textContent = ""; status.textContent = ""; return; }
       res = A.searchAirports(allAirports, q).slice(0, 6);
       active = 0;
-      if (!res.length) { list.hidden = true; list.textContent = ""; empty.hidden = false; return; }
+      if (!res.length) {
+        list.hidden = true;
+        list.textContent = "";
+        empty.hidden = false;
+        status.textContent = empty.textContent;
+        return;
+      }
       draw();
       list.hidden = false;
+      status.textContent = res.length + (res.length === 1 ? " airport shown." : " airports shown.");
     }
     input.addEventListener("input", run);
     input.addEventListener("keydown", function (e) {

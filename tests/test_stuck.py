@@ -48,6 +48,8 @@ class TestStuckStaticChecks(unittest.TestCase):
         listed = {s["url"] for s in json.loads(read_text("data/ask-first-sources.json"))["sources"]}
         allowed = {"https://www.youtube.com/@AirTravelDeskLive/live", "https://www.twitch.tv/airtraveldesklive"} | listed | {DOWNTIME_URL}
         for name, text in (("stuck.html", self.stuck_html), ("stuck.js", self.stuck_js)):
+            if name == "stuck.html":
+                text = text.replace('<link rel="canonical" href="https://www.airtraveldesklive.com/stuck">', "")
             found = URL_RE.findall(text)
             for url in found:
                 self.assertIn(

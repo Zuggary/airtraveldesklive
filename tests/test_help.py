@@ -75,10 +75,14 @@ class Help(unittest.TestCase):
         self.assertIn('.site-footer p.container { margin-inline: auto; }', css)
 
     def test_offline_sitemap_and_rendered_links(self):
-        block = airports.render_sitemap_block(['ZZZ'], '2026-11-17')
+        date = '2026-11-17'
+        block = airports.render_sitemap_block(['ZZZ'], date)
         sw = (ROOT/'sw.js').read_text()
         for suffix in ('',) + tuple(s + '.html' for s in SLUGS):
-            self.assertIn('/help/' + suffix, block)
+            self.assertIn(
+                f'<url><loc>{airports.SITE_URL}/help/{suffix}</loc><lastmod>{date}</lastmod></url>',
+                block,
+            )
             self.assertIn('./help/' + suffix, sw)
         now = datetime(2026, 11, 17, tzinfo=timezone.utc)
         for kind, slug in [('ground_stop', 'ground-stop'), ('ground_delay', 'ground-delay')]:

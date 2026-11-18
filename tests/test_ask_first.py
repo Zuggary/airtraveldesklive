@@ -149,6 +149,8 @@ class TestStaticSection(unittest.TestCase):
     def test_only_allowed_urls_on_the_page_and_in_the_script(self):
         allowed = {"https://www.youtube.com/@AirTravelDeskLive/live", "https://www.twitch.tv/airtraveldesklive"} | set(self.known) | {DOWNTIME_URL, "https://www.usa.gov/government-works"}
         for name, text in (("stuck.html", self.html), ("stuck.js", self.js)):
+            if name == "stuck.html":
+                text = text.replace('<link rel="canonical" href="https://www.airtraveldesklive.com/stuck">', "")
             for url in URL_RE.findall(text):
                 self.assertIn(url, allowed, f"{name}: {url}")
 

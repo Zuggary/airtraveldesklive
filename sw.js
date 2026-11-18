@@ -2,6 +2,7 @@
 (function () {
   "use strict";
 
+  var CACHE_PREFIX = "atd-offline-";
   var CACHE_NAME = "atd-offline-v18";
   var STATIC_FILES = [
     "./",
@@ -66,7 +67,7 @@
     event.waitUntil(
       caches.keys().then(function (keys) {
         return Promise.all(keys.map(function (key) {
-          return key === CACHE_NAME ? Promise.resolve() : caches.delete(key);
+          if (key !== CACHE_NAME && key.indexOf(CACHE_PREFIX) === 0) { return caches.delete(key); }
         }));
       }).then(function () {
         return self.clients.claim();
