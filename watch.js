@@ -5,7 +5,6 @@
   "use strict";
 
   var CHANNEL = "UCtEAjmjCJdR-pHgcZtIFI9w";
-  var STALE_MS = 15 * 60 * 1000;
 
   /* YouTube live channel player; autoplay stays disabled after loading. Pure. */
   function playerSrc(channel) {
@@ -17,14 +16,6 @@
     if (cls) { n.className = cls; }
     if (text) { n.textContent = text; }
     return n;
-  }
-
-  /* "live", "off" or "unknown" from data/live.json. Older than 15 minutes, or unreadable, is unknown: never a false green. Pure. */
-  function liveState(doc, nowMs) {
-    if (!doc || typeof doc !== "object" || typeof doc.checked_utc !== "string") { return "unknown"; }
-    var t = Date.parse(doc.checked_utc);
-    if (isNaN(t) || nowMs - t > STALE_MS || t - nowMs > 5 * 60 * 1000) { return "unknown"; }
-    return doc.youtube_live === true ? "live" : doc.youtube_live === false ? "off" : "unknown";
   }
 
   function start(win) {
@@ -40,8 +31,7 @@
     var dot = el(doc, "span", "watch-btn-dot");
     dot.setAttribute("aria-hidden", "true");
     btn.appendChild(dot);
-    btn.appendChild(el(doc, "span", "watch-btn-text", "Watch live"));
-    var label = btn.querySelector(".watch-btn-text");
+    btn.appendChild(el(doc, "span", "watch-btn-text", "Live"));
     var toggle = headerIn.querySelector(".theme-toggle");
     if (toggle) { headerIn.insertBefore(btn, toggle); } else { headerIn.appendChild(btn); }
 
@@ -267,38 +257,13 @@
       if (e.key === "Escape" && isOpen) { setOpen(false); btn.focus(); }
     });
 
-    function applyLive(state) {
-      btn.classList.remove("is-live", "is-off");
-      dot.hidden = state === "unknown";
-      if (state === "live") { btn.classList.add("is-live"); label.textContent = "Live"; }
-      else if (state === "off") { btn.classList.add("is-off"); label.textContent = "Offline"; }
-      else { label.textContent = "Watch live"; }
-      if (state === "unknown") {
-        btn.removeAttribute("aria-label");
-        btn.removeAttribute("title");
-      } else {
-        var status = state === "live" ? "YouTube stream is live" : "YouTube stream is offline";
-        btn.setAttribute("aria-label", status);
-        btn.setAttribute("title", status);
-      }
-      var cardTags = doc.querySelectorAll(".live-card-tag"), cardTitles = doc.querySelectorAll(".live-card-title");
-      for (var a = 0; a < cardTags.length; a++) { cardTags[a].hidden = state !== "live"; }
-      for (var b = 0; b < cardTitles.length; b++) { cardTitles[b].textContent = state === "live" ? "Live now: delays read aloud" : "Live desk: delays read aloud"; }
-    }
-    applyLive("unknown");
-    if (typeof win.fetch === "function") {
-      win.fetch("/data/live.json", { cache: "no-store" })
-        .then(function (response) { return response.ok ? response.json() : null; })
-        .then(function (status) { applyLive(liveState(status, Date.now())); })
-        .catch(function () { applyLive("unknown"); });
-    }
     var cards = doc.querySelectorAll("[data-watch-open]");
     for (var i = 0; i < cards.length; i++) {
       cards[i].addEventListener("click", function () { setOpen(true, true); });
     }
   }
 
-  var api = { playerSrc: playerSrc, liveState: liveState, CHANNEL: CHANNEL };
+  var api = { playerSrc: playerSrc, CHANNEL: CHANNEL };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; }
   if (root && root.document) { root.ATDWatch = api; start(root); }
 })(typeof window !== "undefined" ? window : null);
