@@ -310,7 +310,8 @@ def render_events(state: dict[str, Any], by_code: dict[str, Any], updated_utc: s
         if not why and kind == "closure":
             why = f"Listed reopening about {night['reopen']} local time" if night else closure_listing(ev, now)
         reason_title = f' title="{_esc(why)}"' if why else ""
-        href = f"/airports/{code}" if re.fullmatch(r"[A-Z]{3}", code) else "/airports/"
+        # Only airports in the data file (the 100 busiest) have a page; other FAA codes (OPF) link to the index, never a 404.
+        href = f"/airports/{code}" if re.fullmatch(r"[A-Z]{3}", code) and code in by_code else "/airports/"
         slug, label = {
             "ground_stop": ("ground-stop.html", "What is a ground stop?"),
             "ground_delay": ("ground-delay.html", "What is a ground delay?"),

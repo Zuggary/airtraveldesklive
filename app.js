@@ -293,7 +293,7 @@
     var card = el("article", "event-card" + (night ? " event-card--night" : stop ? " event-card--stop" : ""));
     var h3 = el("h3", "event-title");
     var lk = el("a", "ev-link");
-    lk.href = /^[A-Z]{3}$/.test(code) ? "/airports/" + code : "/airports/";
+    lk.href = /^[A-Z]{3}$/.test(code) && (allByCode[code] || byCode[code]) ? "/airports/" + code : "/airports/";
     lk.appendChild(el("span", "ev-code", code));
     var place = el("span", "ev-place", name);
     place.title = name;
