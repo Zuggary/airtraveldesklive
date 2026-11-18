@@ -175,8 +175,6 @@
     return end == null || end <= (nowMs == null ? Date.now() : nowMs);
   }
 
-  // AN34: the home headline is a verdict over all the airports we cover, not a list of counts.
-  // "98 of the 100 busiest US airports have no FAA delays right now". troubleLine names the exceptions.
   // AN35: a closure the FAA lists as daily ("CLSD DLY 0730-1415", UTC hours; ev.daily or ev.fields.daily) is a scheduled closure.
   // Returns null for any other closure, else {in_window, reopen, close} with clocks in the airport zone. Same rule as closure_schedule in prerender_text.py.
   var MONTHS3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -237,17 +235,57 @@
     if (e.kind === "ground_stop") { return c + (stale ? " had" : " has") + " a ground stop. "; }
     return c + (stale ? " had" : " has") + " delays. ";
   }
-  function nationalSummary(airports, asOf, outside, nowMs) {
+  // Same priority and wording as prerender_home.py.
+  function homePrograms(airports, events, nowMs) {
+    var ranks = { delay: 1, ground_delay: 1, ground_stop: 2, closure: 3 };
+    var programs = new Map(), zones = new Map();
+    function add(code, kind) {
+      if (code && ranks[kind] && (!programs.has(code) || ranks[kind] > ranks[programs.get(code)])) {
+        programs.set(code, kind);
+      }
+    }
+    airports.forEach(function (a) {
+      var code = String(a.code || "").toUpperCase();
+      zones.set(code, a.tz);
+      if (isScheduledOnly(a, nowMs)) {
+        if (nightReopen(a, nowMs)) { add(code, "closure"); }
+      } else if (a.level === "stop" || a.level === "delay") {
+        add(code, isClosedAirport(a) ? "closure" : a.level === "stop" ? "ground_stop" : "delay");
+      }
+    });
+    (events || []).forEach(function (e) {
+      if (!e) { return; }
+      var code = String(e.airport || "").toUpperCase(), sc = closureSchedule(e, e.tz || zones.get(code), nowMs);
+      if (!sc || sc.in_window) { add(code, e.kind); }
+    });
+    return Array.from(programs).sort(function (a, b) {
+      return ranks[b[1]] - ranks[a[1]] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+    });
+  }
+
+  function nationalSummary(airports, asOf, events, nowMs) {
     if (asOf) { return "Last FAA check " + asOf.replace(/^as of /, ""); }
-    if (!airports.length) { return outsideLead(outside, !!asOf, nowMs) + "Airport readings unavailable"; }
-    var bad = 0;
-    for (var i = 0; i < airports.length; i++) { if ((airports[i].level === "stop" || airports[i].level === "delay") && !isScheduledOnly(airports[i], nowMs)) { bad++; } }
-    var n = airports.length > 30 ? airports.length : 30, lead = outsideLead(outside, !!asOf, nowMs);
-    if (!bad && lead && !asOf) { return lead + "The " + n + " busiest airports " + (asOf ? "were clear" : "are clear right now"); }
-    // Stale absence is a dated FAA listing, not a claim about flight punctuality.
-    if (!bad) { return "No delays or ground stops at the " + n + " busiest airports right now"; }
-    var ok = airports.length - bad;
-    return ok + " of the " + airports.length + " busiest US airports " + (asOf ? "had no FAA delays at the last check" : (ok === 1 ? "has" : "have") + " no FAA delays right now");
+    var programs = homePrograms(airports, events, nowMs);
+    if (!programs.length) {
+      return airports.length ? "No FAA delays at the 100 busiest airports." : "Airport readings unavailable";
+    }
+    var closures = programs.filter(function (a) { return a[1] === "closure"; }).length;
+    var labels = { closure: "Closure", ground_stop: "Ground stop", delay: "Delays", ground_delay: "Delays" };
+    var headline;
+    if (programs.length > 2) {
+      headline = (closures === programs.length ? "Closures" : closures ? "Delays and closures" : "Delays") +
+        " at " + programs.length + " airports.";
+    } else if (programs.length === 2 && labels[programs[0][1]] === labels[programs[1][1]]) {
+      headline = ({ closure: "Closures", ground_stop: "Ground stops" })[programs[0][1]] || "Delays";
+      headline += " at " + programs[0][0] + " and " + programs[1][0] + ".";
+    } else {
+      headline = programs.map(function (a) { return labels[a[1]] + " at " + a[0] + "."; }).join(" ");
+    }
+    var covered = new Set(airports.map(function (a) { return String(a.code || "").toUpperCase(); }));
+    if (airports.length && !programs.some(function (a) { return covered.has(a[0]); })) {
+      headline += " The 100 busiest are clear.";
+    }
+    return headline;
   }
 
   // One plain sentence per airport with an FAA program, worst first (closed, stop, then the longest delay). Max 3.
@@ -523,7 +561,7 @@
 
   return {
     norm: norm, searchAirports: searchAirports, minutesOf: minutesOf, fmtMinutes: fmtMinutes,
-    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, reasonText: reasonText, dateline: dateline,
+    fmtFaaDuration: fmtFaaDuration, countdown: countdown, nationalSummary: nationalSummary, homePrograms: homePrograms, outsideLead: outsideLead, troubleLine: troubleLine, reasonWords: reasonWords, reasonText: reasonText, dateline: dateline,
     listedUtc: listedUtc, closureSchedule: closureSchedule, isScheduledOnly: isScheduledOnly, faaAgePlain: faaAgePlain, kindLabel: kindLabel, impactText: impactText, safeUrl: safeUrl, airportFromSearch: airportFromSearch,
     commitmentView: commitmentView, rebookTips: rebookTips, kmToMi: kmToMi, pct: pct,
     tileView: tileView, holidayView: holidayView, daysUntil: daysUntil, latestItems: latestItems, millions: millions,

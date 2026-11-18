@@ -207,24 +207,43 @@
 
   function nbspUnits(t) { return String(t || "").replace(/(\d) (h|min)\b/g, "$1\u00a0$2").replace(/\bh (\d)/g, "h\u00a0$1"); }
 
-  // AN34: the verdict headline, with the count in the status colour, and one plain line on the exceptions.
   function renderSummary() {
-    var s = $("summary"), tl = $("trouble-line");
-    if (!D.state) { s.textContent = "Unable to load the latest FAA status."; return; }
-    var upd = D.state.faa_updated_utc || D.state.updated_utc, stale = isStaleIso(upd);
+    var s = $("summary"), tl = $("trouble-line"), note = $("verdict-note");
+    if (!D.state) {
+      s.textContent = "Unable to load the latest FAA status.";
+      if (tl) { tl.textContent = ""; }
+      if (note) { note.textContent = ""; }
+      return;
+    }
+    var upd = D.state.faa_updated_utc || D.state.updated_utc, stale = isStaleIso(upd), at = atMs();
     var list = allAirports.length ? allAirports : airports;
-    var have = {};
-    list.forEach(function (a) { have[a.code] = 1; });
-    var outside = faaEvents().filter(function (e) { return !have[String(e.airport || "")]; });
-    var text = A.nationalSummary(list, stale ? shortCheckText(upd) : "", outside, atMs());
+    var events = (Array.isArray(D.state.events) ? D.state.events : []).filter(function (e) {
+      return e && e.source === "FAA" && ["ground_stop", "closure", "ground_delay", "delay"].indexOf(e.kind) >= 0;
+    });
+    var programs = A.homePrograms(list, events, at);
     s.setAttribute("data-stale", String(stale));
-    var m = /^(\d+ of the \d+)(.*)$/.exec(text);
-    s.textContent = "";
-    if (m) { s.appendChild(el("em", "ok", m[1])); s.appendChild(document.createTextNode(m[2])); } else { s.textContent = text; }
+    s.textContent = A.nationalSummary(list, stale ? shortCheckText(upd) : "", events, at);
     if (tl) {
-      var lede = A.troubleLine(list, stale, atMs());
-      if (stale) { lede = A.outsideLead(outside, true, atMs()) + (lede || "No FAA programs were listed at the " + Math.max(list.length, 30) + " busiest airports.") + " Current conditions unknown."; }
+      var lede = A.troubleLine(list, stale, at);
+      if (stale) {
+        var covered = new Set(list.map(function (a) { return String(a.code || "").toUpperCase(); }));
+        var outside = events.filter(function (e) {
+          return !covered.has(String(e.airport || "").toUpperCase());
+        });
+        lede = A.outsideLead(outside, true, at) + lede;
+        if (!lede && programs.length) {
+          lede = "FAA programs were listed at " + programs.map(function (a) { return a[0]; }).join(", ") + ".";
+        }
+        if (!lede && list.length) { lede = "No FAA programs were listed at the 100 busiest airports."; }
+        lede = (lede.trim() + " Current conditions unknown.").trim();
+      } else if (programs.length > 2) {
+        lede = programs.map(function (a) { return a[0]; }).join(", ") + ".";
+      }
       tl.textContent = nbspUnits(lede);
+    }
+    if (note) {
+      note.textContent = !stale && list.length && !programs.length
+        ? "No FAA program does not mean your flight is on time." : "";
     }
     renderChips();
   }

@@ -276,8 +276,8 @@ class TestHomePrerender(_Built):
         text = visible_text(self.home)
         self.assertIn("FAA data 8 min old, checked 4:50 AM EST.", text)
         self.assertNotIn("We check every 5 minutes", text)
-        # AN34: the headline is a verdict over every airport; one plain line names the exceptions.
-        self.assertIn("3 of the 5 busiest US airports have no FAA delays right now", text)
+        self.assertIn("Ground stop at DEN. Delays at ORD.", text)
+        self.assertNotIn("No FAA program does not mean your flight is on time.", text)
         self.assertIn("Denver (DEN) has a ground stop.", text)
         self.assertIn("Flights to Chicago (ORD) are held about 1 h 20 min", text)  # AN34 round 4: a known reason follows in plain words
         self.assertIn("Ground stop", text)
@@ -294,8 +294,24 @@ class TestHomePrerender(_Built):
             _write(d / "state.json", {"updated_utc": UPDATED, "events": []})
             page = ph.prerender((ROOT / "index.html").read_text(encoding="utf-8"), d, NOW)
         text = visible_text(page)
-        self.assertIn("No delays or ground stops at the 30 busiest airports right now", text)
+        self.assertIn("No FAA delays at the 100 busiest airports.", text)
+        self.assertIn("No FAA program does not mean your flight is on time.", text)
         self.assertIn("No FAA delays or ground stops are listed right now.", text)
+
+    def test_outside_programs_in_home_verdict(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = make_data(Path(t), airports={"ATL": AIRPORTS["ATL"]})
+            template = (ROOT / "index.html").read_text(encoding="utf-8")
+            events = [{"airport": code, "source": "FAA", "kind": "delay"} for code in ("ZZZ", "YYY", "XXX")]
+            for listed, headline in (
+                (events[:1], "Delays at ZZZ. The 100 busiest are clear."),
+                (events, "Delays at 3 airports. The 100 busiest are clear."),
+            ):
+                _write(d / "state.json", {"updated_utc": UPDATED, "events": listed})
+                text = visible_text(ph.prerender(template, d, NOW))
+                self.assertIn(headline, text)
+                self.assertNotIn("No FAA program does not mean your flight is on time.", text)
+            self.assertIn("XXX, YYY, ZZZ.", text)
 
     def test_markers_removed_and_ids_kept_once(self):
         self.assertNotIn("<!--pr:", self.home)
@@ -644,7 +660,7 @@ class TestStaleHonesty(unittest.TestCase):
     def test_fresh_home_keeps_live_words(self):
         text = visible_text(self.fresh_home)
         self.assertIn("Early Saturday, 4:50 AM EST", text)  # AN34 round 4: the dateline over the verdict
-        self.assertIn("right now", text)
+        self.assertIn("Ground stop at DEN. Delays at ORD.", text)
         self.assertNotIn("Last known status", text)
         self.assertEqual(self.fresh_home.count('role="status" hidden'), 1)
 
@@ -699,18 +715,18 @@ class TestBrowserHelpersAgree(unittest.TestCase):
         # AN34 round 3: a closure at an airport outside the list must not sit under a "no delays" headline.
         out = [{"airport": "SNA", "kind": "closure"}]
         for stale, as_of, want in ((True, "as of 1:50 AM PST (12 hours ago)", "Last FAA check 1:50 AM PST (12 hours ago)"),
-                                   (False, "", "SNA is closed. Airport readings unavailable")):
+                                   (False, "", "Closure at SNA.")):
             self.assertEqual(ph.national_summary([], as_of, out), want)
             self.assertEqual(_js("ATD.nationalSummary([], DATA.a, DATA.o)", a=as_of, o=out), want)
         two = out + [{"airport": "PSP", "kind": "ground_delay"}]
         self.assertEqual(ph.national_summary([], "", two), _js("ATD.nationalSummary([], '', DATA.o)", o=two))
-        self.assertTrue(ph.national_summary([], "", two).startswith("2 other airports have an FAA program."))
+        self.assertEqual(ph.national_summary([], "", two), "Closure at SNA. Delays at PSP.")
         self.assertEqual(ph.national_summary([], ""), "Airport readings unavailable")
 
     def test_stale_summary_and_latest(self):
         s = _js("ATD.nationalSummary([], DATA.a)", a="as of 1:50 AM PST (12 hours ago)")
         self.assertEqual(s, "Last FAA check 1:50 AM PST (12 hours ago)")
-        self.assertIn("right now", _js("ATD.nationalSummary([{level:'clear'}])"))
+        self.assertEqual(_js("ATD.nationalSummary([{level:'clear'}])"), "No FAA delays at the 100 busiest airports.")
         self.assertNotIn("right now", _js("ATD.impactText({kind:'closure'}, 'Denver', true)"))
         items = [{"text": "SFO · clear through 2 am Pacific (next 3 h)", "kind": "wx", "as_of_utc": "2026-11-14T08:51:00Z", "t_utc": "2026-11-14T09:50:00Z"},
                  {"text": "DEN · ground stop", "kind": "ground_stop", "t_utc": "2026-11-14T09:50:00Z"}]

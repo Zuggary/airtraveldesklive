@@ -13,11 +13,16 @@ function element(tag) {
     children: [],
     set textContent(value) { this.text = value; this.children = []; },
     get textContent() { return (this.text || "") + this.children.map(child => child.textContent).join(""); },
+    setAttribute() {},
     appendChild(child) { this.children.push(child); }
   };
 }
 
 const box = element("div");
+const summary = element("h1");
+const trouble = element("p");
+const note = element("p");
+const nodes = { events: box, summary, "trouble-line": trouble, "verdict-note": note };
 const state = {
   updated_utc: new Date(now).toISOString(),
   faa_updated_utc: new Date(now - 60_000).toISOString(),
@@ -30,7 +35,7 @@ const state = {
 };
 const context = {
   window: { ATD: A },
-  document: { createElement: tag => Object.assign(element(tag), { firstChild: { namespaceURI: "" } }), getElementById: id => id === "events" ? box : null },
+  document: { createElement: tag => Object.assign(element(tag), { firstChild: { namespaceURI: "" } }), getElementById: id => nodes[id] || null },
   Date: class extends Date { static now() { return now; } },
   fixture: state
 };
@@ -40,6 +45,8 @@ vm.runInNewContext(source.replace("  init();", `
   allByCode.ZZZ = { name: "Example Airport" };
   window.renderEvents = renderEvents;
   window.reasonText = reasonText;
+  window.renderSummary = renderSummary;
+  allAirports = [{ code: "AAA", level: "clear" }];
 `), context);
 
 const cases = {
@@ -77,4 +84,33 @@ context.window.renderEvents();
 assert.equal(box.children[0].children[1].textContent, "Ground stop listed");
 assert.equal(box.children[1].children[1].textContent, "Closure listed");
 assert.equal(box.children[2].children[1].textContent, "Delays listed · avg 1 h 5 min");
-console.log("Home delay row checks passed");
+context.window.renderSummary();
+assert.match(summary.textContent, /^Last FAA check /);
+assert.match(trouble.textContent, /Current conditions unknown\.$/);
+assert.equal(note.textContent, "");
+
+state.faa_updated_utc = new Date(now - 60_000).toISOString();
+context.window.renderSummary();
+assert.equal(summary.textContent, "Delays and closures at 3 airports. The 100 busiest are clear.");
+assert.equal(trouble.textContent, "XXX, YYY, ZZZ.");
+assert.equal(note.textContent, "");
+
+state.events = [state.events[0]];
+context.window.renderSummary();
+assert.equal(summary.textContent, "Delays at ZZZ. The 100 busiest are clear.");
+assert.equal(note.textContent, "");
+
+state.events = [];
+context.window.renderSummary();
+assert.equal(summary.textContent, "No FAA delays at the 100 busiest airports.");
+assert.equal(note.textContent, "No FAA program does not mean your flight is on time.");
+
+state.events = [{ airport: "AAA", source: "FAA", kind: "closure" }];
+context.window.renderSummary();
+assert.equal(summary.textContent, "Closure at AAA.");
+assert.equal(note.textContent, "");
+state.faa_updated_utc = new Date(now - 3600_000).toISOString();
+context.window.renderSummary();
+assert.equal(trouble.textContent, "FAA programs were listed at AAA. Current conditions unknown.");
+assert.equal(note.textContent, "");
+console.log("Home delay row and verdict checks passed");

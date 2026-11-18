@@ -108,11 +108,11 @@ class TestCommitments(unittest.TestCase):
 @unittest.skipUnless(NODE, "node not installed")
 class TestSummaryAndCountdown(unittest.TestCase):
     def test_summary(self):
-        ap = [{"short": "San Francisco", "level": "delay", "events": [{"avg": "2 hours and 18 minutes"}]},
-              {"short": "San Diego", "level": "delay", "events": [{"avg": "34 minutes"}]},
-              {"short": "Atlanta", "level": "clear", "events": []}]
+        ap = [{"code": "SFO", "short": "San Francisco", "level": "delay", "events": [{"avg": "2 hours and 18 minutes"}]},
+              {"code": "SAN", "short": "San Diego", "level": "delay", "events": [{"avg": "34 minutes"}]},
+              {"code": "ATL", "short": "Atlanta", "level": "clear", "events": []}]
         self.assertEqual(js("ATD.nationalSummary(DATA.ap)", ap=ap),
-                         "1 of the 3 busiest US airports has no FAA delays right now")
+                         "Delays at SAN and SFO.")
         ap2 = [{"code": "SFO", "short": "San Francisco", "level": "delay", "events": [{"kind": "ground_delay", "avg": "2 hours and 18 minutes"}]},
                {"code": "SNA", "short": "John Wayne", "level": "stop", "events": [{"kind": "closure"}]},
                {"code": "SAN", "short": "San Diego", "level": "delay", "events": [{"kind": "delay", "avg": "34 minutes"}]},

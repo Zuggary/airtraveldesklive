@@ -262,7 +262,7 @@ class TestHomeScheduledClosure(unittest.TestCase):
             ms = int(now.timestamp() * 1000)
             self.assertEqual(self.js("ATD.nationalSummary([], DATA.a, DATA.o, DATA.n)", a="as of 1:50 AM" if stale else "", o=out, n=ms),
                              ph.national_summary([], "as of 1:50 AM" if stale else "", out, now))
-        self.assertEqual(ph.national_summary([], "", out, NIGHT), "SNA is closed overnight, reopens about 6:15 AM local time. Airport readings unavailable")
+        self.assertEqual(ph.national_summary([], "", out, NIGHT), "Closure at SNA.")
         self.assertEqual(ph.national_summary([], "", out, DAY), "Airport readings unavailable")
 
     def test_scheduled_airport_is_not_trouble_and_gets_one_calm_line(self):
@@ -273,7 +273,7 @@ class TestHomeScheduledClosure(unittest.TestCase):
             self.assertEqual(self.js("ATD.nationalSummary([DATA.a], '', [], DATA.n)", a=card, n=ms), ph.national_summary([card], "", [], now))
         self.assertEqual(ph.trouble_line([card], False, NIGHT), "John (SNA) is closed overnight, reopens about 6:15 AM local time.")
         self.assertEqual(ph.trouble_line([card], False, DAY), "")
-        self.assertTrue(ph.national_summary([card], "", [], NIGHT).startswith("No delays or ground stops"))
+        self.assertEqual(ph.national_summary([card], "", [], NIGHT), "Closure at SNA.")
 
     def test_program_row_is_calm(self):
         state = {"updated_utc": UPD_NIGHT, "events": [{"id": "closure:SNA", "kind": "closure", "airport": "SNA", "source": "FAA", "sources": ["FAA"], "tz": "America/Los_Angeles",

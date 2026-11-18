@@ -16,7 +16,7 @@ for (const kind of audit.event_kinds) {
 const airports = Array.from({length: 5}, (_, i) => ({code: 'X' + i, level: 'stop', events: [{kind: 'ground_stop'}]}));
 assert(A.troubleLine(airports, true).includes('more airports had'));
 assert(!A.troubleLine(airports, true).includes(' has '));
-assert(A.nationalSummary([{level:'clear'}], '').includes('right now'));
+assert.strictEqual(A.nationalSummary([{level:'clear'}], ''), 'No FAA delays at the 100 busiest airports.');
 assert(!A.nationalSummary([{level:'clear'}], 'as of 1 pm').includes('right now'));
 assert.strictEqual(A.nationalSummary([], ''), 'Airport readings unavailable');
 // Exercise actual home render functions with a tiny text-only DOM, no browser.
@@ -122,7 +122,7 @@ assert((homeText.match(/\d{1,2}:\d{2} [AP]M/g) || []).length <= 2);
 for (const claim of audit.forbidden_stale) assert(!homeText.includes(claim), homeText);
 ctx.D.state = {};
 assert.strictEqual(ctx.shortCheckText(''), 'time unknown');
-assert(/#summary\[data-stale="true"\]/.test(css));
+assert(/\.page-home \.verdict \{ font-size: var\(--fs-display\)/.test(css));
 assert(/\.tile-level, \.tile-ok \{ white-space: nowrap/.test(css));
 
 console.log('freshness: all checks passed');

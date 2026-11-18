@@ -211,7 +211,6 @@ a.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
 /* AN34 r2: the live dot is still (a pulsing ring is on the FA7 slop list). */
 .verdict { margin: 0; font: 700 var(--fs-display)/1.02 var(--font-display); letter-spacing: -0.005em; max-width: 17ch; color: var(--board-text); }
-.verdict em { font-style: normal; color: var(--green); }
 .lede { margin: var(--space-4) 0 0; font-size: var(--fs-lg); color: var(--text-muted); max-width: 48ch; }
 @media (min-width: 1000px) {
   .verdict { font-size: clamp(2.6rem, 1.2rem + 2.6vw, 3.6rem); max-width: 21ch; }
@@ -917,19 +916,42 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 .band .stale-notice { background: rgba(245, 179, 1, 0.16); }
 .band .pick { background: rgba(14, 19, 25, 0.72); }
 .band .field { background: rgba(21, 28, 37, 0.82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.page-home .hero { padding: var(--space-6) 0 var(--space-6); }
+.page-home {
+  --fs-display: clamp(1.4rem, 1.07rem + 1.4vw, 2.35rem);
+  --fs-title: clamp(1.25rem, 1.1rem + 0.65vw, 1.65rem);
+}
+.page-home .hero { padding: var(--space-4) 0 var(--space-5); }
+.page-home .verdict { font-size: var(--fs-display); line-height: 1.08; max-width: none; }
+.page-home .dateline { margin-bottom: var(--space-2); }
+.page-home .lede { margin-top: var(--space-2); font-size: var(--fs-sm); max-width: none; }
+.verdict-note { margin: var(--space-2) 0 0; font-size: var(--fs-xs); color: var(--text-muted); }
+.verdict-note:empty { display: none; }
+.page-home .search { margin-top: var(--space-4); max-width: 28rem; }
+.page-home .search label { font-size: var(--fs-md); margin-bottom: var(--space-1); }
+.page-home .field { min-height: 0; }
+.page-home .field > .ic { margin-left: var(--space-3); width: 18px; height: 18px; }
+.page-home .field input { height: 44px; font-size: var(--fs-md); padding-inline: var(--space-2); }
+.page-home .chips { gap: var(--space-1); margin-top: var(--space-2); }
+.page-home .pick { min-height: 32px; padding-inline: var(--space-2); gap: var(--space-1); font-size: var(--fs-xs); }
+.page-home .pick-code { font-size: var(--fs-md); }
+.page-home .updated-text { margin-top: 0; }
+.page-home #map { aspect-ratio: 1.45; }
+.page-home .sec { padding-top: var(--space-5); }
+.page-home .sec-head { margin-bottom: var(--space-3); }
+.page-home .sec-head h2 { font-size: var(--fs-title); }
+.page-home .board-band, .page-home .owed-panel { margin-top: var(--space-5); }
+.page-home .board-band { padding-bottom: var(--space-5); }
+.page-home .site-footer { margin-top: var(--space-6); }
 .page-home .hero-grid { gap: var(--space-5); }
 .hero-grid > #trouble { padding-top: 0; }
 @media (min-width: 1000px) {
-  .page-home .hero { padding: var(--space-8) 0 var(--space-7); }
+  .page-home .hero { padding: var(--space-5) 0; }
   .page-home .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: var(--space-6); align-items: center; }
   .hero-grid > #trouble { grid-column: 1 / -1; grid-row: 2; }
   .page-home .hero-grid .mapcard { grid-column: 2; grid-row: 1; margin-top: 0; }
-  .page-home .verdict { font-size: clamp(2.8rem, 1.4rem + 2.6vw, 3.9rem); }
 }
 .page-home .mapcard figcaption { color: var(--text-faint); }
 @media (max-width: 699px) {
-  .page-home .verdict { font-size: clamp(2.3rem, 1.6rem + 3.2vw, 2.9rem); }
   .page-home .mapcard figcaption .credit, .page-home .map-help { display: none; }
 }
 
@@ -1068,7 +1090,7 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
    rows on the page instead of a stack of identical cards; the board is the dark departures band. ---------- */
 .live-dot { display: none; }
 .dateline { margin: 0 0 12px; font: 600 var(--fs-sm)/1.2 var(--font-text); color: var(--text-muted); letter-spacing: 0.01em; }
-.verdict em, .ap-hero .ap-verdict em { color: inherit; }
+.ap-hero .ap-verdict em { color: inherit; }
 .page-home .band-art img { opacity: 0.42; filter: saturate(0.55); }
 .page-home .hero .band-art::after {
   background:
@@ -1298,8 +1320,6 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .tile-level { min-width: 0; max-width: 100%; overflow: hidden; }
 .tile-ok { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-/* Compact historical verdict fits two lines on a 375px phone. */
-@media (max-width: 480px) { #summary[data-stale="true"] { font-size: 1.5rem; line-height: 1.2; max-width: none; } }
 .tile-level, .tile-ok { white-space: nowrap; }
 
 /* Immediate help precedes the wizard in both columns and on phones. */

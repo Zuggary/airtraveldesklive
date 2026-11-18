@@ -114,29 +114,58 @@ def outside_lead(outside: list[dict[str, Any]] | None, stale: bool, now: datetim
     return f"{c} {'had' if stale else 'has'} delays. "
 
 
-def national_summary(airports: list[dict[str, Any]], as_of: str = "", outside: list[dict[str, Any]] | None = None, now: datetime | None = None) -> str:
-    """The home headline: a verdict over every airport we cover. Same rule as lib.js nationalSummary.
+def home_programs(airports: list[dict[str, Any]], events: list[dict[str, Any]] | None,
+                  now: datetime | None) -> list[tuple[str, str]]:
+    """Match lib.js homePrograms, keeping the most severe program per airport."""
+    ranks = {"delay": 1, "ground_delay": 1, "ground_stop": 2, "closure": 3}
+    programs: dict[str, str] = {}
+    zones = {}
 
-    as_of is empty when the data is fresh. When it is set ('as of 1:50 AM EST (12 hours ago)') the line
-    is dated and has no live words.
-    """
+    def add(code: str, kind: str) -> None:
+        if code and ranks.get(kind, 0) > ranks.get(programs.get(code), 0):
+            programs[code] = kind
+
+    for airport in airports:
+        code = str(airport.get("code") or "").upper()
+        zones[code] = airport.get("tz")
+        if scheduled_only(airport, now):
+            if night_reopen(airport, now):
+                add(code, "closure")
+        elif airport.get("level") in ("stop", "delay"):
+            add(code, "closure" if _is_closed(airport) else "ground_stop" if airport["level"] == "stop" else "delay")
+
+    for event in events or []:
+        if not event:
+            continue
+        code = str(event.get("airport") or "").upper()
+        schedule = _sched(event, event.get("tz") or zones.get(code), now)
+        if not schedule or schedule["in_window"]:
+            add(code, event.get("kind"))
+    return sorted(programs.items(), key=lambda item: (-ranks[item[1]], item[0]))
+
+
+def national_summary(airports: list[dict[str, Any]], as_of: str = "", events: list[dict[str, Any]] | None = None,
+                     now: datetime | None = None) -> str:
+    """Match lib.js nationalSummary, dating stale data before making any current claims."""
     if as_of:
         return "Last FAA check " + as_of.removeprefix("as of ")
-    if not airports:
-        return outside_lead(outside, bool(as_of), now) + "Airport readings unavailable"
-    bad = sum(1 for a in airports if a.get("level") in ("stop", "delay") and not scheduled_only(a, now))
-    lead = outside_lead(outside, bool(as_of), now)
-    if not bad and lead and not as_of:
-        n = max(len(airports), 30)
-        return f"{lead}The {n} busiest airports " + ("were clear" if as_of else "are clear right now")
-    if not bad:
-        n = max(len(airports), 30)
-        return f"No delays or ground stops at the {n} busiest airports right now"
-    ok = len(airports) - bad
-    if as_of:
-        return f"{ok} of the {len(airports)} busiest US airports had no FAA delays at the last check"
-    verb = "has" if ok == 1 else "have"
-    return f"{ok} of the {len(airports)} busiest US airports {verb} no FAA delays right now"
+    programs = home_programs(airports, events, now)
+    if not programs:
+        return "No FAA delays at the 100 busiest airports." if airports else "Airport readings unavailable"
+    closures = sum(kind == "closure" for _, kind in programs)
+    labels = {"closure": "Closure", "ground_stop": "Ground stop", "delay": "Delays", "ground_delay": "Delays"}
+    if len(programs) > 2:
+        label = "Closures" if closures == len(programs) else "Delays and closures" if closures else "Delays"
+        headline = f"{label} at {len(programs)} airports."
+    elif len(programs) == 2 and labels[programs[0][1]] == labels[programs[1][1]]:
+        label = {"closure": "Closures", "ground_stop": "Ground stops"}.get(programs[0][1], "Delays")
+        headline = f"{label} at {programs[0][0]} and {programs[1][0]}."
+    else:
+        headline = " ".join(f"{labels[kind]} at {code}." for code, kind in programs)
+    covered = {str(airport.get("code") or "").upper() for airport in airports}
+    if airports and not any(code in covered for code, _ in programs):
+        headline += " The 100 busiest are clear."
+    return headline
 
 
 def _is_closed(a: dict[str, Any]) -> bool:
@@ -199,12 +228,6 @@ def trouble_line(airports: list[dict[str, Any]], stale: bool = False, now: datet
 def nbsp_units(text: str) -> str:
     """Keep '2 h 46 min' on one line: no break between a number and its unit."""
     return re.sub(r"\bh (\d)", "h\u00a0\\1", re.sub(r"(\d) (h|min)\b", "\\1\u00a0\\2", text))
-
-
-def verdict_html(text: str) -> str:
-    """The verdict with the count in the status colour: '<em>98 of the 100</em> busiest US airports ...'."""
-    esc = _esc(text)
-    return re.sub(r"^(\d+ of the \d+)", r'<em class="ok">\1</em>', esc, count=1)
 
 
 def impact_text(ev: dict[str, Any], place: str, stale: bool = False, tz: Any = "", now: datetime | None = None) -> str:
@@ -373,7 +396,7 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
     airports = [a for a in by_code.values() if isinstance(a, dict)]
     state_utc = str(state.get("faa_updated_utc") or state.get("updated_utc") or "")
 
-    stale = pt.is_stale(pt.age_minutes(state_utc, now)) or "FAA" in state.get("stale_feeds", [])
+    stale = pt.is_stale(pt.age_minutes(state_utc, now)) or "FAA" in state.get("stale_feeds", []) or "FAA" in airports_data.get("stale_feeds", [])
     at = (pt.parse_utc(state_utc) or now) if stale else now  # AN35: a scheduled closure is judged at the data's own time when it is stale
     as_of = pt.short_check_text(state_utc, HOME_TZ, now) if stale else ""
     page = template.replace("Delays and closures</h2>", ("Delays and closures (last check)" if stale else "Delays and closures now") + "</h2>")
@@ -387,18 +410,25 @@ def prerender(template: str, data_dir: Path, now: datetime | None = None) -> str
         if f"<!--pr:{slot}-->" in page:
             page = _slot(page, slot, "")
     page = _slot(page, "nowtitle", "Last known status" if stale else title)
-    if airports:
-        outside = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA"
-                   and e.get("kind") in KIND_RANK and str(e.get("airport") or "") not in by_code]
-        page = _slot(page, "summary", verdict_html(national_summary(airports, as_of, outside, at)))
-        lede = trouble_line(airports, stale, at)
-        if stale:
-            lede = outside_lead(outside, True, at) + (lede or f"No FAA programs were listed at the {max(len(airports), 30)} busiest airports.")
-            lede += " Current conditions unknown."
-        page = _slot(page, "trouble", _esc(nbsp_units(lede)))
-    else:
-        page = _slot(page, "summary", _esc(pt.fallback_status(state, now)))
-        page = _slot(page, "trouble", "Current conditions unknown." if stale else "")
+    events = [e for e in (state.get("events") or []) if isinstance(e, dict) and e.get("source") == "FAA"
+              and e.get("kind") in KIND_RANK]
+    programs = home_programs(airports, events, at)
+    page = _slot(page, "summary", _esc(national_summary(airports, as_of, events, at)))
+    lede = trouble_line(airports, stale, at)
+    if stale:
+        covered = {str(airport.get("code") or "").upper() for airport in airports}
+        outside = [e for e in events if str(e.get("airport") or "").upper() not in covered]
+        lede = outside_lead(outside, True, at) + lede
+        if not lede and programs:
+            lede = "FAA programs were listed at " + ", ".join(code for code, _ in programs) + "."
+        if not lede and airports:
+            lede = "No FAA programs were listed at the 100 busiest airports."
+        lede = (lede.strip() + " Current conditions unknown.").strip()
+    elif len(programs) > 2:
+        lede = ", ".join(code for code, _ in programs) + "."
+    page = _slot(page, "trouble", _esc(nbsp_units(lede)))
+    note = "No FAA program does not mean your flight is on time." if not stale and airports and not programs else ""
+    page = _slot(page, "verdictnote", _esc(note))
     if state_utc:
         line = "FAA NAS status. See last check above." if stale else pt.faa_age_plain(state_utc, HOME_TZ, now, stale)
         page = _slot(page, "updated", _esc(line))
