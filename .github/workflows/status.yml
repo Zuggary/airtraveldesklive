@@ -158,8 +158,18 @@ jobs:
           fi
           exit $missing
 
-      - name: Check published internal references
+      - name: Check published internal references (blocks only code pushes)
+        # A dead link must never freeze the live data refresh: on code pushes this fails the deploy;
+        # on the 5-minute schedule and manual runs it only raises a warning and the data still deploys.
+        if: github.event_name == 'push'
         run: python tools/check_site.py --site _site
+
+      - name: Check published internal references (scheduled run, warn and never block data)
+        if: github.event_name != 'push'
+        run: |
+          if ! python tools/check_site.py --site _site; then
+            echo "::warning::check_site.py found broken internal references; deploying anyway so the data stays fresh. Fix the site code."
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
