@@ -1495,13 +1495,20 @@ def build_thanksgiving_story(
         t7_abs_pct = ledger.tsa_pct("h1_trail7_abs", trail7_now_dates, trail7_cmp_dates, signed=False, use_abs=True)
         trail_end_dow_full = ledger.tsa_date(latest_d, "dow_full", target_year=target_year)
         n_trail_word = _count_word(len(trail7_now_dates))
+        cmp_win_start = min(date.fromisoformat(x) for x in trail7_cmp_dates)
+        cmp_win_end = max(date.fromisoformat(x) for x in trail7_cmp_dates)
+        cmp_win_fmt = "short" if cmp_win_start.month != cmp_win_end.month else "day"
+        cmp_win_txt = (
+            f"{ledger.tsa_date(cmp_win_start, 'short', target_year=target_year)} to "
+            f"{ledger.tsa_date(cmp_win_end, cmp_win_fmt, target_year=target_year)}"
+        )
         headline_html = (
             f"US air travel is {t7_signed_pct} in the {n_trail_word} days ending {trail_end_dow_full} "
-            f"versus the same {n_trail_word} days in {y_cmp_t}; TSA's record remains {rec_m_h1}, set {rec_full_str}"
+            f"versus the same {n_trail_word} days in {y_cmp_t} ({cmp_win_txt}); TSA's record remains {rec_m_h1}, set {rec_full_str}"
         )
         full_headline_text = (
             f"US air travel is running {t7_abs_pct} {direction_word} in the {n_trail_word} days ending {trail_end_dow_full} "
-            f"versus the same {n_trail_word} days in {y_cmp_t}; TSA's single-day record remains {rec_m_str} million, set {rec_full_str}"
+            f"versus the same {n_trail_word} days in {y_cmp_t} ({cmp_win_txt}); TSA's single-day record remains {rec_m_str} million, set {rec_full_str}"
         )
         dek_html = (
             f"Daily TSA screenings across the {corr_len_dek}-day corridor ({corr_start_short} to {corr_end_full}), "
@@ -1829,7 +1836,7 @@ def build_thanksgiving_story(
     peak_by = d_y1 - (peak_cmp_row["years"][cmp_str]["count"] / max_val) * d_plot_h
     peak_iso = peak_cmp_row["years"][cmp_str]["date"]
     peak_m = ledger.tsa_millions(peak_iso, suffix="M")
-    peak_suffix = " record" if peak_iso == rec_date else ""
+    peak_suffix = f" record, {ledger.tsa_date(rec_d, 'short', target_year=target_year)}" if peak_iso == rec_date else ""
     peak_tx = 740.0 if peak_i >= 11 else peak_bx
     peak_anchor = "end" if peak_i >= 11 else "middle"
     peak_ty = max(72.0, peak_by - 15.0)

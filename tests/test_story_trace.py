@@ -645,7 +645,7 @@ class TestStoryTraceAndBuilder(unittest.TestCase):
         expect_end = f"seven days ending {tsa_latest:%a} {tsa_latest:%b} {tsa_latest.day}, {tsa_latest.year}"
         self.assertRegex(h1, r"\d+(?:\.\d+)?%")
         self.assertIn(expect_end, h1)
-        self.assertIn("same seven days in 2025", h1)
+        self.assertRegex(h1, r"same seven days in 2025 \([A-Z][a-z]{2} \d+ to (?:[A-Z][a-z]{2} )?\d+\)")
         self.assertIn("3.13M", h1)
         self.assertIn("Nov 30, 2025", h1)
         self.assertRegex(meta_desc, r"\d+(?:\.\d+)?%")
@@ -968,6 +968,8 @@ with sync_playwright() as p:
             page.dispatch_event("#rush-scrub", "input")
             page.fill("#delay-scrub", "0")
             page.dispatch_event("#delay-scrub", "input")
+            # .sv-cursor has a CSS transform sweep; let it settle so the audit reads the final pill position
+            page.evaluate("Promise.all(document.getAnimations().map(a => a.finished))")
         elif state == "details":
             page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
         r = page.evaluate(AUDIT_JS, 375)
@@ -1103,6 +1105,9 @@ print(json.dumps(results))
         main_no_tables = re.sub(r"<details.*?</details>|<svg.*?</svg>|<script.*?</script>", " ", main_raw, flags=re.S)
         prose = html_lib.unescape(re.sub(r"<[^>]+>", " ", main_no_tables))
         prose = re.sub(r"\s+", " ", prose)
+        # Calendar dates and date windows (e.g. "Nov 13 to 19") repeat by design; they are not headline stats
+        _mon = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?"
+        prose = re.sub(rf"{_mon} \d{{1,2}}(?:, \d{{4}})?(?: to (?:{_mon} )?\d{{1,2}}(?:, \d{{4}})?)?", " ", prose)
         for tok in (
             "16,246,108", "15,559,295", "1,956,731", "1,816,617",
             "3,134,613", "+4.4%", "+7.7%", "3.13M",
