@@ -32,6 +32,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      # The story page and its trace must come from one data snapshot. Build the story from this checkout's data
+      # before the tests, so the tests read the page built from the same files (the committed page can lag the data).
+      - name: Build interactive data stories for the tests (same data snapshot)
+        run: python tools/build_stories.py --data data --readings data --out stories --sitemap sitemap.xml
+
       - name: Run unit tests (block only code pushes)
         # A failing test must never freeze the live data refresh: on pushes it fails the run; on the 5-minute
         # schedule and manual runs it only raises a warning and the data still builds and deploys.
