@@ -226,3 +226,12 @@ jobs:
         id: deployment_retry
         if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
+
+      # Cloudflare Pages deploy (FA44). Runs beside the GitHub Pages deploy until cutover; soft-fails so GitHub Pages stays live.
+      # Secret CF_PAGES_TOKEN = Pages-only Cloudflare token (set by Zach or the CoS; name confirmed in the lane report).
+      - name: Deploy to Cloudflare Pages
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_PAGES_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 07f52611c66e1817e67569f18d643e51
+        run: npx -y wrangler@4 pages deploy _site --project-name airtraveldesklive --branch main --commit-dirty=true
