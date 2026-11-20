@@ -12,7 +12,7 @@ OPTIONAL_DATA = {"/data/live.json", "/data/link-report.json", "/data/security-wa
 JS_TOKEN = re.compile(
     r"""//[^\r\n]*|/\*[\s\S]*?\*/|"(?P<double>[^"\\]*(?:\\.[^"\\]*)*)"|'(?P<single>[^'\\]*(?:\\.[^'\\]*)*)'|`[^`\\]*(?:\\.[^`\\]*)*`"""
 )
-JS_PATH = re.compile(r"/(?:data|assets|help|airports|airlines|fonts|brand)/[^\s\\]+")
+JS_PATH = re.compile(r"/(?:data|assets|help|airports|airlines|stories|fonts|brand)/[^\s\\]+")
 CSS_URL = re.compile(
     r"""url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)|@import\s+(?:"([^"]*)"|'([^']*)')""",
     re.IGNORECASE,

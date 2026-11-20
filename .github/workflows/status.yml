@@ -51,6 +51,7 @@ jobs:
           path: |
             data/tsa-cache
             data/tsa.json
+            data/tsa-history.json
             data/radar.png
             data/radar.json
             data/bts.json
@@ -99,6 +100,9 @@ jobs:
       - name: Build static airline pages (reads data/dot-commitments.json and data/airline-pages.json; no network)
         run: python tools/build_airline_pages.py
 
+      - name: Build interactive data stories (fetches TSA daily table if needed; reads FAA hourly archive)
+        run: python tools/build_stories.py --data data --readings data --out stories --sitemap sitemap.xml
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
@@ -117,6 +121,9 @@ jobs:
           cp airports/pbi/index.html _site/airports/pbi/
           mkdir -p _site/airlines
           cp airlines/*.html _site/airlines/
+          mkdir -p _site/stories/thanksgiving
+          cp stories/index.html _site/stories/
+          cp stories/thanksgiving/index.html stories/thanksgiving/story.css stories/thanksgiving/story.js _site/stories/thanksgiving/
           mkdir -p _site/assets/art
           cp assets/art/*.avif assets/art/*.jpg _site/assets/art/
           mkdir -p _site/assets/art/airports
@@ -130,7 +137,7 @@ jobs:
           cp assets/live/*.jpg _site/assets/live/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
-          for f in radar.png radar.json tsa.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
+          for f in radar.png radar.json tsa.json tsa-history.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/help
           cp help/*.html _site/help/
           mkdir -p _site/fonts
@@ -147,6 +154,7 @@ jobs:
           missing=0
           for f in *.html *.js *.css *.txt *.xml *.svg *.png *.geojson CNAME; do
             [ -f "$f" ] || continue
+            case "$f" in ROUND*) continue ;; esac
             [ -f "_site/$f" ] || { echo "::error::$f is in the repo root but not in _site; add it to the copy list"; missing=1; }
           done
           if [ ! -f "_site/airports/index.html" ]; then
@@ -174,6 +182,12 @@ jobs:
             echo "::error::Expected $expected_airlines airline pages in _site/airlines, found $airline_count"
             missing=1
           fi
+          for sf in _site/stories/index.html _site/stories/thanksgiving/index.html _site/stories/thanksgiving/story.css _site/stories/thanksgiving/story.js; do
+            if [ ! -f "$sf" ]; then
+              echo "::error::$sf is missing"
+              missing=1
+            fi
+          done
           exit $missing
 
       - name: Check published internal references (blocks only code pushes)

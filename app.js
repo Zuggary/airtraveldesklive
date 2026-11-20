@@ -1054,6 +1054,11 @@
         c.appendChild(el("p", "compare-line", "Last year's busiest day that week: " + fmtDayYear(hv.busiest) + ", " + million(hv.busiestCount) + (rec0 ? ", the TSA record." : ".")));
       }
       c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtLocalDay(hv.fetched) + ". Last year lined up by days to Thanksgiving."));
+      var sl0 = el("p", "compare-line");
+      var sa0 = el("a", "tap", "Thanksgiving rush tracker and delay breakdown");
+      sa0.href = "/stories/thanksgiving";
+      sl0.appendChild(sa0);
+      c.appendChild(sl0);
       return c;
     }
     var grid = el("div", "hol-grid");
@@ -1099,6 +1104,11 @@
     table.appendChild(tb);
     c.appendChild(table);
     c.appendChild(el("p", "compare-source", "Source: TSA checkpoint numbers, updated " + fmtLocalDay(hv.fetched) + ". Last year lined up by days to Thanksgiving."));
+    var sl1 = el("p", "compare-line");
+    var sa1 = el("a", "tap", "Thanksgiving rush tracker and delay breakdown");
+    sa1.href = "/stories/thanksgiving";
+    sl1.appendChild(sa1);
+    c.appendChild(sl1);
     return c;
   }
 
