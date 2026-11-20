@@ -409,6 +409,14 @@ def _shift_start_day(text: str) -> str:
     return text.replace(m.group(0), f"({d:%b} {d.day} to")
 
 
+
+def _shift_faa_start_hour(text: str) -> str:
+    """'Nov 16, 11:00 PM EST to ...' -> start one hour later (a wrong FAA window on purpose)."""
+    m = re.match(r"([A-Za-z]{3} \d+, )(\d+):(\d+) ([AP]M)( EST to .*)", text)
+    h = int(m.group(2)) % 12 + 1
+    return f"{m.group(1)}{h}:{m.group(3)} {m.group(4)}{m.group(5)}"
+
+
 class TestStoryTraceAndBuilder(unittest.TestCase):
     def test_built_story_page_trace_and_structure(self) -> None:
         story_html = ROOT / "stories" / "thanksgiving" / "index.html"
@@ -1131,8 +1139,8 @@ print(json.dumps(results))
                 "FAA Nov 16–18 en-dash mismatch",
             ),
             (
-                "Nov 15, 7:00 PM EST to Nov 18, 6:00 PM EST",
-                "Nov 15, 8:00 PM EST to Nov 18, 6:00 PM EST",
+                re.search(r"[A-Za-z]{3} \d+, \d+:\d+ [AP]M EST to [A-Za-z]{3} \d+, \d+:\d+ [AP]M EST", html_doc).group(0),
+                _shift_faa_start_hour(re.search(r"[A-Za-z]{3} \d+, \d+:\d+ [AP]M EST to [A-Za-z]{3} \d+, \d+:\d+ [AP]M EST", html_doc).group(0)),
                 "FAA wrong timestamp start",
             ),
             (
