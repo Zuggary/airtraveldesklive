@@ -145,7 +145,7 @@ jobs:
           echo "::error::_site/airlines/index.html is missing"
           missing=1
         fi
-        expected_airlines=$(python3 -c "import json; print(len(json.load(open('data/dot-commitments.json'))['airlines']))")
+        expected_airlines=$(python -c "import json; print(len(json.load(open('data/dot-commitments.json'))['airlines']))")
         airline_count=$(find _site/airlines -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
         if [ "$airline_count" -ne "$expected_airlines" ]; then
           echo "::error::Expected $expected_airlines airline pages in _site/airlines, found $airline_count"
