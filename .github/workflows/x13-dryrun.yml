@@ -107,7 +107,7 @@ jobs:
         cp assets/live/*.jpg _site/assets/live/
         mkdir -p _site/data
         cp data/status.json data/state.json _site/data/
-        for f in radar.png radar.json tsa.json tsa-history.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
+        for f in radar.png radar.json tsa.json tsa-history.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json live-main.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
         mkdir -p _site/help
         cp help/*.html _site/help/
         mkdir -p _site/fonts
