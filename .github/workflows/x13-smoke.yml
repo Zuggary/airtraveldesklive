@@ -1,0 +1,24 @@
+name: x13 smoke (test only, not on main)
+on:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: [self-hosted, x13, airtraveldesklive]
+    timeout-minutes: 10
+    steps:
+      - name: Runner identity
+        shell: pwsh
+        run: |
+          "host=$env:COMPUTERNAME user=$env:USERNAME os=$([System.Environment]::OSVersion.VersionString)"
+      - name: Outbound feeds (HEAD, status only)
+        shell: pwsh
+        run: |
+          $urls = @(
+            "https://nasstatus.faa.gov/api/airport-status-information",
+            "https://www.tsa.gov/travel/passenger-volumes",
+            "https://www.bts.gov/"
+          )
+          foreach ($u in $urls) {
+            try { $r = Invoke-WebRequest -Uri $u -Method Head -UseBasicParsing -TimeoutSec 20; "$u -> $($r.StatusCode)" }
+            catch { "$u -> FAILED: $($_.Exception.Message)" }
+          }
