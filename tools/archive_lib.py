@@ -13,7 +13,7 @@ CLI: python tools/archive_lib.py stats
 
 from __future__ import annotations
 
-import fcntl
+import errno
 import json
 import os
 import sys
@@ -23,6 +23,13 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Optional
+
+try:
+    import fcntl
+    HAS_FCNTL = True
+except ImportError:
+    import msvcrt
+    HAS_FCNTL = False
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from desk.airports import canonical_code  # noqa: E402
@@ -95,13 +102,29 @@ def is_newer(new: dict, old: dict) -> bool:
 @contextmanager
 def archive_lock(directory: Path):
     directory.mkdir(parents=True, exist_ok=True)
-    fh = open(directory / ".lock", "w")
+    fh = open(directory / ".lock", "w" if HAS_FCNTL else "a")
+    locked = False
     try:
-        fcntl.flock(fh, fcntl.LOCK_EX)
+        if HAS_FCNTL:
+            fcntl.flock(fh, fcntl.LOCK_EX)
+        else:
+            fh.seek(0)
+            while True:
+                try:
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+                    locked = True
+                    break
+                except OSError as exc:
+                    if exc.errno not in (errno.EACCES, errno.EDEADLOCK):
+                        raise
         yield
     finally:
         try:
-            fcntl.flock(fh, fcntl.LOCK_UN)
+            if HAS_FCNTL:
+                fcntl.flock(fh, fcntl.LOCK_UN)
+            elif locked:
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
         finally:
             fh.close()
 

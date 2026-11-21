@@ -742,7 +742,8 @@ def _render_history(code: str, tz: str, history: dict[str, Any] | None) -> list[
 
     def day_hour(dt: Any) -> str:
         local = dt.astimezone(zone)
-        return local.strftime("%a %b ") + str(local.day) + local.strftime(" %-I %p").replace(" 0", " ")
+        hour12 = local.hour % 12 or 12
+        return local.strftime("%a %b ") + str(local.day) + f" {hour12} " + local.strftime("%p")
 
     word = {"c": "no program", "d": "delay", "s": "ground stop or closure", "-": "no reading"}
     # AN34: start the strip at the first hour we have a reading for, so it does not open on a grey block.
