@@ -17,13 +17,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-defaults:
-  run:
-    shell: 'C:\PROGRA~1\Git\bin\bash.exe --noprofile --norc -e -o pipefail {0}'
-
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, x13, airtraveldesklive]
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
