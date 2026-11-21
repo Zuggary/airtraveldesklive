@@ -1,0 +1,175 @@
+---
+name: x13 dry run (dispatch only, no deploy, no upload)
+permissions:
+  contents: read
+jobs:
+  build-and-deploy:
+    runs-on:
+    - self-hosted
+    - x13
+    - airtraveldesklive
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Build interactive data stories for the tests (same data snapshot)
+      run: python tools/build_stories.py --data data --readings data --out stories
+        --sitemap sitemap.xml
+    - name: Run unit tests (block only code pushes)
+      if: github.event_name == 'push'
+      run: python -m unittest discover -s tests -v
+    - name: Run unit tests (scheduled run, warn and never block data)
+      if: github.event_name != 'push'
+      run: |
+        if ! python -m unittest discover -s tests; then
+          echo "::warning::unit tests failed on a scheduled run; deploying fresh data anyway. Fix the site code."
+        fi
+    - name: Restore radar, TSA, BTS, places and weather cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          data/tsa-cache
+          data/tsa.json
+          data/tsa-history.json
+          data/radar.png
+          data/radar.json
+          data/bts.json
+          data/places.json
+          data/places-more.json
+          data/wx.json
+          data/storms.json
+          data/nhc.json
+          data/national.json
+          data/board-history.json
+        key: desk-cache-${{ github.run_id }}
+        restore-keys: desk-cache-
+    - name: Month key for the BTS download cache
+      id: bts-month
+      run: echo "ym=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+    - name: Restore BTS zip files (about 32 MB each; saved once a month)
+      uses: actions/cache@v4
+      with:
+        path: data/bts-cache
+        key: bts-zips-${{ steps.bts-month.outputs.ym }}
+        restore-keys: bts-zips-
+    - name: Build airport status data
+      run: python tools/build_status.py
+    - name: Build desk screen data (FAA, NWS, adsb.lol, aviationweather.gov, NOAA
+        SPC and NHC, radar, TSA, BTS)
+      run: python tools/build_web.py --out data
+    - name: Build places list (OpenStreetMap, refreshed at most weekly)
+      continue-on-error: true
+      run: python tools/build_places.py --out data
+    - name: Build places list for the other 70 airports (OpenStreetMap; small batches,
+        one query at a time, at most hourly)
+      continue-on-error: true
+      timeout-minutes: 3
+      run: python tools/build_places.py --out data --more
+    - name: Build data and sources list (reads the data files above; no network)
+      run: python tools/build_sources.py --out data
+    - name: Build static airport pages
+      run: python tools/build_airport_pages.py
+    - name: Build static airline pages (reads data/dot-commitments.json and data/airline-pages.json;
+        no network)
+      run: python tools/build_airline_pages.py
+    - name: Build interactive data stories (fetches TSA daily table if needed; reads
+        FAA hourly archive)
+      run: python tools/build_stories.py --data data --readings data --out stories
+        --sitemap sitemap.xml
+    - name: Prepare _site directory
+      run: |
+        rm -rf _site
+        mkdir -p _site
+        for file in index.html 404.html stuck.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          if [ -f "$file" ]; then
+            cp "$file" _site/
+          fi
+        done
+        mkdir -p _site/airports
+        cp airports/*.html _site/airports/
+        mkdir -p _site/airports/pbi
+        cp airports/pbi/index.html _site/airports/pbi/
+        mkdir -p _site/airlines
+        cp airlines/*.html _site/airlines/
+        mkdir -p _site/stories/thanksgiving
+        cp stories/index.html _site/stories/
+        cp stories/thanksgiving/index.html stories/thanksgiving/story.css stories/thanksgiving/story.js _site/stories/thanksgiving/
+        mkdir -p _site/assets/art
+        cp assets/art/*.avif assets/art/*.jpg _site/assets/art/
+        mkdir -p _site/assets/art/airports
+        if ls assets/art/airports/*.webp >/dev/null 2>&1; then
+          cp assets/art/airports/*.webp _site/assets/art/airports/
+        fi
+        if [ -f assets/art/airports/manifest.json ]; then
+          cp assets/art/airports/manifest.json _site/assets/art/airports/
+        fi
+        mkdir -p _site/assets/live
+        cp assets/live/*.jpg _site/assets/live/
+        mkdir -p _site/data
+        cp data/status.json data/state.json _site/data/
+        for f in radar.png radar.json tsa.json tsa-history.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
+        mkdir -p _site/help
+        cp help/*.html _site/help/
+        mkdir -p _site/fonts
+        cp fonts/*.woff2 _site/fonts/
+        mkdir -p _site/brand
+        cp brand/*.jpg brand/*.png brand/*.svg _site/brand/
+    - name: Pre-render live status into the home page (reads data/*.json, no network;
+        writes _site/index.html)
+      run: python tools/prerender_home.py --template index.html --data data --out
+        _site/index.html
+    - name: Check that every public root file, airport page and airline page is published
+      run: |
+        missing=0
+        for f in *.html *.js *.css *.txt *.xml *.svg *.png *.geojson CNAME; do
+          [ -f "$f" ] || continue
+          case "$f" in ROUND*) continue ;; esac
+          [ -f "_site/$f" ] || { echo "::error::$f is in the repo root but not in _site; add it to the copy list"; missing=1; }
+        done
+        if [ ! -f "_site/airports/index.html" ]; then
+          echo "::error::_site/airports/index.html is missing"
+          missing=1
+        fi
+        for redirect in PBI.html pbi/index.html; do
+          if [ ! -f "_site/airports/$redirect" ]; then
+            echo "::error::_site/airports/$redirect is missing"
+            missing=1
+          fi
+        done
+        airport_count=$(find _site/airports -maxdepth 1 -type f -name '*.html' ! -name 'index.html' ! -name 'PBI.html' | wc -l)
+        if [ "$airport_count" -ne 100 ]; then
+          echo "::error::Expected 100 airport pages in _site/airports, found $airport_count"
+          missing=1
+        fi
+        if [ ! -f "_site/airlines/index.html" ]; then
+          echo "::error::_site/airlines/index.html is missing"
+          missing=1
+        fi
+        expected_airlines=$(python3 -c "import json; print(len(json.load(open('data/dot-commitments.json'))['airlines']))")
+        airline_count=$(find _site/airlines -maxdepth 1 -type f -name '*.html' ! -name 'index.html' | wc -l)
+        if [ "$airline_count" -ne "$expected_airlines" ]; then
+          echo "::error::Expected $expected_airlines airline pages in _site/airlines, found $airline_count"
+          missing=1
+        fi
+        for sf in _site/stories/index.html _site/stories/thanksgiving/index.html _site/stories/thanksgiving/story.css _site/stories/thanksgiving/story.js; do
+          if [ ! -f "$sf" ]; then
+            echo "::error::$sf is missing"
+            missing=1
+          fi
+        done
+        exit $missing
+    - name: Check published internal references (blocks only code pushes)
+      if: github.event_name == 'push'
+      run: python tools/check_site.py --site _site
+    - name: Check published internal references (scheduled run, warn and never block
+        data)
+      if: github.event_name != 'push'
+      run: |
+        if ! python tools/check_site.py --site _site; then
+          echo "::warning::check_site.py found broken internal references; deploying anyway so the data stays fresh. Fix the site code."
+        fi
+    timeout-minutes: 90
+true:
+  workflow_dispatch: 
+defaults:
+  run:
+    shell: C:\PROGRA~1\Git\bin\bash.exe --noprofile --norc -e -o pipefail {0}
