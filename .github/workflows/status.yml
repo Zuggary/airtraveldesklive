@@ -17,13 +17,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-defaults:
-  run:
-    shell: 'C:\PROGRA~1\Git\bin\bash.exe --noprofile --norc -e -o pipefail {0}'
-
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, x13, airtraveldesklive]
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -31,6 +27,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The story page and its trace must come from one data snapshot. Build the story from this checkout's data
+      # before the tests, so the tests read the page built from the same files (the committed page can lag the data).
       - name: Build interactive data stories for the tests (same data snapshot)
         run: python tools/build_stories.py --data data --readings data --out stories --sitemap sitemap.xml
 
@@ -105,6 +108,9 @@ jobs:
 
       - name: Build interactive data stories (fetches TSA daily table if needed; reads FAA hourly archive)
         run: python tools/build_stories.py --data data --readings data --out stories --sitemap sitemap.xml
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
       - name: Prepare _site directory
         run: |
@@ -203,6 +209,32 @@ jobs:
             echo "::warning::check_site.py found broken internal references; deploying anyway so the data stays fresh. Fix the site code."
           fi
 
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      # deploy-pages sometimes asks for the artifact a moment before GitHub lists it
+      # ("No artifacts named github-pages"). Wait briefly, and retry once if the first try fails.
+      - name: Wait for the artifact to register
+        run: sleep 10
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Retry deploy once
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 20
+
+      - name: Deploy to GitHub Pages (retry)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+
+      # Cloudflare Pages deploy (FA44). Runs beside the GitHub Pages deploy until cutover; soft-fails so GitHub Pages stays live.
+      # Secret CF_PAGES_TOKEN = Pages-only Cloudflare token (set by Zach or the CoS; name confirmed in the lane report).
       - name: Deploy to Cloudflare Pages
         continue-on-error: true
         env:
