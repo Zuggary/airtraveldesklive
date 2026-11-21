@@ -7,9 +7,13 @@
   var CHANNEL = "UCtEAjmjCJdR-pHgcZtIFI9w";
 
   /* YouTube live channel player; autoplay stays disabled after loading. Pure. */
-  function playerSrc(channel) {
+  /* AN180 follow-up (21 Nov): the channel live URL now shows the music-only stream. data/live-main.json {"id": "..."} (written by the factory when the
+     main broadcast id changes) names the MAIN broadcast; with a valid id the player embeds that video, otherwise it falls back to the channel stream. Pure. */
+  function playerSrc(channel, id) {
+    if (typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id)) { return "https://www.youtube.com/embed/" + id + "?autoplay=0"; }
     return "https://www.youtube.com/embed/live_stream?channel=" + encodeURIComponent(channel) + "&autoplay=0";
   }
+  function mainWatchUrl(id) { return "https://www.youtube.com/watch?v=" + id; }
 
   function el(doc, tag, cls, text) {
     var n = doc.createElement(tag);
@@ -80,9 +84,25 @@
 
 
     /* Only the facade press creates a third-party request. Playback needs the player's play button. */
+    var mainId = null, mainReady = null;
+    function loadMain() {      /* first press only: the page makes no request at load */
+      if (mainReady) { return mainReady; }
+      mainReady = (win.fetch ? win.fetch("/data/live-main.json", { credentials: "same-origin", cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (j && typeof j.id === "string" && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
+        mainId = j.id;
+        var links = doc.querySelectorAll('a[href$="@AirTravelDeskLive/live"]');       /* "Watch on YouTube" links go to the main broadcast, not the music one */
+        for (var i = 0; i < links.length; i += 1) { links[i].href = mainWatchUrl(mainId); }
+      }
+    }).catch(function () {}) : Promise.resolve());
+      return mainReady;
+    }
     function mountPlayer() {
+      loadMain().then(function () { mountFrame(); });
+    }
+    function mountFrame() {
+      if (box.querySelector("iframe")) { return; }
       var f = doc.createElement("iframe");
-      f.src = playerSrc(CHANNEL);
+      f.src = playerSrc(CHANNEL, mainId);
       f.className = "watch-player";
       f.title = "Air Travel Desk live video on YouTube";
       f.allowFullscreen = true;
@@ -280,7 +300,7 @@
     syncTeasers();
   }
 
-  var api = { playerSrc: playerSrc, CHANNEL: CHANNEL };
+  var api = { playerSrc: playerSrc, mainWatchUrl: mainWatchUrl, CHANNEL: CHANNEL };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; }
   if (root && root.document) { root.ATDWatch = api; start(root); }
 })(typeof window !== "undefined" ? window : null);

@@ -8,6 +8,8 @@ const css = fs.readFileSync(path.join(__dirname, "../../style.css"), "utf8");
 const w = require("../../watch.js");
 const src = w.playerSrc(w.CHANNEL);
 assert.strictEqual(src, "https://www.youtube.com/embed/live_stream?channel=UCtEAjmjCJdR-pHgcZtIFI9w&autoplay=0");
+assert.strictEqual(w.playerSrc(w.CHANNEL, "PGMoCSMC5oU"), "https://www.youtube.com/embed/PGMoCSMC5oU?autoplay=0");
+assert.strictEqual(w.playerSrc(w.CHANNEL, "bad id"), src, "a bad id falls back to the channel stream");
 
 let focused;
 let allowIframe = false;
@@ -58,7 +60,7 @@ const window = {
   clearTimeout() {},
   setTimeout(handler) { timers.push(handler); },
   addEventListener() {},
-  fetch() { assert.fail("initializing the watch pill must not fetch"); },
+  fetch(url) { assert.ok(allowIframe, "initializing the watch pill must not fetch"); assert.strictEqual(url, "/data/live-main.json"); return Promise.resolve({ ok: false }); },      /* only the first press may ask for the main broadcast id */
 };
 
 vm.runInNewContext(watchSource, { window });
