@@ -89,6 +89,7 @@ jobs:
 
       - name: Build places list (OpenStreetMap, refreshed at most weekly)
         continue-on-error: true
+        timeout-minutes: 5
         run: python tools/build_places.py --out data
 
       - name: Build places list for the other 70 airports (OpenStreetMap; small batches, one query at a time, at most hourly)
