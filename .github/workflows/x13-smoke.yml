@@ -1,4 +1,4 @@
-name: x13 smoke (test only, not on main)
+name: x13 smoke (dispatch only, no deploy)
 on:
   workflow_dispatch:
 jobs:
@@ -6,19 +6,17 @@ jobs:
     runs-on: [self-hosted, x13, airtraveldesklive]
     timeout-minutes: 10
     steps:
-      - name: Runner identity
-        shell: pwsh
+      - name: Runner identity and tools
+        shell: bash
         run: |
-          "host=$env:COMPUTERNAME user=$env:USERNAME os=$([System.Environment]::OSVersion.VersionString)"
+          echo "host=$COMPUTERNAME user=$USERNAME"
+          bash --version | head -1
+          python --version
+          git --version
+          date -u +%Y-%m
       - name: Outbound feeds (HEAD, status only)
-        shell: pwsh
+        shell: bash
         run: |
-          $urls = @(
-            "https://nasstatus.faa.gov/api/airport-status-information",
-            "https://www.tsa.gov/travel/passenger-volumes",
-            "https://www.bts.gov/"
-          )
-          foreach ($u in $urls) {
-            try { $r = Invoke-WebRequest -Uri $u -Method Head -UseBasicParsing -TimeoutSec 20; "$u -> $($r.StatusCode)" }
-            catch { "$u -> FAILED: $($_.Exception.Message)" }
-          }
+          for u in https://nasstatus.faa.gov/api/airport-status-information https://www.tsa.gov/travel/passenger-volumes https://www.bts.gov/; do
+            echo "$u -> $(curl -s -o /dev/null -m 20 -w '%{http_code}' -I "$u")"
+          done
