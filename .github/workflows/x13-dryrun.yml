@@ -168,7 +168,7 @@ jobs:
           echo "::warning::check_site.py found broken internal references; deploying anyway so the data stays fresh. Fix the site code."
         fi
     timeout-minutes: 90
-true:
+on:
   workflow_dispatch: 
 defaults:
   run:
