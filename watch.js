@@ -51,6 +51,10 @@
     close.setAttribute("aria-label", "Close live video");
     var secondary = el(doc, "a", "small", "Also on Twitch");
     secondary.href = "https://www.twitch.tv/airtraveldesklive";
+    var musicLink = el(doc, "a", "small", "Music only, no talking");   /* AN180: the music-only live stream; shown once data/live-music.json names it */
+    musicLink.hidden = true;
+    musicLink.rel = "noopener";
+    bar.appendChild(musicLink);
     bar.appendChild(secondary);
     bar.appendChild(close);
     var frame = el(doc, "div", "watch-frame");           /* the in-flow 16:9 slot: it keeps its size when the player docks, so nothing shifts */
@@ -87,6 +91,11 @@
     var mainId = null, mainReady = null;
     function loadMain() {      /* first press only: the page makes no request at load */
       if (mainReady) { return mainReady; }
+      if (win.fetch) {
+        win.fetch("/data/live-music.json", { credentials: "same-origin", cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (j && typeof j.id === "string" && /^[A-Za-z0-9_-]{11}$/.test(j.id)) { musicLink.href = mainWatchUrl(j.id); musicLink.hidden = false; }
+        }).catch(function () {});
+      }
       mainReady = (win.fetch ? win.fetch("/data/live-main.json", { credentials: "same-origin", cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (j && typeof j.id === "string" && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
         mainId = j.id;

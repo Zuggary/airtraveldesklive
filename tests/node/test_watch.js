@@ -60,7 +60,7 @@ const window = {
   clearTimeout() {},
   setTimeout(handler) { timers.push(handler); },
   addEventListener() {},
-  fetch(url) { assert.ok(allowIframe, "initializing the watch pill must not fetch"); assert.strictEqual(url, "/data/live-main.json"); return Promise.resolve({ ok: false }); },      /* only the first press may ask for the main broadcast id */
+  fetch(url) { assert.ok(allowIframe, "initializing the watch pill must not fetch"); assert.ok(url === "/data/live-main.json" || url === "/data/live-music.json"); return Promise.resolve({ ok: false }); },      /* only the first press may ask for the main broadcast id */
 };
 
 vm.runInNewContext(watchSource, { window });
