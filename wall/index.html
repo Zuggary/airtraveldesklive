@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Air Travel Desk · wall (staging)</title>
+
+<style>
+html,body{margin:0;height:100%;background:#05080d;color:#dbe6f2;font:16px/1.35 system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;overflow:hidden}
+#map{position:fixed;inset:0;width:100%;height:100%;object-fit:cover}
+#bar{position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(5,8,13,.78);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#stale{display:none;background:#8a4b00;color:#fff;padding:4px 8px;border-radius:4px}
+#stale.on{display:inline-block}
+#dot{width:8px;height:8px;border-radius:50%;background:#7fd1ff;display:inline-block;margin-right:6px}
+a{color:#9ccfff}
+</style></head>
+<body>
+<canvas id="map"></canvas>
+<div id="bar">
+  <span id="count"><span id="dot"></span>aircraft: loading</span>
+  <span id="asof">data as of: –</span>
+  <span id="stale">Data stale: the desk feed has not updated recently</span>
+  <span style="margin-left:auto;opacity:.8">Aircraft: adsb.lol (ODbL)</span>
+</div>
+<script src="/wall/wall.js"></script>
+</body></html>
