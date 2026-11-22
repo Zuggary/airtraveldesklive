@@ -1,6 +1,7 @@
 # Production Pages project for airtraveldesklive.com (CI deploys with: wrangler pages deploy _site --project-name airtraveldesklive).
 # WALL_BUCKET is the private R2 bucket the wall reads through functions/api/wall-snapshot.js. Created by CoS/Zach 21 Nov 2026 5:25 pm.
 name = "airtraveldesklive"
+pages_build_output_dir = "_site"
 compatibility_date = "2026-11-01"
 
 [[r2_buckets]]
