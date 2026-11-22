@@ -1150,6 +1150,9 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
   .header-nav { width: calc(100% + 12px); margin: 0 -6px; justify-content: space-between; }
   .header-nav .nav-wide { display: inline-flex; }
   .header-nav .chip { padding: 0 6px; font-size: 0.875rem; min-height: 40px; }
+  /* 21 Nov (CoS): on phones the wall link is its own row under the brand, above the section nav. */
+  .header-in > .wall-chip { order: 1; flex-basis: 100%; justify-content: center; margin: 4px 0; }
+  .header-nav { order: 2; }
 }
 
 /* ---------- AN34 round 4 airport pages: one "Today at" strip, help beside the official links ---------- */
