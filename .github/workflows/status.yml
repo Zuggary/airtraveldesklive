@@ -116,7 +116,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html 404.html stuck.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html 404.html stuck.html shows.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
@@ -139,6 +139,8 @@ jobs:
           if [ -f assets/art/airports/manifest.json ]; then
             cp assets/art/airports/manifest.json _site/assets/art/airports/
           fi
+          mkdir -p _site/assets/shows
+          cp assets/shows/*.webp assets/shows/*.png _site/assets/shows/
           mkdir -p _site/assets/live
           cp assets/live/*.jpg _site/assets/live/
           mkdir -p _site/data

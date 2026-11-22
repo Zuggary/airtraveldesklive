@@ -852,6 +852,7 @@ def _header() -> str:
         '        <a class="chip" href="/airports/">Airports</a>',
         '        <a class="chip nav-wide" href="/airlines/">Airlines</a>',
         '        <a class="chip" href="/stuck">Stuck?</a>',
+        '        <a class="chip" href="/shows">Shows</a>',
         '        <a class="chip" href="/help/">Help</a>',
         '        <a class="chip nav-wide" href="/about">About</a>',
         '      </nav>',

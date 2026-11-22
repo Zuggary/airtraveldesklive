@@ -914,6 +914,7 @@ def _render_header(current: str = "airports", airports_href: str = "/airports/")
         _nav_chip("Airports", airports_href, current == "airports"),
         _nav_chip("Airlines", airlines_href, current == "airlines", "nav-wide"),
         _nav_chip("Stuck?", "/stuck", current == "stuck"),
+        _nav_chip("Shows", "/shows", current == "shows"),
         _nav_chip("Help", "/help/", current == "help"),
         _nav_chip("About", "/about", current == "about", "nav-wide"),
         "      </nav>",

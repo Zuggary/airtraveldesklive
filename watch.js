@@ -76,6 +76,11 @@
     box.appendChild(mini);
     inner.appendChild(bar);
     inner.appendChild(frame);
+    var lineup = el(doc, "p", "watch-lineup");           /* AN221: the show lineup page, right under the video */
+    var lineupLink = el(doc, "a", "watch-lineup-link", "Show lineup: who is on air and when");
+    lineupLink.href = "/shows";
+    lineup.appendChild(lineupLink);
+    inner.appendChild(lineup);
     drawer.appendChild(inner);
     header.parentNode.insertBefore(drawer, header.nextSibling);
 
