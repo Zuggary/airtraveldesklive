@@ -646,8 +646,9 @@ class TestStoryTraceAndBuilder(unittest.TestCase):
         self.assertRegex(h1, r"\d+(?:\.\d+)?%")
         self.assertIn(expect_end, h1)
         self.assertRegex(h1, r"same seven days in 2025 \([A-Z][a-z]{2} \d+ to (?:[A-Z][a-z]{2} )?\d+\)")
-        self.assertIn("3.13M", h1)
-        self.assertIn("Nov 30, 2025", h1)
+        dek_txt = html_lib.unescape(re.search(r'class="story-dek">([^<]*)', text).group(1))
+        self.assertIn("3.13M", dek_txt)           # record moved to the subhead (CoS 21 Nov 4:58 pm)
+        self.assertIn("Nov 30, 2025", dek_txt)
         self.assertRegex(meta_desc, r"\d+(?:\.\d+)?%")
 
         # Chart stage precedes callout steps in DOM for mobile chart-first flow

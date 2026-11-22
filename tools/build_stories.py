@@ -1502,15 +1502,15 @@ def build_thanksgiving_story(
             f"{ledger.tsa_date(cmp_win_start, 'short', target_year=target_year)} to "
             f"{ledger.tsa_date(cmp_win_end, cmp_win_fmt, target_year=target_year)}"
         )
+        # 21 Nov (CoS, go with option a): shorter H1 that keeps the explicit window the validator requires.
+        trail_end_short_date = f"{latest_d.strftime('%a')} {ledger.tsa_date(latest_d, 'short', target_year=target_year)}, {latest_d.year}"
         headline_html = (
-            f"US air travel is {t7_signed_pct} in the {n_trail_word} days ending {trail_end_dow_full} "
-            f"versus the same {n_trail_word} days in {y_cmp_t} ({cmp_win_txt}); TSA's record remains {rec_m_h1}, set {rec_full_str}"
+            f"Air travel {t7_signed_pct} in the {n_trail_word} days ending {trail_end_short_date} "
+            f"versus the same {n_trail_word} days in {y_cmp_t} ({cmp_win_txt})"
         )
-        full_headline_text = (
-            f"US air travel is running {t7_abs_pct} {direction_word} in the {n_trail_word} days ending {trail_end_dow_full} "
-            f"versus the same {n_trail_word} days in {y_cmp_t} ({cmp_win_txt}); TSA's single-day record remains {rec_m_str} million, set {rec_full_str}"
-        )
+        full_headline_text = headline_html
         dek_html = (
+            f"TSA's single-day record is {rec_m_h1}, set {rec_full_str}. "
             f"Daily TSA screenings across the {corr_len_dek}-day corridor ({corr_start_short} to {corr_end_full}), "
             f"paired with hourly FAA delay checks."
         )

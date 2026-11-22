@@ -2,9 +2,9 @@
   "source": "TSA checkpoint travel numbers",
   "url": "https://www.tsa.gov/travel/passenger-volumes",
   "licence": "U.S. government work",
-  "fetched_utc": "2026-11-20T03:39:59Z",
-  "latest_date": "2026-11-18",
-  "latest_count": 2126817,
+  "fetched_utc": "2026-11-22T00:55:19Z",
+  "latest_date": "2026-11-19",
+  "latest_count": 2609107,
   "record_date": "2025-11-30",
   "record_count": 3134613,
   "years": [
@@ -2896,6 +2896,7 @@
     "2026-11-15": 2705164,
     "2026-11-16": 2570924,
     "2026-11-17": 1956731,
-    "2026-11-18": 2126817
+    "2026-11-18": 2126817,
+    "2026-11-19": 2609107
   }
 }

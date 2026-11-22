@@ -166,7 +166,7 @@
 
 .story-title {
   margin: 0;
-  font: 700 clamp(1.32rem, 1.04rem + 1.65vw, 2.45rem) / 1.06 var(--font-display);
+  font: 700 clamp(1.32rem, 1.04rem + 1.65vw, 2.45rem) / 1.06 var(--font-text); /* 21 Nov: standard text face for this H1 (judges) */
   letter-spacing: -0.005em;
   color: var(--board-text);
   max-width: 30ch;
@@ -1296,3 +1296,4 @@
   color: var(--text-muted);
   max-width: 66ch;
 }
+
