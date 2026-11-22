@@ -106,6 +106,9 @@
       var text = await new Response(r.body.pipeThrough(ds)).text();
       show(JSON.parse(text));
     } catch (e) {
+      // 21 Nov (CoS): a failed feed shows a clear note, not a blank map.
+      document.getElementById('count').innerHTML = '<span id="dot"></span>aircraft: unavailable';
+      document.getElementById('asof').textContent = 'Live aircraft temporarily unavailable. The map is still shown; it will update when the feed returns.';
       document.getElementById('stale').classList.add('on');
     }
   }
