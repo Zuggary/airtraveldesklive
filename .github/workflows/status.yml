@@ -164,6 +164,7 @@ jobs:
           cp wall/index.html wall/wall.js wall/us-states.geojson _site/wall/
           cp wall/img/*.webp _site/wall/img/
           mkdir -p _site/spotters-log/rare/type
+          cp spotters-log/index.html _site/spotters-log/
           cp spotters-log/rare/index.html spotters-log/rare/rare.js spotters-log/rare/rare.css spotters-log/rare/rare-log.json _site/spotters-log/rare/
           cp spotters-log/rare/type/*.html _site/spotters-log/rare/type/
 

@@ -1,6 +1,6 @@
 :root{--tier-epic:#b98cff;--tier-leg:#ffc83d}
-.rl{max-width:1100px;margin:0 auto;padding:20px 16px 64px}
-.rl h1{font:700 var(--fs-display)/1.05 var(--font-display);margin:8px 0 6px}
+.rl{max-width:none;margin:0;padding:0 0 32px}.page-rare .prose-card{margin-top:24px}
+.rl h1{margin:8px 0 6px}
 .rl .lede{color:var(--text-muted);font-size:var(--fs-lg);max-width:62ch;margin:0 0 18px}
 .rl nav.crumb{font-size:var(--fs-sm)} .rl a{color:var(--link)}
 .stats{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px}
@@ -43,3 +43,11 @@ table.sl{width:100%;border-collapse:collapse;font-size:var(--fs-sm)} table.sl th
 #unseen{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}.mini{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:10px 12px;border:1px solid var(--border);border-left:4px solid #8a6e1f;border-radius:10px;background:var(--surface-alt)}.mini b{font:700 1.2rem var(--font-display)}.mini span{color:var(--text);font-size:var(--fs-sm)}.mini em{grid-column:1/-1;color:var(--text-muted);font-size:var(--fs-xs);font-style:normal}
 .photo svg{width:72px;height:72px;display:block;margin:0 auto 6px;color:var(--text-muted)}
 .plabel{margin:-8px 0 14px;color:var(--text-muted);font-size:var(--fs-xs)}
+
+.rl-h2{font:700 1.5rem var(--font-display);margin:24px 0 12px}.rl-h2--gap{margin-top:28px}
+.rl-cards{list-style:none;margin:0 0 20px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.rl-card{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;color:var(--text);text-decoration:none;min-height:44px}
+.rl-card:hover,.rl-card:focus-visible{border-color:var(--accent);background:var(--surface-alt)}
+.rl-card strong{font:700 1.5rem var(--font-display)}.rl-card span{color:var(--text-muted);font-size:var(--fs-sm)}.rl-card .rl-card-k{color:var(--tier-leg);font-weight:700}
+.page-rare .rl a{color:var(--link)}.page-rare .rl a.rl-card{color:var(--text)}
+.page-rare .prose-card{max-width:none}.page-rare .prose-card .rl-cards{padding:0;margin:0 0 20px}.page-rare .prose-card .rl-cards li{margin:0}
