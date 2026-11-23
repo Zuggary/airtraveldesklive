@@ -119,7 +119,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html 404.html stuck.html shows.html music.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html 404.html stuck.html shows.html sunny.html music.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
@@ -167,6 +167,8 @@ jobs:
           cp spotters-log/index.html _site/spotters-log/
           cp spotters-log/rare/index.html spotters-log/rare/rare.js spotters-log/rare/rare.css spotters-log/rare/rare-log.json _site/spotters-log/rare/
           cp spotters-log/rare/type/*.html _site/spotters-log/rare/type/
+          mkdir -p _site/brand/sunny
+          cp brand/sunny/sunny-*.webp brand/sunny/sunny-*.jpg _site/brand/sunny/
 
       - name: Pre-render live status into the home page (reads data/*.json, no network; writes _site/index.html)
         run: python tools/prerender_home.py --template index.html --data data --out _site/index.html
