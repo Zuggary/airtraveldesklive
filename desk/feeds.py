@@ -80,6 +80,17 @@ def _build_faa_event(
     }
 
 
+# AN311 (23 Nov 2026): "Closed TO NON SKED TRANSIENT GA ACFT EXC PPR" is a general-aviation-only restriction (LAS, LAX, SAN...): the airport is open to airlines.
+# The old test (any "CLSD TO" or " EXC ") also dropped real closures such as "CLSD TO ALL ACFT" or "CLSD EXC EMERGENCY ACFT". Only text that names the GA / transient / non-scheduled wording is skipped.
+_GA_ONLY_CLOSURE = re.compile(r"\b(?:non[ -]?sked(?:uled)?|transient)\b[^.;]{0,48}\bga\b|\bga\s+(?:acft|aircraft|operations?)\b[^.;]{0,24}\b(?:only|ppr)\b|\b(?:non[ -]?sked(?:uled)?|transient|general aviation)\b[^.;]{0,48}\bppr\b", re.IGNORECASE)
+_ALL_TRAFFIC = re.compile(r"\ball\s+(?:acft|aircraft|traffic|operations?|ops)\b", re.IGNORECASE)
+
+
+def is_ga_only_closure(raw_reason: str) -> bool:
+    text = raw_reason or ""
+    return bool(_GA_ONLY_CLOSURE.search(text)) and not _ALL_TRAFFIC.search(text)
+
+
 def parse_faa(xml_text: str) -> list[dict[str, Any]]:
     """Parse FAA NAS status XML into normalized event dicts."""
     if not xml_text or not xml_text.strip():
@@ -134,8 +145,7 @@ def parse_faa(xml_text: str) -> list[dict[str, Any]]:
         if not arpt:
             continue
         raw_reason = _text(ap, "Reason")
-        upper_reason = raw_reason.upper()
-        if "CLSD TO" in upper_reason or " EXC " in upper_reason:
+        if is_ga_only_closure(raw_reason):      # AN311: only the GA / transient / non-sked restriction is skipped; every other closure stays
             continue
         # AN35: a closure the FAA lists as daily ('AD AP CLSD DLY 0730-1415', times in UTC) is a scheduled
         # closure: keep the start, the reopen and the daily window so the pages can say "closed overnight".
