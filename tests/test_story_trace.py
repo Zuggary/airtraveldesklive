@@ -782,6 +782,8 @@ AUDIT_JS = """(expectedVw) => {
     const heroMetrics = document.querySelector(".story-metrics")?.getBoundingClientRect();
 
     // Round 4 touch-target check across all visible interactive controls
+    const menuBtn = document.querySelector(".menu-btn");      // 23 Nov: phones hide the nav behind Menu; open it so its links are measured
+    if (menuBtn && menuBtn.getAttribute("aria-expanded") === "false") menuBtn.click();
     const smallTargets = [];
     for (const el of document.querySelectorAll("a, button, input, summary, [role='button']")) {
         const st = getComputedStyle(el);
@@ -1037,7 +1039,7 @@ print(json.dumps(results))
                 self.assertEqual(res["vw"], res["expectedVw"], key)
                 self.assertLessEqual(res["docSW"], res["vw"], f"{key} docSW={res['docSW']} > {res['vw']}")
                 self.assertLessEqual(res["bodySW"], res["vw"], f"{key} bodySW={res['bodySW']} > {res['vw']}")
-                self.assertGreater(res["checked"], 50, key)
+                self.assertGreater(res["checked"], 45, key)      # 23 Nov: phones hide the nav behind Menu
                 self.assertEqual(res["violationCount"], 0, f"{key} overflow elements: {res['violations']}")
                 self.assertLessEqual(res["maxRight"], res["vw"] - 16 + 0.5, key)
                 self.assertEqual(res["smallTargets"], [], f"{key} targets < 44px: {res['smallTargets']}")

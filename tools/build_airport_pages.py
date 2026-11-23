@@ -898,7 +898,7 @@ def _nav_chip(label: str, href: str, current: bool, extra: str = "") -> str:
 
 
 def _render_header(current: str = "airports", airports_href: str = "/airports/") -> str:
-    """The one site header (AN34): brand, then Live board · Airports · Airlines · Stuck? · About.
+    """The one site header (AN34): brand, then Airports · Airlines · Stuck? · About.
     On phones only Airports and Stuck? show; the rest are in the footer."""
     airlines_href = "/airlines/"
     return "\n".join([
@@ -910,7 +910,6 @@ def _render_header(current: str = "airports", airports_href: str = "/airports/")
         '        <span class="brand-title">Air Travel Desk</span>',
         "      </a>",
         '      <nav class="header-nav" aria-label="Site navigation">',
-        _nav_chip("Live board", "/", current == "board", "nav-wide"),
         _nav_chip("Airports", airports_href, current == "airports"),
         _nav_chip("Airlines", airlines_href, current == "airlines", "nav-wide"),
         _nav_chip("Stuck?", "/stuck", current == "stuck"),
@@ -942,7 +941,7 @@ def _render_footer(
         "        </div>",
         '        <div class="foot-col">',
         (
-            '          <ul class="foot-links"><li><a class="tap" href="/">Live board</a></li>'
+            '          <ul class="foot-links"><li><a class="tap" href="/">Home</a></li>'
             f'<li><a class="tap" href="{airports_href}">Airports</a></li>'
             f'<li><a class="tap" href="{airlines_href}">Airline commitments</a></li>'
             '<li><a class="tap" href="/about">About</a></li>'
@@ -1982,7 +1981,7 @@ def render_index_page(
         '      <div class="idx-hero">',
         '      <h1 class="idx-title">US Airports: delays, weather and traveler help</h1>',
         f'      <p class="airport-purpose">Each of the {n} busiest US airports has its own page: live FAA status, weather, the last 3 days, '
-        'official links and help if you are stuck. The <a href="/">live board</a> has the national picture.</p>',
+        'official links and help if you are stuck. The <a href="/">home page</a> has the national picture.</p>',
         (
             f'      <p class="idx-now"><span class="dot dot--{"delay" if trouble else "clear"}"></span>'
             + (f'FAA programs at {len(trouble)} of {n} now: ' + ", ".join(f'<a href="/airports/{_esc(c)}">{_esc(c)}</a>' for c in trouble)

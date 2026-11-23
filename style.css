@@ -927,6 +927,8 @@ h1.airport-page-title:not(.ap-verdict) { margin: var(--space-6) 0 0; font: 700 c
 .page-home .lede { margin-top: var(--space-2); font-size: var(--fs-sm); max-width: none; }
 .verdict-note { margin: var(--space-2) 0 0; font-size: var(--fs-xs); color: var(--text-muted); }
 .verdict-note:empty { display: none; }
+.home-two { margin: var(--space-2) 0 0; font-size: var(--fs-sm); color: var(--text-muted); max-width: 46ch; }
+.home-two a { text-decoration: underline; }
 .page-home .search { margin-top: var(--space-4); max-width: 28rem; }
 .page-home .search label { font-size: var(--fs-md); margin-bottom: var(--space-1); }
 .page-home .field { min-height: 0; }
@@ -1143,6 +1145,7 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
 .site-footer .watch-section .chip { min-height: 40px; margin-top: 4px; }
 @media (min-width: 800px) { .foot-grid { grid-template-columns: 1.2fr 1fr 1.1fr 1fr; } }
 
+.menu-btn { display: none; }
 /* phones: the header shows every section; it scrolls away to give the page room */
 @media (max-width: 699px) {
   .site-header { position: static; }
@@ -1151,8 +1154,18 @@ details.airline-links[open] > summary { margin-bottom: 12px; }
   .header-nav .nav-wide { display: inline-flex; }
   .header-nav .chip { padding: 0 6px; font-size: 0.875rem; min-height: 40px; }
   /* 21 Nov (CoS): on phones the wall link is its own row under the brand, above the section nav. */
-  .header-in > .wall-chip { order: 1; flex-basis: 100%; justify-content: center; margin: 4px 0; }
-  .header-nav { order: 2; }
+  .header-in > .wall-chip { order: 2; flex-basis: 100%; justify-content: center; margin: 4px 0; }
+  .header-nav { order: 3; }
+  /* 23 Nov (Zach): phones get brand + Menu. The Menu button is added by theme.js; without it the nav above stays. */
+  .menu-btn { display: inline-flex; align-items: center; justify-content: center; order: 1; flex-basis: 100%; margin: 4px 0; min-height: 44px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+  .has-menu .header-in:not(.menu-open) > .wall-chip, .has-menu .header-in:not(.menu-open) > .header-nav { display: none; }
+  .has-menu .header-in.menu-open > .header-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; width: 100%; margin: 4px 0 8px; }
+  .has-menu .header-in.menu-open > .header-nav .chip { min-height: 44px; justify-content: flex-start; padding: 0 12px; font-size: 1rem; border: 1px solid var(--border); }
+  .has-menu .header-in.menu-open > .wall-chip { min-height: 44px; }
+  .header-in > .theme-toggle { margin-left: 8px; }
+  /* footer links: no stray middot at a line end; the dots go and the links wrap as a group */
+  .site-footer p .dot { display: none; }
+  .site-footer p:has(> .dot) { display: flex; flex-wrap: wrap; gap: 0 18px; }
 }
 
 /* ---------- AN34 round 4 airport pages: one "Today at" strip, help beside the official links ---------- */

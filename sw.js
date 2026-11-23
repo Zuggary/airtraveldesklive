@@ -3,7 +3,7 @@
   "use strict";
 
   var CACHE_PREFIX = "atd-offline-";
-  var CACHE_NAME = "atd-offline-v20";
+  var CACHE_NAME = "atd-offline-v21";
   var STATIC_FILES = [
     "./",
     "./airports/",

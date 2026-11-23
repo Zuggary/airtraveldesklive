@@ -34,7 +34,7 @@
     var dot = el(doc, "span", "watch-btn-dot");
     dot.setAttribute("aria-hidden", "true");
     btn.appendChild(dot);
-    btn.appendChild(el(doc, "span", "watch-btn-text", "Live"));
+    btn.appendChild(el(doc, "span", "watch-btn-text", "Live stream"));
     var toggle = headerIn.querySelector(".theme-toggle");
     if (toggle) { headerIn.insertBefore(btn, toggle); } else { headerIn.appendChild(btn); }
 

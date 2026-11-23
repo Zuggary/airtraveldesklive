@@ -117,7 +117,7 @@ def tsa_content(model):
         )
     table = "\n".join(rows)
     return f"""    <nav class="chart-crumb" aria-label="Breadcrumb">
-      <a href="/">Live board</a> / <a href="../">Charts</a> / <span aria-current="page">TSA throughput</span>
+      <a href="/">Home</a> / <a href="../">Charts</a> / <span aria-current="page">TSA throughput</span>
     </nav>
     <p class="chart-kicker">Thanksgiving tracker</p>
     <h1>{escape(model['title'])}</h1>
@@ -161,11 +161,11 @@ def main():
     model = load_model(args.data / "tsa-history.json")
     ref_path = ROOT / "shows.html"
     reference = ref_path.read_text(encoding="utf-8").replace(' aria-current="page"', "")  # the reference page is /shows; charts pages have no current nav chip
-    index_crumbs = [("Live board", SITE + "/"), ("Charts", INDEX_URL)]
+    index_crumbs = [("Home", SITE + "/"), ("Charts", INDEX_URL)]
     tsa_crumbs = index_crumbs + [("TSA throughput", TSA_URL)]
     description = model["title"] + ". Daily TSA checkpoint counts compared with the same weekdays last year."
     tsa = tsa_content(model)
-    index = f"""    <nav class="chart-crumb" aria-label="Breadcrumb"><a href="/">Live board</a> / <span aria-current="page">Charts</span></nav>
+    index = f"""    <nav class="chart-crumb" aria-label="Breadcrumb"><a href="/">Home</a> / <span aria-current="page">Charts</span></nav>
     <h1>Charts</h1>
     <ul><li><a href="tsa/">TSA throughput</a><p>{escape(model['title'])}</p></li></ul>"""
 

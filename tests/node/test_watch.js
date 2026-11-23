@@ -67,7 +67,7 @@ vm.runInNewContext(watchSource, { window });
 const [button] = headerIn.children;
 assert.strictEqual(button.className, "watch-btn");
 const [dot, label] = button.children;
-assert.strictEqual(label.textContent, "Live");
+assert.strictEqual(label.textContent, "Live stream");
 assert.strictEqual(dot.className, "watch-btn-dot");
 assert.strictEqual(dot.hidden, false);
 assert.strictEqual(dot.attributes["aria-hidden"], "true");

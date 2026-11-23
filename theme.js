@@ -36,5 +36,23 @@
       })(btns[i]);
     }
   }
-  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", init); } else { init(); }
+  // 23 Nov: on phones the header is brand + Menu. The Menu button is added here, so without JavaScript the full nav stays visible.
+  function menu() {
+    var hdr = document.querySelector(".header-in");
+    if (!hdr || hdr.querySelector(".menu-btn")) { return; }
+    var nav = hdr.querySelector(".header-nav");
+    if (!nav) { return; }
+    if (!nav.id) { nav.id = "site-menu"; }
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "menu-btn"; b.textContent = "Menu";
+    b.setAttribute("aria-expanded", "false"); b.setAttribute("aria-controls", nav.id);
+    var tog = hdr.querySelector("[data-theme-toggle]");
+    if (tog) { hdr.insertBefore(b, tog); } else { hdr.appendChild(b); }
+    document.documentElement.classList.add("has-menu");
+    function set(open) { hdr.classList.toggle("menu-open", open); b.setAttribute("aria-expanded", open ? "true" : "false"); }
+    b.addEventListener("click", function () { set(!hdr.classList.contains("menu-open")); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && hdr.classList.contains("menu-open")) { set(false); b.focus(); } });
+  }
+  function boot() { init(); menu(); }
+  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", boot); } else { boot(); }
 })();

@@ -16,7 +16,7 @@ AIRPORT_JS = _an43_airport_js()
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-NAV_LABELS = ["Live board", "Airports", "Airlines", "Stuck?", "Shows", "Help", "About"]  # AN34: one nav on every page
+NAV_LABELS = ["Airports", "Airlines", "Stuck?", "Shows", "Help", "About"]  # AN34: one nav on every page
 
 
 def nav_block(text: str) -> str:

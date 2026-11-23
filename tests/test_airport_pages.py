@@ -207,7 +207,8 @@ class TestAirportPagesGenerator(unittest.TestCase):
                 self.assertIn("Page built 2026-11-14.", p.visible_text)
             else:
                 self.assertRegex(p.visible_text, r"FAA data .* old, checked .* Source: FAA NAS status\.|Source: FAA NAS status, last checked ", fname)
-                self.assertEqual(text.count(">Live board<"), 2, f"{fname}: header chip and footer link only")
+                self.assertNotIn(">Live board<", text, fname)
+                self.assertEqual(text.count(">Home<"), 1, f"{fname}: footer link only (the logo is the home link)")
                 self.assertNotIn("btn-primary", text, fname)
                 self.assertIn('<script src="../airport.js" data-code="', text, fname)
             self.assertIn("Where this page's data comes from", p.visible_text, fname)
