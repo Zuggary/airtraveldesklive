@@ -1194,6 +1194,9 @@ def verify_story_date_windows(
     if not m_h1 or not m_title or not m_desc:
         raise ValueError("Story HTML missing h1, title, or meta description")
     h1_txt = _strip_tags_text(m_h1.group(1))
+    m_win = re.search(r'<p class="story-window"[^>]*>(.*?)</p>', html_doc, re.S)
+    if m_win:  # plain H1 + small-print window sentence together carry the comparison scope
+        h1_txt = f"{h1_txt} {_strip_tags_text(m_win.group(1))}"
     title_txt = _strip_tags_text(m_title.group(1))
     desc_txt = html.unescape(m_desc.group(1)).strip()
 
@@ -2482,6 +2485,73 @@ def build_thanksgiving_story(
     corr_len_t1 = ledger.tsa_window_count("t1_corr_len", "corridor_len", len(corridor), target_year)
     pre_end_k = counted_corridor[-1]["k"] if (counted_corridor and n_core_counted == 0) else -5
 
+    # 22 Nov 2026 (Zach: "fix this"): plain-English top of the page. The validated long comparison sentence moves to small print (class story-window).
+    window_line = headline_html
+    _sgn = t7_signed_pct if n_core_counted == 0 else core_signed_pct
+    _abs = t7_abs_pct if n_core_counted == 0 else core_abs_pct
+    _dir = "below" if str(_sgn).lstrip().startswith(("-", chr(0x2212))) else "above"
+    if n_core_counted == 0:
+        h1_plain = f"Thanksgiving flying is running {_abs} {_dir} last year"
+        dek_plain = f"TSA is screening {'fewer' if _dir == 'below' else 'more'} people than on the same days last year, and the busiest days are still ahead."
+    elif n_core_counted < len(core_rows):
+        h1_plain = f"Thanksgiving week is running {_abs} {_dir} last year so far"
+        dek_plain = "TSA adds each day to the count as it posts it, so the biggest days are still to come."
+    else:
+        h1_plain = f"Thanksgiving week screened {tot_m_h1}M travelers, {_abs} {_dir} last year"
+        dek_plain = f"Every holiday day is in. The busiest was {peak_dow_s}, at {peak_m_h1}M."
+
+    def _cmp_iso(k: int) -> str:
+        return (desk_tsa.thanksgiving(default_cmp) + timedelta(days=k)).isoformat()
+
+    def _day_txt(d: date) -> str:
+        # Dates go through the ledger so every rendered date is traced; other-year dates carry their year.
+        fmt = "short" if d.year == target_year else "full"
+        return f"{d.strftime('%a')} {ledger.tsa_date(d, fmt, target_year=target_year)}"
+
+    _now_days = {k: tg_now + timedelta(days=k) for k in (-1, 0, 3)}
+    _then = {k: date.fromisoformat(_cmp_iso(k)) for k in (-1, 0, 3)}
+    def _longest_stop_run(strip) -> int:
+        best = run = 0
+        for ch in strip:
+            run = run + 1 if ch == "s" else 0
+            best = max(best, run)
+        return best
+
+    # A "stop" listed for many hours in a row is a closure notice, not a ground stop (FAA ground stops last hours, not a day and a half).
+    _long_closed = [r for r in faa["op_rows"] if _longest_stop_run(r["strip"]) > 12]
+    _yes = _dir == "above"
+    find_busier = (
+        f"{'Yes' if _yes else 'Not quite'}. {latest_m_str} people went through TSA checkpoints on {_day_txt(latest_d)}, "
+        f"{latest_pct_str} on the same weekday last year. The seven-day change is {t7_pct_str}."
+    )
+    find_days = (
+        f"Plan for crowds on {_day_txt(_now_days[-1])} and {_day_txt(_now_days[3])}, and a quiet Thanksgiving Day ({_day_txt(_now_days[0])}). "
+        f"Last year: {ledger.tsa_millions(_cmp_iso(-1), suffix='M')} the Wednesday before, {ledger.tsa_millions(_cmp_iso(0), suffix='M')} on Thanksgiving Day, "
+        f"and a record {rec_m_str}M the Sunday after ({rec_full_str})."
+    )
+    _top3 = [r for r in faa["op_rows"] if r not in _long_closed][:3]
+    find_airports_note = ""
+    if _top3:
+        _names = [r["short"] for r in _top3]
+        find_airports = (
+            (f"{', '.join(_names[:-1])} and {_names[-1]} have had the most delays: " if len(_names) > 1 else f"{_names[0]} has had the most delays: ")
+            + ", ".join(ledger.faa_ap_stat(r["code"], "non_clear", r["non_clear"]) for r in _top3)
+            + f" hours with a delay or ground stop in the last {faa_n_hours} hours."
+        )
+        find_airports_note = f"Airport counts come from hourly FAA checks ({faa_first_et} to {faa_last_et})."
+        if _long_closed:
+            find_airports_note += f" {', '.join(r['short'] for r in _long_closed)} is left out because it has been under a stop or closure notice for more than a day."
+    else:
+        find_airports = f"No US airport showed a delay or ground stop in {faa_n_hours} hourly FAA checks."
+    fresh_line = (
+        f"Latest TSA count: {_day_txt(latest_d)}. TSA has not posted later days yet."
+    )
+    try:
+        from tools import build_chart_tsa as bct  # noqa: E402
+        _bm = bct.build_model(tsa["days"], latest_date=tsa["latest_date"], record_date=tsa["record_date"], record_count=tsa["record_count"])
+        hero_svg_wide, hero_svg_narrow = bct.render_svg(_bm, "wide"), bct.render_svg(_bm, "narrow")
+    except Exception:  # the story must still build without the chart
+        hero_svg_wide = hero_svg_narrow = ""
     html_head_and_main = "\n".join([
         "<!doctype html>",
         '<html lang="en">',
@@ -2520,10 +2590,29 @@ def build_thanksgiving_story(
         '    <header class="story-head">',
         '      <div class="story-hero-grid">',
         '        <div class="story-hero-copy">',
-        f'          <p class="story-kicker">Thanksgiving tracker · Updated {_esc(tsa_fetched_date_str)}</p>',
-        f'          <h1 class="story-title">{_esc(headline_html)}</h1>',
-        f'          <p class="story-dek">{_esc(dek_html)}</p>',
+        f'          <p class="story-kicker">Thanksgiving travel tracker</p>',
+        f'          <h1 class="story-title">{_esc(h1_plain)}</h1>',
+        f'          <p class="story-dek">{_esc(dek_plain)}</p>',
+        f'          <p class="story-window">{_esc(window_line)}. {_esc(fresh_line)}</p>',
         '        </div>',
+        '      </div>',
+        '    </header>',
+        '    <section class="story-findings" aria-labelledby="findings-heading">',
+        '      <h2 id="findings-heading">The short version</h2>',
+        '      <ul class="story-find-list">',
+        f'        <li class="story-find"><h3>Busier than last year</h3><p>{_esc(find_busier)}</p></li>',
+        f'        <li class="story-find"><h3>Which days to expect crowds</h3><p>{_esc(find_days)}</p></li>',
+        f'        <li class="story-find"><h3>Airports already struggling</h3><p>{_esc(find_airports)}</p></li>',
+        '      </ul>',
+        '    </section>',
+        '    <figure class="story-hero-fig">',
+        '      <ul class="story-fig-legend" aria-label="Legend"><li class="lg-now">This year</li><li class="lg-prev">Same weekday last year</li></ul>',
+        '      <div class="story-fig-wide">' + hero_svg_wide + '</div>',
+        '      <div class="story-fig-narrow">' + hero_svg_narrow + '</div>',
+        '      <figcaption>Passengers screened per day at TSA checkpoints. The lines are 7-day averages; on larger screens the faint lines are single days.</figcaption>',
+        '    </figure>',
+        '    <details class="story-more"><summary>More numbers</summary>',
+        f'    <p class="story-fresh">{_esc(find_airports_note)}</p>',
         '        <ul class="story-metrics" aria-label="Key Thanksgiving figures">',
         '          <li class="story-metric">',
         f'            <p class="story-metric-value">{_esc(latest_m_str)}</p>',
@@ -2554,8 +2643,7 @@ def build_thanksgiving_story(
         '            </div>',
         '          </li>',
         '        </ul>',
-        '      </div>',
-        '    </header>',
+        '    </details>',
         '',
         '    <section id="rush" class="story-sec" aria-labelledby="rush-heading">',
         '      <div class="story-sec-head">',

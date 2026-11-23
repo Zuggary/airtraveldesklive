@@ -289,6 +289,8 @@ def validate_story_trace(
         raise AssertionError("Missing <main> element")
     main_html = m_main.group(1)
     main_clean = re.sub(r"<script.*?</script>|<style.*?</style>|<!--.*?-->", " ", main_html, flags=re.S)
+    # The hero chart is built by tools/build_chart_tsa.py (its own tests recompute every label); skip it here.
+    main_clean = re.sub(r'<figure class="story-hero-fig">.*?</figure>', " ", main_clean, flags=re.S)
     visible_text = html_lib.unescape(re.sub(r"<[^>]+>", " ", main_clean))
     aria_texts = [html_lib.unescape(x) for x in re.findall(r'aria-label="([^"]+)"', main_clean)]
     combined = visible_text + " " + " ".join(aria_texts)
@@ -395,6 +397,13 @@ def validate_story_trace(
 
 
 
+def _h1_with_window(page: str) -> str:
+    """The plain H1 plus the small-print window sentence under it (together they carry the comparison scope)."""
+    h1 = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S).group(1)
+    win = re.search(r'<p class="story-window"[^>]*>(.*?)</p>', page, re.S)
+    return h1 + " " + (win.group(1) if win else "")
+
+
 def _shift_end_day(text: str) -> str:
     """'seven days ending Tue Nov 17, 2026' -> same text with the end day one earlier (a wrong date on purpose)."""
     m = re.search(r"([A-Za-z]{3}) ([A-Za-z]{3}) (\d+), (\d{4})", text)
@@ -496,7 +505,7 @@ class TestStoryTraceAndBuilder(unittest.TestCase):
                     )
                     built = out_dir / "thanksgiving" / "index.html"
                     page = built.read_text(encoding="utf-8")
-                    h1 = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S).group(1)
+                    h1 = _h1_with_window(page)
                     self.assertIn(expected_h1, h1)
                     if label == "mid":
                         self.assertIn("early", h1.lower())
@@ -636,19 +645,21 @@ class TestStoryTraceAndBuilder(unittest.TestCase):
         css_text = story_css.read_text(encoding="utf-8")
 
         # Scoped H1 (<=160 chars) while <title> and meta carry the full phrasing
-        h1 = html_lib.unescape(re.search(r'<h1[^>]*>(.*?)</h1>', text, re.S).group(1)).strip()
+        h1 = html_lib.unescape(_h1_with_window(text)).strip()
         title = html_lib.unescape(re.search(r'<title>(.*?)</title>', text, re.S).group(1)).strip()
         meta_desc = html_lib.unescape(re.search(r'<meta name="description" content="([^"]+)"', text).group(1)).strip()
-        self.assertLessEqual(len(h1), 160, f"H1 too long: {h1!r}")
-        self.assertGreater(len(title), len(h1))
+        h1_only = html_lib.unescape(re.search(r"<h1[^>]*>(.*?)</h1>", text, re.S).group(1)).strip()
+        self.assertLessEqual(len(h1_only), 80, f"H1 too long: {h1_only!r}")
+        self.assertGreater(len(title), len(h1_only))
         tsa_latest = date.fromisoformat(json.loads((ROOT / "data" / "tsa-history.json").read_text(encoding="utf-8"))["latest_date"])
         expect_end = f"seven days ending {tsa_latest:%a} {tsa_latest:%b} {tsa_latest.day}, {tsa_latest.year}"
         self.assertRegex(h1, r"\d+(?:\.\d+)?%")
         self.assertIn(expect_end, h1)
         self.assertRegex(h1, r"same seven days in 2025 \([A-Z][a-z]{2} \d+ to (?:[A-Z][a-z]{2} )?\d+\)")
-        dek_txt = html_lib.unescape(re.search(r'class="story-dek">([^<]*)', text).group(1))
-        self.assertIn("3.13M", dek_txt)           # record moved to the subhead (CoS 21 Nov 4:58 pm)
-        self.assertIn("Nov 30, 2025", dek_txt)
+        # 22 Nov 2026: the record now sits in the "short version" card (plain-English top of page), not the dek.
+        find_txt = html_lib.unescape(re.search(r'class="story-find-list">(.*?)</ul>', text, re.S).group(1))
+        self.assertIn("3.13M", find_txt)
+        self.assertIn("Nov 30, 2025", find_txt)
         self.assertRegex(meta_desc, r"\d+(?:\.\d+)?%")
 
         # Chart stage precedes callout steps in DOM for mobile chart-first flow
@@ -1040,7 +1051,8 @@ print(json.dumps(results))
                         self.assertLessEqual(hl["right"], 359.5, f"{key} nav link right out of gutter: {hl}")
 
         m_def = results["m_375_default"]
-        self.assertLess(m_def["chartTopY"], 1218, f"Mobile Chart 1 below 1.5 screens: {m_def['chartTopY']}")
+        # 22 Nov 2026: the plain-English summary and the hero chart now come first; the interactive explore chart starts below them.
+        self.assertLess(m_def["chartTopY"], 3000, f"Mobile explore chart below 3.7 screens: {m_def['chartTopY']}")
         self.assertGreater(m_def["stepsTopY"], m_def["chartBotY"], "Mobile callouts must sit under Chart 1")
         self.assertTrue(all(x == 16 for x in m_def["metricsLefts"]), f"KPIs must stack single-column at 375: {m_def['metricsLefts']}")
         self.assertEqual(len({b["top"] for b in m_def["cmpBtns"]}), 1, f"Compare buttons should sit on 1 row: {m_def['cmpBtns']}")
@@ -1067,8 +1079,7 @@ print(json.dumps(results))
         self.assertGreaterEqual(dmob["minAdjGap"], 1.0, dmob)
 
         d_def = results["d_1440_default"]
-        self.assertGreater(d_def["heroMetricsWidth"], 400, "Desktop hero right half must render visible KPI ledger")
-        self.assertGreaterEqual(d_def["heroMetricsLeft"], d_def["heroCopyRight"], "Desktop hero KPI ledger must sit beside copy")
+        # 22 Nov 2026: the KPI ledger is folded under "More numbers"; the hero is plain copy plus three findings and a chart.
         for fname, fval in d_def["fonts"].items():
             self.assertGreaterEqual(fval, 15.0, f"Desktop font {fname}={fval} < 15px")
         self.assertGreaterEqual(d_def["scrubContrast"], 7.0, d_def["scrubContrast"])
@@ -1150,8 +1161,8 @@ print(json.dumps(results))
                 "FAA wrong timestamp start",
             ),
             (
-                re.search(r"<h1\b[^>]*>.*?</h1>", html_doc, re.S).group(0),
-                '<h1 class="story-title">2026 is +4.4% on 2025; the record remains 3.13M set on Nov 30, 2025</h1>',
+                re.search(r'<p class="story-window"[^>]*>.*?</p>', html_doc, re.S).group(0),
+                '<p class="story-window">2026 is +4.4% on 2025; the record remains 3.13M set on Nov 30, 2025</p>',
                 "Unscoped H1",
             ),
             (
@@ -1165,9 +1176,9 @@ print(json.dumps(results))
                 "KPI 2 wrong 7-day range",
             ),
             (
-                "16-day corridor (Nov 15 to Nov 30, 2026)",
-                "16-day corridor (Nov 15 to Nov 29, 2026)",
-                "Dek wrong corridor range",
+                "Across the first 5 corridor days (Nov 15 to Nov 19, 2026)",
+                "Across the first 5 corridor days (Nov 15 to Nov 18, 2026)",
+                "Takeaway wrong counted range",
             ),
         ]
         for old, new, label in bad_replacements:
