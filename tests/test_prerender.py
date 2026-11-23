@@ -372,13 +372,13 @@ class TestHomeTemplateAndOrder(unittest.TestCase):
         self.assertEqual(sections[-1], "owed")  # help last in the page body
 
     def test_watch_live_moved_to_the_footer(self):
-        # Streaming links stay in the footer; YouTube leads and Twitch is secondary.
+        # Streaming links stay in the footer; YouTube only (Twitch removed 22 Nov).
         self.assertNotIn('href="#watch">Watch live</a>', self.tpl)
         footer = self.tpl[self.tpl.index('<footer'):]
         self.assertNotIn('id="load-live"', self.tpl)      # AN52: the player is the top-bar drawer (watch.js), not a footer embed
         self.assertIn("data-watch-open", footer)
-        self.assertIn("twitch.tv/airtraveldesklive", footer)
-        self.assertLess(footer.index("youtube.com/@AirTravelDeskLive/live"), footer.index("twitch.tv/airtraveldesklive"))
+        self.assertIn("youtube.com/@AirTravelDeskLive/live", footer)
+        self.assertNotIn("twitch", footer.lower())   # 22 Nov: Twitch is off the site
 
     def test_every_script_id_still_exists(self):
         app = (ROOT / "app.js").read_text(encoding="utf-8")

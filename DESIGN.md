@@ -21,7 +21,7 @@ Panel notes: research/AN34-designs.md.
 Verdict, trouble line, search and picks, source line; map beside it on wide screens (tap a dot for the answer card).
 Then "Delays and closures now" (big departures rows: code, plain meaning, one big number), the 30-airport board
 (rows of links with a 24-hour strip), changes and the 24-hour chart, travel volume (TSA bars, Thanksgiving, BTS),
-the help band, Lantern Drift. Twitch and TV mode live in the footer.
+the help band, Lantern Drift. TV mode lives in the footer.
 
 ## Airport page order
 Tinted hero (lockup, verdict H1, one explanation, "Flying out of X?" note and "What is a ground delay?" for ground
@@ -46,7 +46,7 @@ Judges (r2-1) named template signals and thin airport pages. Changes:
 - Headlines are one colour; the accent device is the map's rings. Home hero art is dimmed and desaturated.
 - Home below the hero: delays as tinted rows (no side stripe), the 30-airport board as a full-width dark band (the centrepiece),
   the 24 h chart and travel volume as plain rows under a hairline (no cards). The help band is the one card, with one button.
-  Lantern Drift, Twitch and TV mode are quiet footer lines; the data credit is one line.
+  Lantern Drift and TV mode are quiet footer lines; the data credit is one line.
 - Board: a clear airport with amber or red earlier in its strip says "Clear now"; the strip key sits above the board.
 - A closure listed to end more than a day out says "FAA listing runs to <day>. A listing this long is often nightly closures".
 - Ground delays name a known reason in plain words in the trouble line ("for low clouds").
@@ -108,7 +108,7 @@ The status strip at the top: one row per US airport with a program, in the order
 "EWR  Ground stop  weather, thunderstorms  since 2:10 pm  to 4:00 pm". It is the first thing at 375 px.
 
 ## Things we remove
-Section kickers and counters, the stock illustration card, the game promo block, the Twitch embed in the page
+Section kickers and counters, the stock illustration card, the game promo block, any stream embed other than YouTube in the page
 (a single small link stays), repeated status pills, the "Latest" TAF feed on the home page (it moves to the airport
 page where it belongs), emoji and decorative icons.
 

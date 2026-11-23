@@ -59,7 +59,7 @@ class WatchTest(unittest.TestCase):
         self.assertIn("&autoplay=0", js)
         self.assertNotIn("player.twitch.tv", js)
         self.assertNotIn("autoplay: true", js)
-        self.assertIn("Also on Twitch", js)
+        self.assertNotIn("twitch", js.lower())   # 22 Nov: no Twitch link in the player drawer
         for p in [ROOT / "index.html", ROOT / "stuck.html"]:
             self.assertNotRegex(p.read_text(), r'<(?:iframe|script)[^>]+(?:src=[\"\']https://[^\"\']*youtube)')
 

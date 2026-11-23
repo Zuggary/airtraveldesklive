@@ -865,7 +865,7 @@ def _header() -> str:
 def _footer() -> str:
     return "\n".join([
         '  <footer class="site-footer">',
-        '    <p class="container small"><a href="https://www.youtube.com/@AirTravelDeskLive/live">Watch on YouTube</a> · <a href="https://www.twitch.tv/airtraveldesklive">Also on Twitch</a></p>',
+        '    <p class="container small"><a href="https://www.youtube.com/@AirTravelDeskLive/live">Watch on YouTube</a></p>',
         '    <div class="container foot-grid">',
         '      <div class="foot-col">',
         '        <h2>Air Travel Desk</h2>',

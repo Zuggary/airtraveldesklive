@@ -29,6 +29,5 @@ class StreamJudge(unittest.TestCase):
         for name in ['index.html', 'about.html', 'privacy.html', 'stuck.html', 'sources.html', 'tv.html']:
             text = (ROOT / name).read_text()
             self.assertIn('https://www.youtube.com/@AirTravelDeskLive/live', text, name)
-            if name != 'tv.html':
-                self.assertIn('Also on Twitch', text, name)
+            self.assertNotIn('twitch', text.lower(), name)   # 22 Nov: Twitch is off the site
             self.assertNotRegex(text, r'<(?:iframe|script|link)[^>]+(?:src|href)="https://[^\"]*youtube')

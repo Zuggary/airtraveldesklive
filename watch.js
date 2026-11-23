@@ -49,13 +49,10 @@
     var close = el(doc, "button", "watch-close", "Close");
     close.type = "button";
     close.setAttribute("aria-label", "Close live video");
-    var secondary = el(doc, "a", "small", "Also on Twitch");
-    secondary.href = "https://www.twitch.tv/airtraveldesklive";
     var musicLink = el(doc, "a", "small", "Music only, no talking");   /* AN180: the music-only live stream; shown once data/live-music.json names it */
     musicLink.hidden = true;
     musicLink.rel = "noopener";
     bar.appendChild(musicLink);
-    bar.appendChild(secondary);
     bar.appendChild(close);
     var frame = el(doc, "div", "watch-frame");           /* the in-flow 16:9 slot: it keeps its size when the player docks, so nothing shifts */
     var box = el(doc, "div", "watch-box");               /* the player lives here and never moves in the DOM (moving an iframe reloads it); docking only restyles this box */
