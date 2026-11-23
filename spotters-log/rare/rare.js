@@ -18,7 +18,7 @@ function render(){
 }
 fetch('rare-log.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(d){D=d;if(d.labels){for(var k in d.labels){LAB[k]=d.labels[k]}}
  d.types.forEach(function(t){var o=document.createElement('option');o.value=t.type;o.textContent=t.type+' '+(NAMES[t.type]||'')+(t.planes?' ('+t.planes+')':'');$('ty').appendChild(o)});
- $('gen').textContent='Updated '+d.generated+'. Data since '+d.data_since+'. Source: '+d.source+'.';
+ $('gen').textContent='Last new sighting '+(d.sightings.slice().sort(function(a,b){return (b.last_seen_utc||'').localeCompare(a.last_seen_utc||'')})[0]||{last_seen:'none yet'}).last_seen+' · refreshed hourly. Data since '+d.data_since+'. Source: '+d.source+'.';
  $('q').oninput=function(){st.q=this.value;render()};$('ty').onchange=function(){st.ty=this.value;render()};$('onlyseen').onchange=function(){st.only=this.checked;render()};
  Array.prototype.forEach.call(document.querySelectorAll('.chip[data-tier]'),function(b){b.onclick=function(){st.tier=b.dataset.tier;Array.prototype.forEach.call(document.querySelectorAll('.chip[data-tier]'),function(x){x.setAttribute('aria-pressed',x===b)});render()}});
  render()}).catch(function(){$('seen').innerHTML='<p class="empty">The log could not load. Try again soon.</p>'});
