@@ -163,6 +163,9 @@ jobs:
           mkdir -p _site/wall/img
           cp wall/index.html wall/wall.js wall/us-states.geojson _site/wall/
           cp wall/img/*.webp _site/wall/img/
+          mkdir -p _site/spotters-log/rare/type
+          cp spotters-log/rare/index.html spotters-log/rare/rare.js spotters-log/rare/rare.css spotters-log/rare/rare-log.json _site/spotters-log/rare/
+          cp spotters-log/rare/type/*.html _site/spotters-log/rare/type/
 
       - name: Pre-render live status into the home page (reads data/*.json, no network; writes _site/index.html)
         run: python tools/prerender_home.py --template index.html --data data --out _site/index.html
