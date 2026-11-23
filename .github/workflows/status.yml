@@ -119,7 +119,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          for file in index.html 404.html stuck.html shows.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
+          for file in index.html 404.html stuck.html shows.html music.html about.html sources.html sources.js tv.html us-states.geojson qr-owed.svg privacy.html ads.txt app.js lib.js stuck.js sw.js count.js cine.js sun.js apmap.js airport.js alert.js watch.js theme.js tokens.css style.css og.png favicon.svg favicon.png CNAME robots.txt sitemap.xml; do
             if [ -f "$file" ]; then
               cp "$file" _site/
             fi
@@ -147,11 +147,13 @@ jobs:
           fi
           mkdir -p _site/assets/shows
           cp assets/shows/*.webp assets/shows/*.png _site/assets/shows/
+          mkdir -p _site/assets/music
+          cp assets/music/*.mp3 _site/assets/music/
           mkdir -p _site/assets/live
           cp assets/live/*.jpg _site/assets/live/
           mkdir -p _site/data
           cp data/status.json data/state.json _site/data/
-          for f in radar.png radar.json tsa.json tsa-history.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json live-main.json live-music.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
+          for f in radar.png radar.json tsa.json tsa-history.json airports.json bts.json places.json security-waits.json dot-commitments.json airport-guide.json wx.json storms.json nhc.json national.json board-history.json sources.json history-summary.json alert.json live-main.json live-music.json music.json; do if [ -f "data/$f" ]; then cp "data/$f" _site/data/; fi; done
           mkdir -p _site/help
           cp help/*.html _site/help/
           mkdir -p _site/fonts
