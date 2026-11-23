@@ -7,7 +7,7 @@
   "epic": "Unicorn",
   "legendary": "Holy Grail"
  },
- "generated": "2026-11-23 7:11 AM PT",
+ "generated": "2026-11-23 8:11 AM PT",
  "data_since": "2026-11-22 8:30 PM PT",
  "source": "Air Travel Desk stream database (ADS-B positions from adsb.lol, ODbL)",
  "types": [
@@ -38,9 +38,9 @@
   {
    "type": "AN12",
    "tier": "legendary",
-   "times_seen": 0,
+   "times_seen": 1,
    "planes": 1,
-   "last_seen": "2026-11-23 7:05 AM PT",
+   "last_seen": "2026-11-23 8:06 AM PT",
    "provisional": true
   },
   {
@@ -86,9 +86,9 @@
   {
    "type": "BLCF",
    "tier": "legendary",
-   "times_seen": 2,
+   "times_seen": 3,
    "planes": 3,
-   "last_seen": "2026-11-23 7:09 AM PT",
+   "last_seen": "2026-11-23 7:29 AM PT",
    "provisional": true
   },
   {
@@ -142,6 +142,20 @@
  ],
  "sightings": [
   {
+   "type": "AN12",
+   "hex": "5082a8",
+   "tail": null,
+   "callsign": "CVK7129",
+   "operator": null,
+   "airport": null,
+   "city": null,
+   "first_seen": "2026-11-23 7:03 AM PT",
+   "last_seen": "2026-11-23 8:06 AM PT",
+   "last_seen_utc": "2026-11-23 08:06:37.4-08",
+   "pings": 9,
+   "track": [[44.5899,-93.2039,10650,0.0],[44.4521,-93.0943,11625,1.9],[43.8452,-92.9758,18425,9.9],[43.6871,-92.9819,20625,11.9],[43.0363,-93.0187,24025,20.1],[42.3481,-93.0853,23975,28.0],[41.1107,-93.2269,23950,42.2],[40.1726,-93.3442,23950,53.0],[39.3301,-93.4724,24000,63.0]]
+  },
+  {
    "type": "BLCF",
    "hex": "a999df",
    "tail": "N718BA",
@@ -150,24 +164,10 @@
    "airport": "SEA",
    "city": "Seattle, WA",
    "first_seen": "2026-11-23 7:09 AM PT",
-   "last_seen": "2026-11-23 7:09 AM PT",
-   "last_seen_utc": "2026-11-23 07:09:37.1-08",
-   "pings": 1,
-   "track": [[46.7872,-123.258,null,null],[47.5492,-122.4517,9275,0.0]]
-  },
-  {
-   "type": "AN12",
-   "hex": "5082a8",
-   "tail": null,
-   "callsign": "CVK7129",
-   "operator": null,
-   "airport": "MSP",
-   "city": "Minneapolis, MN",
-   "first_seen": "2026-11-23 7:03 AM PT",
-   "last_seen": "2026-11-23 7:05 AM PT",
-   "last_seen_utc": "2026-11-23 07:05:35.6-08",
+   "last_seen": "2026-11-23 7:29 AM PT",
+   "last_seen_utc": "2026-11-23 07:29:36.9-08",
    "pings": 2,
-   "track": [[44.5899,-93.2039,10650,0.0],[44.4521,-93.0943,11625,1.9]]
+   "track": [[46.7872,-123.258,null,null],[47.5492,-122.4517,9275,0.0],[47.9199,-122.284,null,20.0]]
   },
   {
    "type": "BLCF",
