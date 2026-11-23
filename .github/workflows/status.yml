@@ -109,6 +109,9 @@ jobs:
       - name: Build interactive data stories (fetches TSA daily table if needed; reads FAA hourly archive)
         run: python tools/build_stories.py --data data --readings data --out stories --sitemap sitemap.xml
 
+      - name: Build chart pages (own SVG from data/tsa-history.json, no network)
+        run: python tools/build_charts.py --data data --out charts
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
@@ -130,6 +133,9 @@ jobs:
           mkdir -p _site/stories/thanksgiving
           cp stories/index.html _site/stories/
           cp stories/thanksgiving/index.html stories/thanksgiving/story.css stories/thanksgiving/story.js _site/stories/thanksgiving/
+          mkdir -p _site/charts/tsa
+          cp charts/index.html charts/chart.css _site/charts/
+          cp charts/tsa/index.html _site/charts/tsa/
           mkdir -p _site/assets/art
           cp assets/art/*.avif assets/art/*.jpg _site/assets/art/
           mkdir -p _site/assets/art/airports
@@ -193,7 +199,7 @@ jobs:
             echo "::error::Expected $expected_airlines airline pages in _site/airlines, found $airline_count"
             missing=1
           fi
-          for sf in _site/stories/index.html _site/stories/thanksgiving/index.html _site/stories/thanksgiving/story.css _site/stories/thanksgiving/story.js; do
+          for sf in _site/charts/index.html _site/charts/chart.css _site/charts/tsa/index.html _site/stories/index.html _site/stories/thanksgiving/index.html _site/stories/thanksgiving/story.css _site/stories/thanksgiving/story.js; do
             if [ ! -f "$sf" ]; then
               echo "::error::$sf is missing"
               missing=1
