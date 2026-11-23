@@ -7,7 +7,7 @@
   "epic": "Unicorn",
   "legendary": "Holy Grail"
  },
- "generated": "2026-11-23 4:07 AM PT",
+ "generated": "2026-11-23 7:11 AM PT",
  "data_since": "2026-11-22 8:30 PM PT",
  "source": "Air Travel Desk stream database (ADS-B positions from adsb.lol, ODbL)",
  "types": [
@@ -39,8 +39,8 @@
    "type": "AN12",
    "tier": "legendary",
    "times_seen": 0,
-   "planes": 0,
-   "last_seen": null,
+   "planes": 1,
+   "last_seen": "2026-11-23 7:05 AM PT",
    "provisional": true
   },
   {
@@ -87,8 +87,8 @@
    "type": "BLCF",
    "tier": "legendary",
    "times_seen": 2,
-   "planes": 2,
-   "last_seen": "2026-11-23 4:03 AM PT",
+   "planes": 3,
+   "last_seen": "2026-11-23 7:09 AM PT",
    "provisional": true
   },
   {
@@ -143,6 +143,34 @@
  "sightings": [
   {
    "type": "BLCF",
+   "hex": "a999df",
+   "tail": "N718BA",
+   "callsign": "GTI4536",
+   "operator": "Atlas Air",
+   "airport": "SEA",
+   "city": "Seattle, WA",
+   "first_seen": "2026-11-23 7:09 AM PT",
+   "last_seen": "2026-11-23 7:09 AM PT",
+   "last_seen_utc": "2026-11-23 07:09:37.1-08",
+   "pings": 1,
+   "track": [[46.7872,-123.258,null,null],[47.5492,-122.4517,9275,0.0]]
+  },
+  {
+   "type": "AN12",
+   "hex": "5082a8",
+   "tail": null,
+   "callsign": "CVK7129",
+   "operator": null,
+   "airport": "MSP",
+   "city": "Minneapolis, MN",
+   "first_seen": "2026-11-23 7:03 AM PT",
+   "last_seen": "2026-11-23 7:05 AM PT",
+   "last_seen_utc": "2026-11-23 07:05:35.6-08",
+   "pings": 2,
+   "track": [[44.5899,-93.2039,10650,0.0],[44.4521,-93.0943,11625,1.9]]
+  },
+  {
+   "type": "BLCF",
    "hex": "aa0ca7",
    "tail": "N747BC",
    "callsign": "GTI4536",
@@ -150,10 +178,10 @@
    "airport": null,
    "city": null,
    "first_seen": "2026-11-23 3:10 AM PT",
-   "last_seen": "2026-11-23 4:03 AM PT",
-   "last_seen_utc": "2026-11-23 04:03:30.1-08",
+   "last_seen": "2026-11-23 5:29 AM PT",
+   "last_seen_utc": "2026-11-23 05:29:53.6-08",
    "pings": 13,
-   "track": [[46.6501,-92.3036,35000,0.0],[45.4643,-91.3108,35000,10.0],[44.2883,-90.3712,35000,20.0],[42.9457,-89.1452,35000,32.0],[41.6817,-88.049,35000,43.4],[40.6337,-87.092,35000,53.4]]
+   "track": [[46.6501,-92.3036,35000,0.0],[45.4643,-91.3108,35000,10.0],[44.2883,-90.3712,35000,20.0],[42.9457,-89.1452,35000,32.0],[41.6817,-88.049,35000,43.4],[40.6337,-87.092,35000,53.4],[39.4662,-86.0797,35000,64.4],[38.4028,-85.1181,35000,74.4],[35.6823,-82.8032,35000,99.8],[34.6172,-82.0131,28350,109.8],[33.6498,-81.1911,22125,119.8],[32.9731,-80.3967,5425,129.8],[32.8043,-79.9659,2025,139.8]]
   },
   {
    "type": "BLCF",
@@ -163,11 +191,11 @@
    "operator": "Atlas Air",
    "airport": "JFK",
    "city": "New York, NY",
-   "first_seen": "2026-11-22 8:30 PM PT",
-   "last_seen": "2026-11-22 8:54 PM PT",
-   "last_seen_utc": "2026-11-22 20:54:14-08",
-   "pings": 12,
-   "track": [[40.6521,-73.795,null,0.0]]
+   "first_seen": "2026-11-22 8:14 PM PT",
+   "last_seen": "2026-11-22 8:14 PM PT",
+   "last_seen_utc": "2026-11-22 20:14:14.4-08",
+   "pings": 1,
+   "track": [[42.5872,-68.798,null,null],[42.0701,-70.3138,null,null],[41.3999,-71.6874,null,null],[40.8984,-72.8291,null,null],[40.3394,-73.4978,null,null],[40.3409,-73.8389,null,null],[40.6391,-73.7723,null,null],[40.6521,-73.795,null,0.0]]
   }
  ]
 }
