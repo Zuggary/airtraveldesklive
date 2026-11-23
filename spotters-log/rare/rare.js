@@ -1,0 +1,24 @@
+(function(){
+var NAMES={"A124":"Antonov An-124 Ruslan","A225":"Antonov An-225 Mriya","A3ST":"Airbus A300-600ST Beluga","AN12":"Antonov An-12","B1":"Rockwell B-1B Lancer","B2":"Northrop Grumman B-2 Spirit","B52":"Boeing B-52 Stratofortress","B74S":"Boeing 747SP","BELF":"Airbus BelugaXL","BLCF":"Boeing 747 Dreamlifter (LCF)","P3":"Lockheed P-3 Orion","SGUP":"Special-mission aircraft (type code SGUP)","SR71":"Lockheed SR-71 Blackbird","U2":"Lockheed U-2 Dragon Lady","WB57":"Martin WB-57F Canberra","WC13":"Lockheed WC-130 Hercules (hurricane hunter)"};
+var HIST={A225:'Destroyed 2022',SR71:'Retired, museums only'};
+var SIL='<svg viewBox="0 0 64 64" class="sil" aria-hidden="true"><path d="M32 4c2 0 3 3 3 7v14l24 14v6L35 38v13l6 5v4l-9-2-9 2v-4l6-5V38L5 45v-6l24-14V11c0-4 1-7 3-7z" fill="currentColor"/></svg>';
+var $=function(i){return document.getElementById(i)},st={tier:'all',q:'',ty:'',only:false},D=null;
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function badge(t){return '<span class="badge '+t+'">'+(t==='legendary'?'★ Legendary':'◆ Epic')+'</span>'}
+function lastSeen(s){return s||'not seen yet'}
+function render(){
+ var q=st.q.trim().toUpperCase(),planes=D.sightings.map(function(s){var t=D.types.filter(function(x){return x.type===s.type})[0]||{};s._tier=t.tier||'legendary';return s});
+ var ok=function(tier,type,extra){return (st.tier==='all'||st.tier===tier)&&(!st.ty||st.ty===type)&&(!q||(extra+' '+type+' '+(NAMES[type]||'')).toUpperCase().indexOf(q)>=0)};
+ var ps=planes.filter(function(s){return ok(s._tier,s.type,(s.tail||'')+' '+(s.callsign||'')+' '+(s.hex||''))}).sort(function(a,b){return (a._tier==='legendary'?0:1)-(b._tier==='legendary'?0:1)||(b.last_seen_utc||'').localeCompare(a.last_seen_utc||'')});
+ $('seen').innerHTML=ps.length?ps.map(function(s){return '<article class="card '+s._tier+'"><div class="row">'+badge(s._tier)+SIL+'</div>'+'<h2><a href="type/'+s.type+'.html">'+esc(s.type)+'</a> <span class="tail">'+esc(s.tail||s.hex.toUpperCase())+'</span></h2><p class="nm">'+esc(NAMES[s.type]||s.type)+'</p><dl><dt>Operator</dt><dd>'+esc(s.operator||'unknown')+(s.callsign?' ('+esc(s.callsign)+')':'')+'</dd><dt>Near</dt><dd>'+esc(s.airport?s.city+' ('+s.airport+')':'not near a listed airport')+'</dd><dt>First seen</dt><dd>'+esc(s.first_seen)+'</dd><dt>Last seen</dt><dd>'+esc(s.last_seen)+'</dd><dt>Evidence</dt><dd>'+s.pings+' position reports from our receiver</dd><dt>Registration</dt><dd>'+esc(s.tail?s.tail+' (tail number)':'unknown')+'</dd></dl></article>'}).join(''):'<p class="empty">No planes match. '+(D.sightings.length?'Clear a filter.':'None tracked yet.')+'</p>';
+ var ts=D.types.filter(function(t){return !t.planes&&!st.only&&ok(t.tier,t.type,'')}).sort(function(a,b){return (a.tier==='legendary'?0:1)-(b.tier==='legendary'?0:1)||a.type.localeCompare(b.type)});
+ $('unseen').innerHTML=ts.map(function(t){return '<article class="mini '+t.tier+'"><b>'+esc(t.type)+'</b> <span>'+esc(NAMES[t.type]||'')+'</span><em>'+(HIST[t.type]||'Not seen yet')+'</em></article>'}).join('');
+ var lg=D.types.filter(function(t){return t.tier==='legendary'&&!HIST[t.type]}),lgs=lg.filter(function(t){return t.planes}).length;$('prog').style.width=(lg.length?100*lgs/lg.length:0)+'%';$('stats').innerHTML=[['Planes logged',D.sightings.length],['Legendary types collected',D.types.filter(function(t){return t.tier==='legendary'&&t.planes&&!HIST[t.type]}).length+' of '+D.types.filter(function(t){return t.tier==='legendary'&&!HIST[t.type]}).length]].concat(D.types.some(function(t){return t.tier==='epic'})?[['Epic types collected',D.types.filter(function(t){return t.tier==='epic'&&t.planes}).length+' of '+D.types.filter(function(t){return t.tier==='epic'}).length]]:[]).map(function(x){return '<div class="stat"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'}).join('');
+}
+fetch('rare-log.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(d){D=d;
+ d.types.forEach(function(t){var o=document.createElement('option');o.value=t.type;o.textContent=t.type+' '+(NAMES[t.type]||'')+(t.planes?' ('+t.planes+')':'');$('ty').appendChild(o)});
+ $('gen').textContent='Updated '+d.generated+'. Data since '+d.data_since+'. Source: '+d.source+'.';
+ $('q').oninput=function(){st.q=this.value;render()};$('ty').onchange=function(){st.ty=this.value;render()};$('onlyseen').onchange=function(){st.only=this.checked;render()};
+ Array.prototype.forEach.call(document.querySelectorAll('.chip[data-tier]'),function(b){b.onclick=function(){st.tier=b.dataset.tier;Array.prototype.forEach.call(document.querySelectorAll('.chip[data-tier]'),function(x){x.setAttribute('aria-pressed',x===b)});render()}});
+ render()}).catch(function(){$('seen').innerHTML='<p class="empty">The log could not load. Try again soon.</p>'});
+})();

@@ -1,0 +1,151 @@
+{
+ "version": 1,
+ "generated": "2026-11-23 2:46 AM PT",
+ "data_since": "2026-11-22 8:30 PM PT",
+ "source": "Air Travel Desk stream database (ADS-B positions from adsb.lol, ODbL)",
+ "types": [
+  {
+   "type": "A124",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "A225",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "A3ST",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "AN12",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "B1",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "B2",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "B52",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "B74S",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "BELF",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "BLCF",
+   "tier": "legendary",
+   "times_seen": 1,
+   "planes": 1,
+   "last_seen": "2026-11-22 8:54 PM PT",
+   "provisional": true
+  },
+  {
+   "type": "P3",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "SGUP",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "SR71",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "U2",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "WB57",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  },
+  {
+   "type": "WC13",
+   "tier": "legendary",
+   "times_seen": 0,
+   "planes": 0,
+   "last_seen": null,
+   "provisional": true
+  }
+ ],
+ "sightings": [
+  {
+   "type": "BLCF",
+   "hex": "aa90a0",
+   "tail": "N780BA",
+   "callsign": "GTI4231",
+   "operator": "Atlas Air",
+   "airport": "JFK",
+   "city": "New York, NY",
+   "first_seen": "2026-11-22 8:30 PM PT",
+   "last_seen": "2026-11-22 8:54 PM PT",
+   "last_seen_utc": "2026-11-22 20:54:14-08",
+   "pings": 12
+  }
+ ]
+}
