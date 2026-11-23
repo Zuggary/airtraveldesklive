@@ -38,7 +38,7 @@
     // 21 Nov (CoS): palette fix. The relief image's own purple oceans and muddy red terrain are replaced:
     // greyscale relief, navy-blue tint, amber city lights, bigger brighter aircraft dots.
     fitRect();
-    ctx.fillStyle = '#0a1424'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#05080d'; ctx.fillRect(0, 0, cv.width, cv.height);      // 23 Nov: same colour as the page, so a letterbox is not a visible band
     if (relief.complete && relief.naturalWidth) {
       ctx.filter = 'grayscale(0.9) brightness(0.62) contrast(1.15)';
       ctx.drawImage(relief, rect.x, rect.y, rect.w, rect.h);
@@ -54,6 +54,14 @@
       ctx.globalAlpha = 0.22;
       ctx.drawImage(lights, rect.x, rect.y, rect.w, rect.h);
       ctx.globalAlpha = 1; ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
+    }
+    // 23 Nov (CoS): where the map does not fill the screen (landscape, wider ratio), fade its top and bottom edges into the page colour.
+    var fade = Math.round(Math.min(rect.h * 0.06, 60 * (window.devicePixelRatio || 1)));
+    if (rect.y > 0 && fade > 0) {
+      var g1 = ctx.createLinearGradient(0, rect.y, 0, rect.y + fade); g1.addColorStop(0, 'rgba(5,8,13,1)'); g1.addColorStop(1, 'rgba(5,8,13,0)');
+      ctx.fillStyle = g1; ctx.fillRect(rect.x, rect.y, rect.w, fade);
+      var g2 = ctx.createLinearGradient(0, rect.y + rect.h, 0, rect.y + rect.h - fade); g2.addColorStop(0, 'rgba(5,8,13,1)'); g2.addColorStop(1, 'rgba(5,8,13,0)');
+      ctx.fillStyle = g2; ctx.fillRect(rect.x, rect.y + rect.h - fade, rect.w, fade);
     }
     if (statesGeo && statesGeo.features) {
       // 21 Nov (CoS): subtle state borders for orientation on the dark basemap.
