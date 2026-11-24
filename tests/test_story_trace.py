@@ -654,8 +654,13 @@ class TestStoryTraceAndBuilder(unittest.TestCase):
         tsa_latest = date.fromisoformat(json.loads((ROOT / "data" / "tsa-history.json").read_text(encoding="utf-8"))["latest_date"])
         expect_end = f"seven days ending {tsa_latest:%a} {tsa_latest:%b} {tsa_latest.day}, {tsa_latest.year}"
         self.assertRegex(h1, r"\d+(?:\.\d+)?%")
-        self.assertIn(expect_end, h1)
-        self.assertRegex(h1, r"same seven days in 2025 \([A-Z][a-z]{2} \d+ to (?:[A-Z][a-z]{2} )?\d+\)")
+        if "Early Thanksgiving week reading" in h1:
+            # AN421: before seven TSA days are counted the page uses the early-reading wording (see the "mid" stage fixture check).
+            self.assertIn(f"Latest TSA count: {tsa_latest:%a} {tsa_latest:%b} {tsa_latest.day}", h1)
+            self.assertRegex(h1, r"versus the same (?:\w+ )?days? in 2025")
+        else:
+            self.assertIn(expect_end, h1)
+            self.assertRegex(h1, r"same seven days in 2025 \([A-Z][a-z]{2} \d+ to (?:[A-Z][a-z]{2} )?\d+\)")
         # 22 Nov 2026: the record now sits in the "short version" card (plain-English top of page), not the dek.
         find_txt = html_lib.unescape(re.search(r'class="story-find-list">(.*?)</ul>', text, re.S).group(1))
         self.assertIn("3.13M", find_txt)
@@ -1133,6 +1138,8 @@ print(json.dumps(results))
     def test_round5_headline_scope_and_date_window_check(self) -> None:
         story_html = ROOT / "stories" / "thanksgiving" / "index.html"
         html_doc = story_html.read_text(encoding="utf-8")
+        # AN421: first match of a pattern in the built page, or None (some wording only exists in later stages)
+        _find = lambda pattern: (lambda m: m.group(0) if m else None)(re.search(pattern, html_doc))
         tsa = json.loads((ROOT / "data" / "tsa-history.json").read_text(encoding="utf-8"))
         faa_hist = json.loads((ROOT / "data" / "history-summary.json").read_text(encoding="utf-8"))
         target_year = bs._target_thanksgiving_year(tsa, datetime(2026, 11, 19, 12, 0, tzinfo=timezone.utc))
@@ -1168,13 +1175,13 @@ print(json.dumps(results))
                 "Unscoped H1",
             ),
             (
-                re.search(r"seven days ending [A-Za-z]{3} [A-Za-z]{3} \d+, 2026", html_doc).group(0),
-                _shift_end_day(re.search(r"seven days ending [A-Za-z]{3} [A-Za-z]{3} \d+, 2026", html_doc).group(0)),
+                _find(r"seven days ending [A-Za-z]{3} [A-Za-z]{3} \d+, 2026"),
+                _shift_end_day(_find(r"seven days ending [A-Za-z]{3} [A-Za-z]{3} \d+, 2026") or "seven days ending Tue Jan 6, 2026"),
                 "H1 wrong 7-day end date",
             ),
             (
-                re.search(r"Flyers in 7 days \([A-Za-z]{3} \d+ to [A-Za-z]{3} \d+, 2026, TSA\)", html_doc).group(0),
-                _shift_start_day(re.search(r"Flyers in 7 days \([A-Za-z]{3} \d+ to [A-Za-z]{3} \d+, 2026, TSA\)", html_doc).group(0)),
+                _find(r"Flyers in 7 days \([A-Za-z]{3} \d+ to [A-Za-z]{3} \d+, 2026, TSA\)"),
+                _shift_start_day(_find(r"Flyers in 7 days \([A-Za-z]{3} \d+ to [A-Za-z]{3} \d+, 2026, TSA\)") or "Flyers in 7 days (Jan 1 to Jan 7, 2026, TSA)"),
                 "KPI 2 wrong 7-day range",
             ),
             (
@@ -1183,12 +1190,17 @@ print(json.dumps(results))
                 "Takeaway wrong counted range",
             ),
         ]
+        # AN421: the 7-day wording only exists once seven TSA days are counted; in the early-reading stage those targets are absent, so skip only them.
+        checked = 0
         for old, new, label in bad_replacements:
+            if not old or old not in html_doc:
+                continue
+            checked += 1
             with self.subTest(bad=label):
-                self.assertIn(old, html_doc, f"Missing target for negative test {label}")
                 tampered = html_doc.replace(old, new, 1)
                 with self.assertRaises(ValueError):
                     bs.verify_story_date_windows(tampered, tsa=tsa, faa_hist=faa_hist, target_year=target_year)
+        self.assertGreaterEqual(checked, 3, "negative window checks must still run in every stage")
 
 
 
