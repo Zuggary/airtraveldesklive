@@ -1127,10 +1127,15 @@ print(json.dumps(results))
         # Calendar dates and date windows (e.g. "Nov 13 to 19") repeat by design; they are not headline stats
         _mon = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?"
         prose = re.sub(rf"{_mon} \d{{1,2}}(?:, \d{{4}})?(?: to (?:{_mon} )?\d{{1,2}}(?:, \d{{4}})?)?", " ", prose)
+        # 25 Nov 2026: the FAA tally changes every hour, so a fixed "13"/"86"/"35" collided with unrelated
+        # counts (LGA "13 delay, 13 stop") and failed the hourly deploy. Cap the numbers the headline sentence
+        # prints now ("N of 100 ... stayed clear and M had ..."); 100 and 72 are fixed by design.
+        _tally = re.search(r"(\d+) of 100 monitored US airports stayed clear and (\d+) had", prose)
+        self.assertIsNotNone(_tally, "FAA headline tally sentence not found in story prose")
         for tok in (
             "16,246,108", "15,559,295", "1,956,731", "1,816,617",
             "3,134,613", "+4.4%", "+7.7%", "3.13M",
-            "13", "86", "100", "72", "35",
+            "100", "72", _tally.group(1), _tally.group(2),
         ):
             cnt = len(re.findall(r"(?<![\d.,])" + re.escape(tok) + r"(?![\d.,%])", prose))
             self.assertLessEqual(cnt, 2, f"Token {tok!r} repeated {cnt} times (>2) in story prose/KPIs: {prose}")
