@@ -22,7 +22,14 @@ def run_tool(name, *args):
 
 
 def rounded_change(current, prior):
-    return (Decimal(current - prior) * 100 / prior).quantize(Decimal("0.1"))
+    # "+ 0" turns Decimal("-0.0") into 0.0: the site prints "+0.0%" for a tiny fall, never "-0.0%".
+    return (Decimal(current - prior) * 100 / prior).quantize(Decimal("0.1")) + 0
+
+
+class RoundedChangeTest(unittest.TestCase):
+    def test_tiny_fall_is_plus_zero_like_the_site(self):
+        self.assertEqual(f"{rounded_change(99996, 100000):+.1f}", "+0.0")
+        self.assertEqual(f"{rounded_change(99900, 100000):+.1f}", "-0.1")
 
 
 class PageParser(HTMLParser):
